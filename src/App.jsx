@@ -1056,7 +1056,7 @@ export default function App() {
       {view === 'settings' && (
         <SettingsMenu
           onBack={() => setView('menu')}
-          onrulesEditor={() => setView('rulesEditor')}
+          onRulesEditor={() => setView('rulesEditor')}
           onExport={exportToExcel}
           onImport={importFromExcel}
           onClearAll={clearAllData}
@@ -1118,9 +1118,9 @@ export default function App() {
       ) : (
         <SafeTournamentFallback title="Dáta turnaja sa nepodarilo načítať" />
       ))}
-      {view === 'rules' && <rulesView rules={rules} onBack={() => setView('menu')} />}
+      {view === 'rules' && <RulesView rules={rules} onBack={() => setView('menu')} />}
       {view === 'rulesEditor' && (
-        <rulesEditor rules={rules} onSave={setrules} onBack={() => setView('settings')}
+        <RulesEditor rules={rules} onSave={setrules} onBack={() => setView('settings')}
           onReset={() => { if (window.confirm('Obnoviť všetky pravidlá na pôvodné nastavenia?')) setrules(DEFAULT_RULES); }}
           selectedSkin={selectedSkin}
         />
@@ -1194,7 +1194,7 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
   return <div className="min-h-screen flex items-center justify-center p-6 ks-cream"><div className="ks-card rounded-sm p-5 text-center max-w-md"><div className="ks-display text-2xl ks-gold mb-2">{title}</div><div className="ks-muted text-sm">Skús sa vrátiť späť alebo otvoriť turnaj znova.</div></div></div>;
 }
 
-function SettingsMenu({ onBack, onrulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange }) {
+function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange }) {
   const fileInputRef = useRef(null);
 
   function handleFilePick(e) {
@@ -1562,6 +1562,17 @@ function computeWinners(tournament) {
   const requiresConfirmation = !r18 || r18.selected !== 'Nie'; // default Áno
   const confirmed = Array.isArray(tournament._confirmedDetailed) ? tournament._confirmedDetailed : [];
 
+  // Fallback pre importované/archívne turnaje (status='finished') bez _confirmedDetailed:
+  // Ak klasický mód vyžaduje potvrdenie ale žiadne nie je uložené, vyhodnoť
+  // víťaza podľa totals (strict-mode detekcia). Zabraňuje NEZHODA banneru
+  // pri legitimných importovaných výsledkoch.
+  const isFinishedWithoutConfirm =
+    tournament.status === 'finished' &&
+    requiresConfirmation &&
+    confirmed.length === 0 &&
+    achievers.length > 0;
+  const useStrictDetection = !requiresConfirmation || isFinishedWithoutConfirm;
+
   if (achievers.length === 0) {
     return {
       winners: [],
@@ -1579,8 +1590,8 @@ function computeWinners(tournament) {
   let reason = '';
   let pendingAchievers = [];
 
-  if (!requiresConfirmation) {
-    // r18 = Nie: víťazom je každý achiever, ktorý dosiahol cieľ v najskoršom
+  if (useStrictDetection) {
+    // r18 = Nie (alebo fallback pre finished bez confirm): víťazom je prvý achiever
     // kole. V rámci toho istého kola = remíza so všetkými.
     const reachedAt = achievers.map(idx => {
       let cum = 0;
@@ -2274,10 +2285,13 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
 
   function addCustom() {
     const n = parseInt(customInput, 10);
-    if (Number.isFinite(n) && n !== 0) {
-      addPoints(n);
-      setCustomInput('');
+    if (!Number.isFinite(n) || n === 0) return;
+    if (n % 50 !== 0) {
+      showToast('Hodnota musí byť násobok 50 (50, 100, 150…)', 'warn');
+      return;
     }
+    addPoints(n);
+    setCustomInput('');
   }
 
   return (
@@ -3005,7 +3019,7 @@ function ProgressChart({ tournament, totals, target }) {
   );
 }
 
-function rulesView({ rules, onBack }) {
+function RulesView({ rules, onBack }) {
   // Získať aktuálne hodnoty pre popis
   const minWO     = Number(rules.find(r => r.id === 'r14')?.points) || 300;
   const target    = Number(rules.find(r => r.id === 'r15')?.points) || 10000;
@@ -3078,7 +3092,7 @@ function rulesContent({ rules, compact = false }) {
 
 // ─── Editor pravidiel ─────────────────────────────────────────────────────
 
-function rulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
+function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
   const [draft, setDraft] = useState(rules);
   const [activeCategory, setActiveCategory] = useState(null);
   const [editingId, setEditingId] = useState(null);
