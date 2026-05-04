@@ -1760,9 +1760,13 @@ function useFunnyQueue() {
 }
 
 function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMenu, scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange, tournamentViewMode = 'basic', funnyWindowsDisplayMode = 'standard' }) {
+  // Early null guard — before destructuring to prevent crash
+  if (!tournament) return <SafeTournamentFallback />;
   const target = tournament.targetScore || 10000;
   const minWO = tournament.minWriteOff || 300;
-  const { players, rounds, currentPlayer, currentRound } = tournament;
+  const players = Array.isArray(tournament.players) ? tournament.players : [];
+  const rounds = Array.isArray(tournament.rounds) ? tournament.rounds : [];
+  const { currentPlayer = 0, currentRound = 0 } = tournament;
 
   const [pending, setPending] = useState([]);
   const [customInput, setCustomInput] = useState('');
