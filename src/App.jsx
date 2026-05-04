@@ -607,7 +607,51 @@ export default function App() {
 
   function finishTournament(winnerIdxOrArray) {
     if (!active) return;
-    const finished = { ...active, status: 'finished', winner: winnerIdxOrArray, finishedAt: new Date().toISOString() };
+
+    // ─── Checksum validácia pred uzatvorením ────────────────────────────
+    // Overí konzistenciu: víťaz určený v hlavičke (winnerIdxOrArray) musí
+    // byť skutočne hráč ktorý dosiahol cieľ podľa súčtov v kolách.
+    // Ak je rozpor, nezatvoríme turnaj a zobrazíme chybu — používateľ uvidí
+    // diskrepanciu skôr než sa turnaj presunie do archívu.
+    const validation = computeWinners({
+      ...active,
+      // _confirmedDetailed je už v active state, computeWinners ho prečíta
+    });
+
+    if (!validation.valid) {
+      const msg = 'Turnaj nemôže byť uzatvorený — nájdené nezhody:\n\n' +
+        validation.errors.join('\n') +
+        '\n\nReason: ' + validation.reason;
+      window.alert(msg);
+      console.error('[finishTournament] Validation failed:', validation);
+      return;
+    }
+
+    // Sanity check: víťaz z parameter sa musí zhodovať s computeWinners.
+    const declaredWinners = Array.isArray(winnerIdxOrArray) ? [...winnerIdxOrArray] : [winnerIdxOrArray];
+    const computedWinners = [...validation.winners];
+    declaredWinners.sort();
+    computedWinners.sort();
+    const match = declaredWinners.length === computedWinners.length
+      && declaredWinners.every((v, i) => v === computedWinners[i]);
+    if (!match) {
+      const msg = 'Diskrepancia v určení víťaza:\n\n' +
+        `Hra deklaruje víťazov: ${declaredWinners.map(i => active.players[i]).join(', ')}\n` +
+        `Validácia podľa súčtov: ${computedWinners.map(i => active.players[i]).join(', ')}\n\n` +
+        'Turnaj sa neuzatvorí — kontaktuj vývojára (alebo skús presný stav v archíve).';
+      window.alert(msg);
+      console.error('[finishTournament] Winner mismatch:', { declaredWinners, computedWinners, totals: validation.totals });
+      return;
+    }
+
+    const finished = {
+      ...active,
+      status: 'finished',
+      winner: computedWinners.length === 1 ? computedWinners[0] : computedWinners,
+      finishedAt: new Date().toISOString(),
+      // Uložíme aj snapshot validovaných totals pre audit
+      _validatedTotals: validation.totals,
+    };
     setTournaments(prev => [finished, ...prev]);
     setActive(null);
     setViewingTournament(finished);
@@ -1443,6 +1487,170 @@ function PendingChips({ pending, removePending }) {
   );
 }
 
+// ─── computeTotals — single source of truth pre súčty ────────────────────
+// Súčet bodov pre každého hráča naprieč všetkými kolami. Null/'dash'/string
+// hodnoty sa rátajú ako 0 (nie ako "neukončené kolo"). Penalizácie (záporné
+// čísla) sa odpočítavajú normálne.
+function computeTotals(rounds, playersCount) {
+  return new Array(playersCount).fill(0).map((_, pIdx) => {
+    let sum = 0;
+    for (const round of (Array.isArray(rounds) ? rounds : [])) {
+      const v = round?.[pIdx];
+      if (typeof v === 'number' && Number.isFinite(v)) sum += v;
+    }
+    return sum;
+  });
+}
+
+// ─── computeWinners — autoritatívne určenie víťazov ──────────────────────
+// Používa sa AKO single source of truth pre:
+//   • hlavičku VÍŤAZI (winnerCelebration)
+//   • finálnu tabuľku v archíve
+//   • finishTournament checksum validáciu
+//
+// Logika (v poradí priority):
+//   1) Identifikuj všetkých hráčov ktorí dosiahli >= target (achievers).
+//   2) Ak r18 (Režim potvrdenia víťazstva) === 'Áno':
+//        → kandidáti na víťazstvo sú confirmed achievers v _confirmedDetailed
+//        → vyber tých s najskorším confirmedRound (kolom)
+//        → v rámci toho istého kola: VŠETCI sú víťazmi (= remíza)
+//          (timestamp confirmedAt sa NEpoužíva ako tiebreak — kolo je
+//           dostatočná granularita, hra nie je tak detailná aby
+//           ms-presné timestampy mali zmysel ako rozhodca)
+//        → ak ostali achievers ktorí ešte nepotvrdili → valid=false,
+//          turnaj sa nemá uzatvoriť (treba im dať šancu potvrdiť v ďalšom kole)
+//      Ak r18 === 'Nie':
+//        → víťazom je každý achiever ktorý dosiahol cieľ v najskoršom kole
+//   3) Validácia: každý víťaz musí mať totals[idx] >= target.
+//      Ak nie → vyhodí error so zoznamom diskrepancií.
+//
+// Vstup:
+//   tournament: { players, rounds, targetScore, _confirmedDetailed?, winCandidates?, rules? }
+// Návrat:
+//   { winners: number[], totals: number[], achievers: number[],
+//     isDraw: boolean, valid: boolean, errors: string[], reason: string,
+//     pendingAchievers: number[] }
+function computeWinners(tournament) {
+  const players = tournament?.players || [];
+  const rounds = tournament?.rounds || [];
+  const target = tournament?.targetScore || 10000;
+  const totals = computeTotals(rounds, players.length);
+
+  // 1) Všetci hráči ktorí dosiahli alebo prekročili cieľ
+  const achievers = totals
+    .map((t, idx) => ({ idx, total: t }))
+    .filter(x => x.total >= target)
+    .map(x => x.idx);
+
+  // 2) Vyhodnotenie potvrdenia
+  const r18 = (tournament.rules || []).find(r => r.id === 'r18');
+  const requiresConfirmation = !r18 || r18.selected !== 'Nie'; // default Áno
+  const confirmed = Array.isArray(tournament._confirmedDetailed) ? tournament._confirmedDetailed : [];
+
+  if (achievers.length === 0) {
+    return {
+      winners: [],
+      totals,
+      achievers: [],
+      pendingAchievers: [],
+      isDraw: false,
+      valid: true,
+      errors: [],
+      reason: 'Žiadny hráč ešte nedosiahol cieľ.',
+    };
+  }
+
+  let winners = [];
+  let reason = '';
+  let pendingAchievers = [];
+
+  if (!requiresConfirmation) {
+    // r18 = Nie: víťazom je každý achiever, ktorý dosiahol cieľ v najskoršom
+    // kole. V rámci toho istého kola = remíza so všetkými.
+    const reachedAt = achievers.map(idx => {
+      let cum = 0;
+      for (let r = 0; r < rounds.length; r++) {
+        const v = rounds[r]?.[idx];
+        if (typeof v === 'number' && Number.isFinite(v)) cum += v;
+        if (cum >= target) return { idx, round: r };
+      }
+      return { idx, round: Infinity };
+    });
+    const minRound = Math.min(...reachedAt.map(x => x.round));
+    winners = reachedAt.filter(x => x.round === minRound).map(x => x.idx);
+    reason = winners.length === 1
+      ? `Hráč dosiahol cieľ ako prvý v kole ${minRound + 1}.`
+      : `${winners.length} hráči dosiahli cieľ v rovnakom kole (${minRound + 1}). Remíza.`;
+  } else {
+    // r18 = Áno: vyhodnocujeme z _confirmedDetailed.
+    const confirmedAchievers = confirmed.filter(c => achievers.includes(c.player));
+    pendingAchievers = achievers.filter(a => !confirmedAchievers.some(c => c.player === a));
+
+    if (confirmedAchievers.length === 0) {
+      // Achievers existujú ale nikto nebol potvrdený → turnaj nie je hotový.
+      return {
+        winners: [],
+        totals,
+        achievers,
+        pendingAchievers,
+        isDraw: false,
+        valid: false,
+        errors: [`Turnaj sa nedá uzatvoriť — ${achievers.length} hráč(ov) dosiahlo cieľ, no žiadny ešte nepotvrdil výhru.`],
+        reason: `${achievers.length} hráč(ov) dosiahlo cieľ, ale ešte nepotvrdil(i) výhru.`,
+      };
+    }
+
+    // Prvotne identifikujme víťazov z confirmed v najskoršom kole.
+    const minRound = Math.min(...confirmedAchievers.map(c => c.round));
+    const earliest = confirmedAchievers.filter(c => c.round === minRound);
+    winners = earliest.map(c => c.player);
+
+    // Ak ostali nepotvrdení achievers, turnaj NIE JE pripravený na uzatvorenie.
+    // Aj keď máme nejakých confirmed víťazov, nepotvrdení musia ešte dostať šancu.
+    if (pendingAchievers.length > 0) {
+      return {
+        winners: [],  // zatiaľ žiadny — čaká sa
+        totals,
+        achievers,
+        pendingAchievers,
+        isDraw: false,
+        valid: false,
+        errors: [`Turnaj sa nedá uzatvoriť — ${pendingAchievers.length} hráč(ov) ešte nepotvrdil(i) výhru.`],
+        reason: `${pendingAchievers.length} hráč(ov) má dosiahnutý cieľ ale ešte nepotvrdil(i) výhru.`,
+      };
+    }
+
+    reason = winners.length === 1
+      ? `Víťazstvo potvrdené najskôr v kole ${minRound + 1}.`
+      : `${winners.length} hráči potvrdili víťazstvo v rovnakom kole (${minRound + 1}). Remíza.`;
+  }
+
+  // 3) Validácia: každý víťaz musí mať totals[idx] >= target
+  const errors = [];
+  for (const w of winners) {
+    if (typeof w !== 'number' || w < 0 || w >= players.length) {
+      errors.push(`Neplatný index víťaza: ${w}.`);
+      continue;
+    }
+    if (totals[w] < target) {
+      errors.push(`Víťaz "${players[w]}" má skóre ${totals[w]}, čo je menej ako cieľ ${target}.`);
+    }
+  }
+  // Ak validácia zlyhá, považujeme winners za neplatných.
+  const valid = errors.length === 0;
+
+  return {
+    winners: valid ? winners : [],
+    totals,
+    achievers,
+    pendingAchievers,
+    isDraw: valid && winners.length > 1,
+    valid,
+    errors,
+    reason,
+  };
+}
+
 // ─── useFunnyQueue ────────────────────────────────────────────────────────
 // Queue pre funny popupy s nasledujúcou logikou:
 //   • aktívny popup vidí používateľ aspoň POPUP_CONFIG.POPUP_DISPLAY_DURATION ms
@@ -1551,15 +1759,9 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
   // Popup pre potvrdenie víťazstva už ukázaný (kľúč = playerIdx, aby sa neukazoval opakovane v rovnakom ťahu)
   const winPopupShownRef = useRef(new Set());
 
-  const totals = useMemo(() =>
-    players.map((_, pIdx) => {
-      let sum = 0;
-      for (const round of rounds) {
-        const v = round[pIdx];
-        if (typeof v === 'number') sum += v;
-      }
-      return sum;
-    }), [players, rounds]);
+  const totals = useMemo(
+    () => computeTotals(rounds, players.length),
+    [rounds, players.length]);
 
   const hasFirstWrite = useMemo(() =>
     players.map((_, pIdx) => rounds.some(r => typeof r[pIdx] === 'number' && r[pIdx] >= 0)),
@@ -1793,21 +1995,33 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
         const confirmedEntry = {
           player: opts.confirmedPlayer ?? prev.currentPlayer,
           round: opts.confirmedRound ?? prev.currentRound,
+          // Timestamp pre tiebreak — ak viacero hráčov potvrdí v rovnakom kole,
+          // skorší confirmedAt vyhráva. Pri rovnakom timestamp = skutočná remíza.
+          confirmedAt: Date.now(),
         };
         const confirmedSoFar = Array.isArray(prev._confirmedDetailed)
           ? [...prev._confirmedDetailed.filter(x => !(x.player === confirmedEntry.player && x.round === confirmedEntry.round)), confirmedEntry]
           : [confirmedEntry];
-        const earliestRound = Math.min(...confirmedSoFar.map(x => x.round));
-        const earliestConfirmed = confirmedSoFar.filter(x => x.round === earliestRound);
         const nextPlayer = (prev.currentPlayer + 1) % prev.players.length;
         const roundEnded = nextPlayer === 0;
         const nextRound = prev.currentRound + (roundEnded ? 1 : 0);
         winPending = null;
 
         if (roundEnded) {
-          winner = earliestConfirmed.length === 1
-            ? earliestConfirmed[0].player
-            : earliestConfirmed.map(x => x.player);
+          // Použijeme single-source-of-truth helper. Ten zahrnie aj kandidátov
+          // ktorí dosiahli cieľ ale ešte nepotvrdili — podľa r18 mode.
+          const provisional = {
+            ...prev,
+            rounds: newRounds,
+            _confirmedDetailed: confirmedSoFar,
+            winCandidates,
+            rules: prev.rules,
+          };
+          const result = computeWinners(provisional);
+          // valid=false znamená že ostali pending kandidáti — neuzatvárame turnaj.
+          // Ale keďže sme práve dokončili kolo a ďalší kandidáti by sa mali
+          // potvrdiť v ďalšom kole, ponecháme winner=null a winPending zostane null.
+          winner = result.valid && result.winners.length > 0 ? (result.winners.length === 1 ? result.winners[0] : result.winners) : null;
           return {
             ...prev,
             rounds: newRounds,
@@ -1816,7 +2030,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
             winner,
             winPending,
             winCandidates,
-            winRoundComplete: true,
+            winRoundComplete: winner !== null,
             _confirmedDetailed: confirmedSoFar,
           };
         }
@@ -1871,15 +2085,41 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
       const roundEnded = nextPlayer === 0;
       const nextRound = prev.currentRound + (roundEnded ? 1 : 0);
 
-      // ─── Vyhodnotenie kandidátov na konci kola ────────────────────
+      // ─── Vyhodnotenie kandidátov na konci kola — cez computeWinners ───
       if (roundEnded) {
-        const confirmedDetailed = Array.isArray(prev._confirmedDetailed) ? [...prev._confirmedDetailed] : [];
-        if (confirmedDetailed.length > 0) {
-          const earliestRound = Math.min(...confirmedDetailed.map(x => x.round));
-          const earliestConfirmed = confirmedDetailed.filter(x => x.round === earliestRound);
-          winner = earliestConfirmed.length === 1
-            ? earliestConfirmed[0].player
-            : earliestConfirmed.map(x => x.player);
+        const provisional = {
+          ...prev,
+          rounds: newRounds,
+          winCandidates,
+          rules: prev.rules,
+        };
+        const result = computeWinners(provisional);
+
+        // Pri r18=Áno: ak ostali achievers ktorí ešte nepotvrdili → result.valid=false.
+        // V tom prípade NEVYBERAME víťaza, ale presunieme winPending na prvého
+        // nepotvrdeného achievera, aby dostal šancu potvrdiť v ďalšom kole.
+        if (!result.valid && result.achievers.length > 0) {
+          const unconfirmedAchievers = result.achievers.filter(
+            a => !((prev._confirmedDetailed || []).some(c => c.player === a))
+          );
+          if (unconfirmedAchievers.length > 0) {
+            winPending = unconfirmedAchievers[0];
+            winRoundComplete = true;
+            return {
+              ...prev,
+              rounds: newRounds,
+              currentPlayer: winPending,
+              currentRound: nextRound,
+              winner: null,
+              winPending,
+              winCandidates,
+              winRoundComplete,
+            };
+          }
+        }
+
+        if (result.winners.length > 0) {
+          winner = result.winners.length === 1 ? result.winners[0] : result.winners;
           winRoundComplete = true;
           return {
             ...prev,
@@ -1890,21 +2130,8 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
             winPending: null,
             winCandidates,
             winRoundComplete,
-            _confirmedDetailed: confirmedDetailed,
+            _confirmedDetailed: prev._confirmedDetailed,
           };
-        }
-        if (winCandidates.length > 0) {
-          if (winCandidates.length > 1) {
-            winner = [...winCandidates];
-            winRoundComplete = true;
-          } else {
-            if (winPending === null) {
-              winner = winCandidates[0];
-            } else {
-              winPending = winCandidates[0];
-              winRoundComplete = true;
-            }
-          }
         }
       }
 
@@ -2288,12 +2515,18 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-6 ks-overlay-bg" style={{ background: 'radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98))' }}>
           <div className="ks-funny relative z-10 text-center max-w-md">
             <div className="text-7xl mb-3 ks-funny-emoji">{winnerCelebration.isDraw ? '👑👑' : '👑'}</div>
-            <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">{winnerCelebration.isDraw ? 'REMÍZA' : 'VÍŤAZ'}</div>
+            <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">
+              {winnerCelebration.isDraw
+                ? `REMÍZA — ${winnerCelebration.winnerArr.length} VÍŤAZI`
+                : 'VÍŤAZ'}
+            </div>
             <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2">
               {winnerCelebration.isDraw ? 'Víťazi' : 'Víťaz'}
             </div>
             <div className="ks-body ks-cream text-base mb-1 leading-snug">
-              {winnerCelebration.winnerArr.map(idx => players[idx]).join(', ')}
+              {winnerCelebration.winnerArr.map(idx =>
+                `${players[idx]} (${(totals[idx] || 0).toLocaleString('sk-SK')})`
+              ).join(', ')}
             </div>
           </div>
         </div>
@@ -2301,8 +2534,12 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
       {winnerCelebration && funnyWindowsDisplayMode === 'simplified' && (
         <SimplifiedResult
           kind={winnerCelebration.isDraw ? 'draw' : 'victory'}
-          title={winnerCelebration.isDraw ? 'Víťazi' : 'Víťaz'}
-          subtitle={winnerCelebration.winnerArr.map(idx => players[idx]).join(', ')}
+          title={winnerCelebration.isDraw
+            ? `Víťazi (${winnerCelebration.winnerArr.length})`
+            : 'Víťaz'}
+          subtitle={winnerCelebration.winnerArr.map(idx =>
+            `${players[idx]} (${(totals[idx] || 0).toLocaleString('sk-SK')})`
+          ).join(', ')}
           onClose={() => {}}
         />
       )}
@@ -3272,11 +3509,33 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
   }
 
   const display = editing && draft ? draft : tournament;
-  const totals = display.players.map((_, pIdx) =>
-    (display.rounds || []).reduce((s, r) => s + (typeof r[pIdx] === 'number' ? r[pIdx] : 0), 0)
-  );
+  const totals = computeTotals(display.rounds, display.players.length);
   const target = display.targetScore || 10000;
   const duration = formatDuration(tournament.date, tournament.finishedAt);
+
+  // ─── Validácia konzistencie hlavičky a tabuľky ──────────────────────
+  // Spočítame víťazov z dát turnaja (computeWinners) a porovnáme ich
+  // s víťazmi uloženými v `winner` poli. Ak je rozpor (napr. starší turnaj
+  // uložený s neúplným zoznamom víťazov), zobrazíme varovný banner.
+  const winnerComputation = useMemo(() => {
+    if (tournament.status !== 'finished') return null;
+    return computeWinners({
+      ...display,
+      _confirmedDetailed: tournament._confirmedDetailed,
+      rules: tournament.rules,
+    });
+  }, [display, tournament]);
+
+  const declaredWinners = display.winner === null || display.winner === undefined
+    ? []
+    : (Array.isArray(display.winner) ? [...display.winner] : [display.winner]);
+
+  const hasDiscrepancy = winnerComputation && (() => {
+    if (winnerComputation.winners.length !== declaredWinners.length) return true;
+    const a = [...winnerComputation.winners].sort();
+    const b = [...declaredWinners].sort();
+    return !a.every((v, i) => v === b[i]);
+  })();
 
   return (
     <div className="min-h-screen ks-fade pb-32" style={{ background: (SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic).bg }}>
@@ -3353,6 +3612,41 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
             </div>
           </div>
         </div>
+
+        {/* Banner pri detekcii rozporu medzi víťazom v hlavičke a vypočítanými totals */}
+        {hasDiscrepancy && winnerComputation && (
+          <div className="ks-card rounded-sm p-3 border-2 border-red-700/60 bg-red-950/30">
+            <div className="flex items-start gap-2">
+              <AlertTriangle size={20} className="text-red-300 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <div className="ks-mono text-red-200 text-xs tracking-widest mb-1">⚠ NEZHODA V URČENÍ VÍŤAZA</div>
+                <div className="ks-body ks-cream text-sm leading-snug">
+                  Hlavička uvádza:{' '}
+                  <strong className="ks-gold">
+                    {declaredWinners.length === 0 ? '—' : declaredWinners.map(i => display.players[i]).join(', ')}
+                  </strong>
+                  <br/>
+                  Súčty kôl však dávajú:{' '}
+                  <strong className="ks-gold">
+                    {winnerComputation.winners.length === 0
+                      ? '— (nikto nedosiahol cieľ)'
+                      : winnerComputation.winners.map(i => `${display.players[i]} (${(totals[i] || 0).toLocaleString('sk-SK')})`).join(', ')}
+                  </strong>
+                </div>
+                {winnerComputation.errors.length > 0 && (
+                  <div className="ks-body text-red-300 text-xs mt-2">
+                    {winnerComputation.errors.join(' · ')}
+                  </div>
+                )}
+                {!readOnly && (
+                  <div className="ks-body text-red-300 text-xs mt-2 italic">
+                    Použi tlačidlo UPRAVIŤ na opravu zoznamu víťazov.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {!editing && (
           <div>
