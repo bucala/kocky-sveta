@@ -8,7 +8,6 @@ import {
   Download, Upload, Edit3, Clock, FileSpreadsheet, ChevronDown, TrendingUp,
   Sigma, Layers, Monitor, Bell
 } from 'lucide-react';
-import { RotateCcw } from 'lucide-react';
 
 function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, target, displayMode = 'delta', onToggleMode, hideModeToolbar = false, compactObserver = false }) {
   const { players, rounds } = tournament;
