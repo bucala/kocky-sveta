@@ -2922,6 +2922,7 @@ function Standings({ players, totals, target }) {
 const PLAYER_COLORS = ['#d4b86a', '#e08854', '#7ba88a', '#c47880', '#80a8c4', '#b89580'];
 
 function ProgressChart({ tournament, totals, target }) {
+  if (!tournament || !Array.isArray(tournament.players)) return null;
   const { players, rounds } = tournament;
 
   // Dáta pre graf — kumulatívne skóre po každom kole, vrátane 0 na začiatku
