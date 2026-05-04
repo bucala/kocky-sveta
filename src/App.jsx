@@ -13,6 +13,7 @@ import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import ScoreTable from './components/ScoreTable.jsx';
 
 // ─── Konštanty ────────────────────────────────────────────────────────────
 
