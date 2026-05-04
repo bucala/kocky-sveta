@@ -157,6 +157,28 @@ function formatDuration(startIso, endIso) {
   return `${h} h ${m} min`;
 }
 
+// ─── Popup / notifikačný systém — globálna konfigurácia ───────────────────
+// Centralizované konštanty pre časovanie, vizuál a layout popupov.
+// Zmenou týchto hodnôt sa správanie popupov zmení v celej appke naraz.
+const POPUP_CONFIG = {
+  // Minimálny čas zobrazenia jedného funny popupu, kým môže prísť ďalší (ms).
+  // Týka sa LEN nepriebehových popupov; interaktívne dialógy (Confirm/Cancel)
+  // a fullscreen výsledky (Víťaz/Remíza) tento limit obchádzajú.
+  POPUP_DISPLAY_DURATION: 2000,
+  // Maximálna veľkosť fronty čakajúcich funny popupov (okrem aktívneho).
+  // Pri prekročení sa najnovší prepíše posledný čakajúci (newer-wins).
+  QUEUE_SIZE: 1,
+  // Vertikálny posun všetkých neoverlay popupov (toast-y, simplified karty).
+  // Fullscreen popupy (winner celebration, win-pending, full FunnyOverlay)
+  // sú riešené cez `inset-0 flex items-center justify-center` a tento offset
+  // ich neovplyvní. Hodnotu možno prepísať CSS premennou --ks-popup-offset.
+  // Default 0 zachováva pôvodné umiestnenie.
+  VERTICAL_OFFSET: '0px',
+  // Globálna opacity pre pozadie/karty popupov (0..1). Default 0.92
+  // odráža súčasný "mierne priesvitný" stav.
+  OPACITY: 0.92,
+};
+
 const DEFAULT_RULES = [
   { id: 'r1',  name: 'Jednotka',         description: 'Samostatná kocka s hodnotou 1',                        points: 100,   type: 'numeric', dice: [1] },
   { id: 'r2',  name: 'Päťka',            description: 'Samostatná kocka s hodnotou 5',                        points: 50,    type: 'numeric', dice: [5] },
@@ -180,6 +202,22 @@ const DEFAULT_RULES = [
 
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Crimson+Pro:wght@300;400;500;600&family=Bebas+Neue&display=swap');
+
+  /* ─── Popup / notifikačný systém — globálne premenné ─────────────────
+     Tieto hodnoty driví aj POPUP_CONFIG v JS, ale CSS premenné umožňujú
+     override z konkrétneho komponentu alebo skinu, ak by bolo treba.    */
+  :root {
+    --ks-popup-offset: 0px;       /* vertikálny posun pre toast-y a simplified karty */
+    --ks-popup-opacity: 0.92;     /* default opacity pozadia popupov */
+    --ks-popup-safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Pomocná trieda pre nepriebehové popupy (toast, simplified result).
+     Posúva ich smerom dolu o --ks-popup-offset + safe-area-inset-bottom.
+     Fullscreen popupy ju NEPOUŽÍVAJÚ — zostávajú vystredené cez inset-0. */
+  .ks-popup-anchor {
+    transform: translateY(calc(var(--ks-popup-offset) + var(--ks-popup-safe-bottom)));
+  }
+
   .ks-display { font-family: 'Cormorant Garamond', serif; letter-spacing: 0.02em; }
   .ks-mono    { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.08em; }
   .ks-body    { font-family: 'Crimson Pro', serif; }
@@ -314,11 +352,81 @@ function Toast({ msg, kind, onClose }) {
   };
   const Icon = kind === 'overshoot' ? AlertTriangle : kind === 'warn' ? AlertCircle : Check;
   return (
-    <div className="fixed top-2 left-3 right-3 z-50 ks-slide-down" style={{ pointerEvents: 'none' }}>
-      <div className={`max-w-md mx-auto p-3 rounded-sm border ${colorMap[kind] || colorMap.info} flex items-start gap-2 shadow-2xl`} style={{ pointerEvents: 'auto' }}>
+    <div className="fixed top-2 left-3 right-3 z-50 ks-slide-down ks-popup-anchor" style={{ pointerEvents: 'none' }}>
+      <div className={`max-w-md mx-auto p-3 rounded-sm border ${colorMap[kind] || colorMap.info} flex items-start gap-2 shadow-2xl`} style={{ pointerEvents: 'auto', opacity: 'var(--ks-popup-opacity, 0.92)' }}>
         <Icon size={20} className="shrink-0 mt-0.5" />
         <div className="ks-body flex-1 text-sm font-medium">{msg}</div>
         <button onClick={onClose} className="opacity-70 hover:opacity-100"><X size={16} /></button>
+      </div>
+    </div>
+  );
+}
+
+// ─── StrikethroughCrown ──────────────────────────────────────────────────
+// Vylepšená SVG verzia "prečiarknutej koruny" pre dočasného kráľa.
+// Nahrádza pôvodný emoji '👑̸' (combining strikethrough), ktorý sa na
+// Androide/Windowse vykresľoval rôzne — niekde vôbec.
+function StrikethroughCrown({ size = 96, color = '#d4b86a', strikeColor = '#c44848' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
+         style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.5))' }}>
+      <defs>
+        <linearGradient id="crownGold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="1" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.7" />
+        </linearGradient>
+      </defs>
+      {/* Korunové telo */}
+      <path d="M 16 36 L 24 60 L 72 60 L 80 36 L 66 48 L 48 24 L 30 48 Z"
+            fill="url(#crownGold)" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+      {/* Spodná páska */}
+      <rect x="22" y="60" width="52" height="8" fill={color} stroke={color} strokeWidth="1" rx="1" />
+      {/* Drahokamy */}
+      <circle cx="48" cy="32" r="3.5" fill="#fff" stroke={color} strokeWidth="1" />
+      <circle cx="20" cy="42" r="2.5" fill="#fff" stroke={color} strokeWidth="1" />
+      <circle cx="76" cy="42" r="2.5" fill="#fff" stroke={color} strokeWidth="1" />
+      {/* Prečiarknutie — dve čiary pre kontrast (tmavá podkladová + farebná) */}
+      <line x1="10" y1="78" x2="86" y2="18" stroke="#000" strokeWidth="7" strokeLinecap="round" opacity="0.5" />
+      <line x1="10" y1="78" x2="86" y2="18" stroke={strikeColor} strokeWidth="4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// ─── SimplifiedResult ────────────────────────────────────────────────────
+// Minimalistický výsledok pre režim "Zjednodušený". Karta v strede s
+// jasnou ikonkou, krátkym popisom a (voliteľne) action tlačidlom.
+function SimplifiedResult({ kind, title, subtitle, onClose, actionLabel }) {
+  // kind: 'victory' | 'draw' | 'temporary-king' | 'win-pending'
+  const palette = {
+    victory:        { accent: '#d4b86a', label: 'VÍŤAZ' },
+    draw:           { accent: '#d4b86a', label: 'REMÍZA' },
+    'temporary-king': { accent: '#c44848', label: 'DOČASNÝ KRÁĽ' },
+    'win-pending':  { accent: '#d4b86a', label: 'POTVRD VÝHRU' },
+  }[kind] || { accent: '#d4b86a', label: '' };
+
+  const Icon = ({ size = 56 }) => {
+    if (kind === 'temporary-king') return <StrikethroughCrown size={size} />;
+    return <Crown size={size} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.5))' }} />;
+  };
+
+  return (
+    <div className="fixed inset-x-3 top-1/3 z-50 ks-fade ks-popup-anchor flex justify-center"
+         onClick={onClose}>
+      <div className="ks-card max-w-sm w-full rounded-sm border-2 p-5 text-center shadow-2xl"
+           style={{ borderColor: palette.accent, opacity: 'var(--ks-popup-opacity, 0.92)', cursor: 'pointer' }}>
+        <div className="flex justify-center mb-3"><Icon /></div>
+        <div className="ks-mono text-xs tracking-widest mb-2" style={{ color: palette.accent }}>
+          {palette.label}
+        </div>
+        {title && (
+          <div className="ks-display text-2xl font-bold ks-cream leading-tight px-2 mb-1">{title}</div>
+        )}
+        {subtitle && (
+          <div className="ks-body ks-cream text-sm opacity-90 leading-snug">{subtitle}</div>
+        )}
+        {actionLabel && (
+          <div className="ks-mono text-[10px] ks-muted mt-3 tracking-widest">{actionLabel}</div>
+        )}
       </div>
     </div>
   );
@@ -373,9 +481,11 @@ function FunnyOverlay({ data, onClose }) {
           <div className="h-px flex-1 max-w-[60px]" style={{ background: `linear-gradient(90deg, ${style.labelColor}, transparent)` }} />
         </div>
 
-        {/* Emoji - veľký a pulzujúci */}
-        <div className="text-7xl mb-3 ks-funny-emoji" style={{ filter: `drop-shadow(0 4px 16px ${style.glow})` }}>
-          {emoji}
+        {/* Ikona — buď SVG strikethrough crown alebo veľké unicode emoji */}
+        <div className="mb-3 ks-funny-emoji flex justify-center" style={{ filter: `drop-shadow(0 4px 16px ${style.glow})` }}>
+          {emoji === 'strikethrough-crown'
+            ? <StrikethroughCrown size={112} color="#d4b86a" strikeColor="#c44848" />
+            : <span className="text-7xl">{emoji}</span>}
         </div>
 
         {/* Label */}
@@ -886,6 +996,7 @@ export default function App() {
     <div className="ks-bg min-h-screen ks-cream ks-body" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
       <style>{skinVarsCss(selectedSkin)}</style>
       <style>{STYLES}</style>
+      <style>{`:root { --ks-popup-offset: ${POPUP_CONFIG.VERTICAL_OFFSET}; --ks-popup-opacity: ${POPUP_CONFIG.OPACITY}; }`}</style>
 
       {view === 'menu' && (
         <MainMenu
@@ -1332,6 +1443,87 @@ function PendingChips({ pending, removePending }) {
   );
 }
 
+// ─── useFunnyQueue ────────────────────────────────────────────────────────
+// Queue pre funny popupy s nasledujúcou logikou:
+//   • aktívny popup vidí používateľ aspoň POPUP_CONFIG.POPUP_DISPLAY_DURATION ms
+//     pred tým, než ho môže vystriedať ďalší — ochrana proti "preblikávaniu",
+//     ktoré bolo pôvodný bug (každý nový setFunny() prepísal predchádzajúci).
+//   • čakajúca pozícia má kapacitu POPUP_CONFIG.QUEUE_SIZE (default 1).
+//     Newer-wins: ak príde ďalší kým niečo už čaká, nový prepíše čakajúceho.
+//   • dismiss() ukončí aktívny popup okamžite (klik kdekoľvek na overlay).
+//   • clear() zhodí všetko (volá sa pri odchode z turnaja, modal blokoch).
+function useFunnyQueue() {
+  const [active, setActive] = useState(null);
+  const queueRef = useRef([]);             // čakajúce položky (max QUEUE_SIZE)
+  const lockUntilRef = useRef(0);          // timestamp kedy môže prísť ďalší
+  const timerRef = useRef(null);
+  const minDuration = POPUP_CONFIG.POPUP_DISPLAY_DURATION;
+  const maxQueue = POPUP_CONFIG.QUEUE_SIZE;
+
+  function clearTimer() {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }
+
+  function popNext() {
+    clearTimer();
+    if (queueRef.current.length === 0) {
+      setActive(null);
+      return;
+    }
+    const next = queueRef.current.shift();
+    lockUntilRef.current = Date.now() + minDuration;
+    setActive(next);
+    timerRef.current = setTimeout(popNext, next.duration ?? minDuration);
+  }
+
+  function enqueue(data) {
+    if (!data) return;
+    if (!active) {
+      // Nikto nečaká — zobraz hneď.
+      lockUntilRef.current = Date.now() + minDuration;
+      setActive(data);
+      clearTimer();
+      timerRef.current = setTimeout(popNext, data.duration ?? minDuration);
+      return;
+    }
+    // Aktívny existuje — zaraď do queue (newer-wins ak je plná).
+    if (queueRef.current.length >= maxQueue) {
+      queueRef.current[queueRef.current.length - 1] = data;
+    } else {
+      queueRef.current.push(data);
+    }
+  }
+
+  function dismiss() {
+    // Klik na popup — ukonči aktívny popup okamžite, ale rešpektuj minDuration
+    // tak, že ďalší v queue čaká kým neuplynie min čas. V praxi (>2s lock):
+    //   - ak používateľ klikol PO uplynutí 2s → ďalší sa zobrazí hneď
+    //   - ak klikol PRED 2s → aktívny zmizne, ale next čaká do uplynutia
+    clearTimer();
+    const now = Date.now();
+    const remaining = Math.max(0, lockUntilRef.current - now);
+    setActive(null);
+    if (queueRef.current.length > 0) {
+      timerRef.current = setTimeout(popNext, remaining);
+    }
+  }
+
+  function clear() {
+    queueRef.current = [];
+    clearTimer();
+    setActive(null);
+    lockUntilRef.current = 0;
+  }
+
+  // Cleanup pri unmounte
+  useEffect(() => clearTimer, []);
+
+  return { active, enqueue, dismiss, clear };
+}
+
 function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMenu, scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange, tournamentViewMode = 'basic', funnyWindowsDisplayMode = 'standard' }) {
   if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback />;
   const target = tournament.targetScore || 10000;
@@ -1343,7 +1535,8 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
   const [showrules, setShowrules] = useState(false);
   const [showStandings, setShowStandings] = useState(false);
   const [toast, setToast] = useState(null);
-  const [funny, setFunny] = useState(null);
+  const funnyQueue = useFunnyQueue();
+  const funny = funnyQueue.active;
   const [showWinPendingPopup, setShowWinPendingPopup] = useState(false);
   const [pendingWinScore, setPendingWinScore] = useState(null);
   const [pendingWinMeta, setPendingWinMeta] = useState(null);
@@ -1393,16 +1586,23 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
       ? (typeof customMsg === 'string' ? { msg: customMsg, emoji: '🎲', variant: 'fight' } : customMsg)
       : FUNNY_MESSAGES[Math.floor(Math.random() * FUNNY_MESSAGES.length)];
 
+    // Suppressed režim: žiadne funny windows. Iba ak je explicitne forceFullscreen
+    // (víťazstvo, win-pending) prejdeme ďalej.
     if (funnyWindowsDisplayMode === 'suppressed' && !opts.forceFullscreen) return;
 
+    // Simplified režim: namiesto fullscreen FunnyOverlay-ov ukážeme krátky toast.
+    // Stále rešpektujeme min 2s zobrazenie cez vlastný setTimeout — toast má
+    // jednoduchšiu logiku ako queue, ale aspoň nepreblikne pod ďalším.
     if (funnyWindowsDisplayMode === 'simplified' && !opts.forceFullscreen) {
-      setToast({ msg: data.msg, kind: data.variant === 'fight' ? 'info' : 'info' });
-      setTimeout(() => setToast(null), opts.duration || 2600);
+      const dur = opts.duration ?? Math.max(POPUP_CONFIG.POPUP_DISPLAY_DURATION, 2600);
+      setToast({ msg: data.msg, kind: 'info' });
+      setTimeout(() => setToast(null), dur);
       return;
     }
 
-    setFunny(data);
-    setTimeout(() => setFunny(null), opts.duration || 3500);
+    // Standard režim: cez queue. Duration môže byť explicitne dlhší ako default;
+    // queue garantuje, že prvý zostane aspoň POPUP_DISPLAY_DURATION ms.
+    funnyQueue.enqueue({ ...data, duration: opts.duration ?? 3500 });
   }
 
   // Náhodné funny popupy (max 3 za turnaj na hráča)
@@ -1725,7 +1925,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
 
   useEffect(() => {
     if (tournament.winner !== null && tournament.winner !== undefined) {
-      setFunny(null);
+      funnyQueue.clear();
       setToast(null);
       const winnerArr = Array.isArray(tournament.winner) ? tournament.winner : [tournament.winner];
       setWinnerCelebration({ winnerArr, isDraw: winnerArr.length > 1 });
@@ -2036,7 +2236,9 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
       )}
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-      {!blockFollowupPopups && funny && funnyWindowsDisplayMode === 'standard' && <FunnyOverlay data={funny} onClose={() => setFunny(null)} />}
+      {!blockFollowupPopups && funny && funnyWindowsDisplayMode === 'standard' && (
+        <FunnyOverlay data={funny} onClose={funnyQueue.dismiss} />
+      )}
 
       {showStandings && (
         <Modal onClose={() => setShowStandings(false)} title="Priebeh hry">
@@ -2049,11 +2251,14 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
         </Modal>
       )}
 
+      {/* DOČASNÝ KRÁĽ — varianta podľa režimu */}
       {blockFollowupPopups && funnyWindowsDisplayMode === 'standard' && (
         <FunnyOverlay
           data={{
+            // emoji nahradíme špeciálnym placeholderom; FunnyOverlay vie že
+            // 'strikethrough-crown' znamená SVG namiesto unicode emoji.
             msg: 'Dočasný kráľ! Neteš sa predčasne, ešte ťa môžu zosadiť z trónu.',
-            emoji: '👑̸',
+            emoji: 'strikethrough-crown',
             variant: 'fight'
           }}
           onClose={() => {
@@ -2063,11 +2268,23 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
           }}
         />
       )}
-
       {blockFollowupPopups && funnyWindowsDisplayMode === 'simplified' && (
-        <Toast msg="Dočasný kráľ! Neteš sa predčasne, ešte ťa môžu zosadiť z trónu." kind="info" onClose={() => { setShowTemporaryKingPopup(false); setTemporaryKingToken(null); setDeferTemporaryKingUntilWinPopupCloses(false); }} />
+        <SimplifiedResult
+          kind="temporary-king"
+          title="Dočasný kráľ"
+          subtitle="Neteš sa predčasne, ešte ťa môžu zosadiť z trónu."
+          actionLabel="KLIKNI PRE ZATVORENIE"
+          onClose={() => {
+            setShowTemporaryKingPopup(false);
+            setTemporaryKingToken(null);
+            setDeferTemporaryKingUntilWinPopupCloses(false);
+          }}
+        />
       )}
-      {winnerCelebration && (
+      {/* Suppressed režim: nezobrazí sa nič — dočasný kráľ nie je kritická info */}
+
+      {/* VÍŤAZSTVO / REMÍZA — celoobrazovkové, nezávisle na queue */}
+      {winnerCelebration && funnyWindowsDisplayMode !== 'simplified' && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-6 ks-overlay-bg" style={{ background: 'radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98))' }}>
           <div className="ks-funny relative z-10 text-center max-w-md">
             <div className="text-7xl mb-3 ks-funny-emoji">{winnerCelebration.isDraw ? '👑👑' : '👑'}</div>
@@ -2081,18 +2298,30 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
           </div>
         </div>
       )}
+      {winnerCelebration && funnyWindowsDisplayMode === 'simplified' && (
+        <SimplifiedResult
+          kind={winnerCelebration.isDraw ? 'draw' : 'victory'}
+          title={winnerCelebration.isDraw ? 'Víťazi' : 'Víťaz'}
+          subtitle={winnerCelebration.winnerArr.map(idx => players[idx]).join(', ')}
+          onClose={() => {}}
+        />
+      )}
 
-      {/* WIN-PENDING POPUP — hráč musí potvrdiť ničnehodením */}
+      {/* WIN-PENDING POPUP — interaktívny dialóg, hráč musí potvrdiť ničnehodením.
+          Toto je Confirm/Cancel — zostáva viditeľný vo všetkých 3 režimoch
+          (vrátane Suppressed) a nepodlieha 2s queue limitu. */}
       {!blockFollowupPopups && showWinPendingPopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg"
              style={{ background: 'radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98))' }}>
-          {/* Dekoratívne kruhy */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full ks-funny-orb"
-                 style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)' }} />
-            <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full ks-funny-orb"
-                 style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)', animationDelay: '1s' }} />
-          </div>
+          {/* Dekoratívne kruhy — len v Standard režime */}
+          {funnyWindowsDisplayMode === 'standard' && (
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full ks-funny-orb"
+                   style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)' }} />
+              <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full ks-funny-orb"
+                   style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)', animationDelay: '1s' }} />
+            </div>
+          )}
 
           <div className="ks-funny relative z-10 text-center max-w-sm">
             <div className="flex items-center justify-center gap-2 mb-2">
@@ -2101,9 +2330,16 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
               <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, #d4b86a, transparent)' }} />
             </div>
 
-            <div className="text-7xl mb-3 ks-funny-emoji" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.6))' }}>
-              😝
-            </div>
+            {/* Štandardný režim má veľký emoji, simplified/suppressed iba ikonu */}
+            {funnyWindowsDisplayMode === 'standard' ? (
+              <div className="text-7xl mb-3 ks-funny-emoji" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.6))' }}>
+                😝
+              </div>
+            ) : (
+              <div className="flex justify-center mb-3">
+                <Crown size={56} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.5))' }} />
+              </div>
+            )}
 
             <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">🎯 DOSIAHOL {target.toLocaleString('sk-SK')} — POTVRD VÝHRU</div>
 
