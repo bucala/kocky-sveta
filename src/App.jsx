@@ -197,7 +197,7 @@ const DEFAULT_RULES = [
   { id: 'r15', name: 'Cieľové skóre',    description: 'Body potrebné na výhru turnaja. Klasická hra do 10 000 alebo krátka hra do 5 000.', points: 10000, type: 'numeric', dice: [] },
   { id: 'r16', name: 'Nič nehodené',     description: 'Hod, pri ktorom nepadla žiadna bodujúca kombinácia – ani jednotka, ani päťka, ani trojica, ani postupka. Z aktuálneho skóre sa odpočíta 1 000 bodov.', points: -1000, type: 'numeric', dice: [2,3,4,6] },
   { id: 'r17', name: 'Prekročenie cieľa', description: 'Ak by hod prekročil cieľové skóre, body sa nezapíšu a zapíše sa automaticky čiarka (—).', points: 0, type: 'select', options: ['Automatická čiarka', 'Hod sa neuznáva'], selected: 'Automatická čiarka', dice: [] },
-  { id: 'r18', name: 'Režim potvrdenia víťazstva', description: 'Určuje, či sa po presnom dosiahnutí cieľa ešte vyžaduje overenie víťazstva v ďalšom ťahu ničnehodením (čiarkou), alebo sa výhra uzná okamžite.', points: 0, type: 'select', options: ['Áno', 'Nie'], selected: 'Áno', dice: [] },
+  { id: 'r18', name: 'Režim potvrdenia víťazstva', description: 'Určuje, či sa po presnom dosiahnutí cieľa ešte vyžaduje overenie víťazstva v ďalšom ťahu ničnehodením (čiarkou), alebo sa výhra uzná okamžite po dokončení kola.', points: 0, type: 'select', options: ['Áno', 'Nie'], selected: 'Nie', dice: [] },
 ];
 
 const STYLES = `
@@ -1487,6 +1487,21 @@ function PendingChips({ pending, removePending }) {
   );
 }
 
+// ─── isStrictMode — pravidlo r18 ako prepínač chovania ───────────────────
+// Strict mode (r18 = "Nie", default):
+//   • Akonáhle sa skončí kolo a aspoň jeden hráč má skóre >= target,
+//     turnaj OKAMŽITE skončí. Žiadne ďalšie kolo, žiadny win-pending dialog.
+//   • Pri viacerých achievers v rovnakom kole = remíza so všetkými.
+// Klasický mode (r18 = "Áno"):
+//   • Hráč ktorý dosiahol cieľ musí svoju výhru POTVRDIŤ ničnehodením (čiarkou)
+//     v ďalšom ťahu. Ak nepotvrdí, môže ho niekto iný "zosadiť z trónu".
+//   • Toto je tradičná pravidlo Kocky.
+function isStrictMode(rules) {
+  const r18 = (rules || []).find(r => r.id === 'r18');
+  // Default = Nie (strict). r18 = "Áno" znamená klasický flow s potvrdzovaním.
+  return !r18 || r18.selected !== 'Áno';
+}
+
 // ─── computeTotals — single source of truth pre súčty ────────────────────
 // Súčet bodov pre každého hráča naprieč všetkými kolami. Null/'dash'/string
 // hodnoty sa rátajú ako 0 (nie ako "neukončené kolo"). Penalizácie (záporné
@@ -1770,8 +1785,12 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
   const total = totals[currentPlayer];
   const isFirstWrite = !hasFirstWrite[currentPlayer];
   const isEndgame = total >= target - minWO && total < target;
-  const winPendingPlayer = tournament.winPending;
-  const isWinPendingTurn = winPendingPlayer === currentPlayer;
+  // V strict režime sa winPending ignoruje aj keby ho mal turnaj z archívu nastavený
+  // (napr. z predchádzajúcej hry v klasickom režime). Tým sa zabráni „zaseknutiu"
+  // pri pokračovaní v starom rozohranom turnaji po prepnutí r18 na "Nie".
+  const strictMode = isStrictMode(rules);
+  const winPendingPlayer = strictMode ? null : tournament.winPending;
+  const isWinPendingTurn = winPendingPlayer === currentPlayer && winPendingPlayer !== null;
   const exactNeeded = target - total;
   const isLastPlayerInRound = currentPlayer === players.length - 1;
 
@@ -1903,6 +1922,22 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
     // chýba do cieľa menej ako 300 bodov. Hráč musí trafiť presne `exactNeeded`.
     if (isEndgame) {
       if (pendingSum === exactNeeded) {
+        // Strict mode (r18=Nie): okamžitý zápis bez potvrdenia. Hráč sa pridá
+        // do _confirmedDetailed automaticky, na konci kola sa hra uzavrie.
+        if (strictMode) {
+          maybeFunny();
+          if (!isLastPlayerInRound) {
+            showToast(`${players[currentPlayer]} dosiahol cieľ ${target.toLocaleString('sk-SK')}! Kolo sa dohrá a hra skončí.`, 'info');
+          }
+          advance(pendingSum, {
+            addCandidate: currentPlayer,
+            autoConfirm: true,
+            confirmedRound: currentRound,
+            confirmedPlayer: currentPlayer,
+          });
+          return;
+        }
+        // Klasický mode (r18=Áno): win-pending popup
         setPendingWinScore(pendingSum);
         setPendingWinMeta({ player: currentPlayer, round: currentRound });
         setShowWinPendingPopup(true);
@@ -1931,9 +1966,24 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
       return;
     }
 
-    // Presný zásah cieľa mimo koncovky = okamžitý kandidát bez potvrdenia ničnehodením
+    // Presný zásah cieľa mimo koncovky
     if (newTotal === target) {
       maybeFunny();
+      // Strict mode: žiadny "dočasný kráľ" popup, žiadne potvrdzovanie.
+      // Pridá hráča do _confirmedDetailed cez autoConfirm flag.
+      if (strictMode) {
+        if (!isLastPlayerInRound) {
+          showToast(`${players[currentPlayer]} dosiahol cieľ ${target.toLocaleString('sk-SK')}! Kolo sa dohrá a hra skončí.`, 'info');
+        }
+        advance(pendingSum, {
+          addCandidate: currentPlayer,
+          autoConfirm: true,
+          confirmedRound: currentRound,
+          confirmedPlayer: currentPlayer,
+        });
+        return;
+      }
+      // Klasický mode: pôvodný flow s "dočasným kráľom"
       if (!isLastPlayerInRound) {
         setTemporaryKingToken(`${currentPlayer}-${currentRound}-${pendingSum}`);
         setShowTemporaryKingPopup(true);
@@ -1988,6 +2038,22 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
         if (!winCandidates.includes(opts.addCandidate)) {
           winCandidates.push(opts.addCandidate);
         }
+      }
+
+      // STRICT MODE — autoConfirm: zapíš hráča do _confirmedDetailed bez
+      // toho aby musel prejsť cez win-pending flow. Spája sa s addCandidate
+      // pri presnom zásahu cieľa (mimo aj v koncovke). Pokračuje normálnym
+      // advance flow — víťaz sa určí na konci kola cez computeWinners.
+      let autoConfirmedDetailed = prev._confirmedDetailed;
+      if (opts.autoConfirm) {
+        const entry = {
+          player: opts.confirmedPlayer ?? prev.currentPlayer,
+          round: opts.confirmedRound ?? prev.currentRound,
+          confirmedAt: Date.now(),
+        };
+        autoConfirmedDetailed = Array.isArray(prev._confirmedDetailed)
+          ? [...prev._confirmedDetailed.filter(x => !(x.player === entry.player && x.round === entry.round)), entry]
+          : [entry];
       }
 
       // Hráč potvrdil víťazstvo (dokončenie winPending flowu)
@@ -2090,6 +2156,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
         const provisional = {
           ...prev,
           rounds: newRounds,
+          _confirmedDetailed: autoConfirmedDetailed,
           winCandidates,
           rules: prev.rules,
         };
@@ -2100,7 +2167,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
         // nepotvrdeného achievera, aby dostal šancu potvrdiť v ďalšom kole.
         if (!result.valid && result.achievers.length > 0) {
           const unconfirmedAchievers = result.achievers.filter(
-            a => !((prev._confirmedDetailed || []).some(c => c.player === a))
+            a => !((autoConfirmedDetailed || []).some(c => c.player === a))
           );
           if (unconfirmedAchievers.length > 0) {
             winPending = unconfirmedAchievers[0];
@@ -2114,6 +2181,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
               winPending,
               winCandidates,
               winRoundComplete,
+              _confirmedDetailed: autoConfirmedDetailed,
             };
           }
         }
@@ -2124,13 +2192,16 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
           return {
             ...prev,
             rounds: newRounds,
+            // Strict mode: hra OKAMŽITE končí, žiadne ďalšie kolo. currentRound
+            // ponecháme na aktuálnom (lebo nextRound by ukazoval na neexistujúce
+            // 8. kolo). UI sa cez winner !== null prepne do finished režimu.
             currentPlayer: nextPlayer,
-            currentRound: nextRound,
+            currentRound: prev.currentRound,
             winner,
             winPending: null,
             winCandidates,
             winRoundComplete,
-            _confirmedDetailed: prev._confirmedDetailed,
+            _confirmedDetailed: autoConfirmedDetailed,
           };
         }
       }
@@ -2144,6 +2215,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
         winPending,
         winCandidates,
         winRoundComplete,
+        _confirmedDetailed: autoConfirmedDetailed,
       };
     });
     setPending([]);
