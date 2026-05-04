@@ -20,10 +20,17 @@ input, button, textarea, select {
   font-family: inherit;
 }
 
-button {
+button, div, span, p, h1, h2, h3, h4, h5, h6, li, td, th, label {
   -webkit-user-select: none;
+  -moz-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+}
+/* Re-enable text selection in editable fields */
+input, textarea, [contenteditable] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
 }
 
 html, body, #root { width: 100%; overflow-x: hidden; }

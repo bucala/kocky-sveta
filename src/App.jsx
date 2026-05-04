@@ -1760,7 +1760,6 @@ function useFunnyQueue() {
 }
 
 function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMenu, scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange, tournamentViewMode = 'basic', funnyWindowsDisplayMode = 'standard' }) {
-  if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback />;
   const target = tournament.targetScore || 10000;
   const minWO = tournament.minWriteOff || 300;
   const { players, rounds, currentPlayer, currentRound } = tournament;
@@ -2305,6 +2304,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
     setCustomInput('');
   }
 
+  if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback />;
   return (
     <div className={`min-h-screen ks-fade ${isRecorderMode ? 'pb-6' : 'pb-32'}`} style={{ background: (SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic).bg }}>
       {!isRecorderMode && (
