@@ -197,7 +197,7 @@ const DEFAULT_RULES = [
   { id: 'r15', name: 'Cieľové skóre',    description: 'Body potrebné na výhru turnaja. Klasická hra do 10 000 alebo krátka hra do 5 000.', points: 10000, type: 'numeric', dice: [] },
   { id: 'r16', name: 'Nič nehodené',     description: 'Hod, pri ktorom nepadla žiadna bodujúca kombinácia – ani jednotka, ani päťka, ani trojica, ani postupka. Z aktuálneho skóre sa odpočíta 1 000 bodov.', points: -1000, type: 'numeric', dice: [2,3,4,6] },
   { id: 'r17', name: 'Prekročenie cieľa', description: 'Ak by hod prekročil cieľové skóre, body sa nezapíšu a zapíše sa automaticky čiarka (—).', points: 0, type: 'select', options: ['Automatická čiarka', 'Hod sa neuznáva'], selected: 'Automatická čiarka', dice: [] },
-  { id: 'r18', name: 'Režim potvrdenia víťazstva', description: 'Určuje, či sa po presnom dosiahnutí cieľa ešte vyžaduje overenie víťazstva v ďalšom ťahu ničnehodením (čiarkou), alebo sa výhra uzná okamžite po dokončení kola.', points: 0, type: 'select', options: ['Áno', 'Nie'], selected: 'Nie', dice: [] },
+  { id: 'r18', name: 'Režim potvrdenia víťazstva', description: 'Určuje, či sa po presnom dosiahnutí cieľa ešte vyžaduje overenie víťazstva v ďalšom ťahu ničnehodením (čiarkou), alebo sa výhra uzná okamžite po dokončení kola.', points: 0, type: 'select', options: ['Áno', 'Nie'], selected: 'Áno', dice: [] },
 ];
 
 const STYLES = `
@@ -1246,7 +1246,7 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
           </div>
         </div>
 
-        <button onClick={onrulesEditor}
+        <button onClick={onRulesEditor}
           className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
           <div className="w-12 h-12 rounded-sm border border-amber-900/40 flex items-center justify-center">
             <Settings size={22} className="ks-gold" />
@@ -2560,7 +2560,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
       )}
       {showrules && (
         <Modal onClose={() => setShowrules(false)} title="Pravidlá hry">
-          <rulesContent rules={rules} compact />
+          <RulesContent rules={rules} compact />
         </Modal>
       )}
 
@@ -3060,13 +3060,13 @@ function RulesView({ rules, onBack }) {
 
         <div className="ks-mono ks-gold text-xs px-1 pt-2">BODOVÉ KOMBINÁCIE</div>
 
-        <rulesContent rules={combinationrules} />
+        <RulesContent rules={combinationrules} />
       </div>
     </div>
   );
 }
 
-function rulesContent({ rules, compact = false }) {
+function RulesContent({ rules, compact = false }) {
   return (
     <div className="space-y-2">
       {rules.map(rule => (
