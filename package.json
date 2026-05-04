@@ -13,7 +13,9 @@
     "cap:open": "npx cap open android",
     "android:release": "npm run build && npx cap sync android",
     "postcap-sync": "node scripts/apply-android-fixes.js",
-    "build-android": "npm run build && npx cap sync android && npm run postcap-sync"
+    "build-android": "npm run build && npx cap sync android && npm run postcap-sync",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.0",
@@ -34,6 +36,7 @@
     "postcss": "^8.5.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^6.0.3",
-    "vite": "^6.0.5"
+    "vite": "^6.0.5",
+    "vitest": "^1.6.0"
   }
 }
