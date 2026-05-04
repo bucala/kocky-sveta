@@ -2604,10 +2604,22 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
           }}
         />
       )}
-      {/* Suppressed režim: nezobrazí sa nič — dočasný kráľ nie je kritická info */}
+      {blockFollowupPopups && funnyWindowsDisplayMode === 'suppressed' && (
+        <SimplifiedResult
+          kind="temporary-king"
+          title="Dočasný kráľ"
+          subtitle="Neteš sa predčasne, ešte ťa môžu zosadiť z trónu."
+          actionLabel="KLIKNI PRE ZATVORENIE"
+          onClose={() => {
+            setShowTemporaryKingPopup(false);
+            setTemporaryKingToken(null);
+            setDeferTemporaryKingUntilWinPopupCloses(false);
+          }}
+        />
+      )}
 
       {/* VÍŤAZSTVO / REMÍZA — celoobrazovkové, nezávisle na queue */}
-      {winnerCelebration && funnyWindowsDisplayMode !== 'simplified' && (
+      {winnerCelebration && funnyWindowsDisplayMode === 'standard' && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-6 ks-overlay-bg" style={{ background: 'radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98))' }}>
           <div className="ks-funny relative z-10 text-center max-w-md">
             <div className="text-7xl mb-3 ks-funny-emoji">{winnerCelebration.isDraw ? '👑👑' : '👑'}</div>
@@ -2639,43 +2651,39 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
           onClose={() => {}}
         />
       )}
+      {winnerCelebration && funnyWindowsDisplayMode === 'suppressed' && (
+        <SimplifiedResult
+          kind={winnerCelebration.isDraw ? 'draw' : 'victory'}
+          title={winnerCelebration.isDraw
+            ? `Víťazi (${winnerCelebration.winnerArr.length})`
+            : 'Víťaz'}
+          subtitle={winnerCelebration.winnerArr.map(idx =>
+            `${players[idx]} (${(totals[idx] || 0).toLocaleString('sk-SK')})`
+          ).join(', ')}
+          onClose={() => {}}
+        />
+      )}
 
-      {/* WIN-PENDING POPUP — interaktívny dialóg, hráč musí potvrdiť ničnehodením.
-          Toto je Confirm/Cancel — zostáva viditeľný vo všetkých 3 režimoch
-          (vrátane Suppressed) a nepodlieha 2s queue limitu. */}
-      {!blockFollowupPopups && showWinPendingPopup && (
+      {/* WIN-PENDING POPUP */}
+      {!blockFollowupPopups && showWinPendingPopup && funnyWindowsDisplayMode === 'standard' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg"
              style={{ background: 'radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98))' }}>
-          {/* Dekoratívne kruhy — len v Standard režime */}
-          {funnyWindowsDisplayMode === 'standard' && (
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full ks-funny-orb"
-                   style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)' }} />
-              <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full ks-funny-orb"
-                   style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)', animationDelay: '1s' }} />
-            </div>
-          )}
-
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full ks-funny-orb"
+                 style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)' }} />
+            <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full ks-funny-orb"
+                 style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)', animationDelay: '1s' }} />
+          </div>
           <div className="ks-funny relative z-10 text-center max-w-sm">
             <div className="flex items-center justify-center gap-2 mb-2">
               <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, transparent, #d4b86a)' }} />
               <Crown size={16} className="ks-gold" />
               <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, #d4b86a, transparent)' }} />
             </div>
-
-            {/* Štandardný režim má veľký emoji, simplified/suppressed iba ikonu */}
-            {funnyWindowsDisplayMode === 'standard' ? (
-              <div className="text-7xl mb-3 ks-funny-emoji" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.6))' }}>
-                😝
-              </div>
-            ) : (
-              <div className="flex justify-center mb-3">
-                <Crown size={56} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.5))' }} />
-              </div>
-            )}
-
+            <div className="text-7xl mb-3 ks-funny-emoji" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.6))' }}>
+              😝
+            </div>
             <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">🎯 DOSIAHOL {target.toLocaleString('sk-SK')} — POTVRD VÝHRU</div>
-
             <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2"
                  style={{ textShadow: '0 4px 24px rgba(212,184,106,0.4), 0 0 40px rgba(212,184,106,0.4)' }}>
               {players[currentPlayer]}
@@ -2683,7 +2691,6 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
             <div className="ks-body ks-cream text-base mb-5 leading-snug">
               Hráč <em className="ks-gold">{players[currentPlayer]}</em> dosiahol cieľ!<br/>Skupina potvrdzuje výhru — bola hra čistá?
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => {
@@ -2721,48 +2728,57 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// ─── Tabuľka skóre ────────────────────────────────────────────────────────
-
-function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, target, displayMode = 'delta', onToggleMode, hideModeToolbar = false, compactObserver = false }) {
-  const { players, rounds } = tournament;
-  const tableRef = useRef(null);
-
-  useEffect(() => {
-    if (tableRef.current) tableRef.current.scrollTop = tableRef.current.scrollHeight;
-  }, [rounds.length]);
-
-  const numRounds = Math.max(rounds.length, 1);
-
-  // Predpočítané kumulatívne stavy pre každého hráča v každom kole.
-  // V kumul. móde zobrazíme tieto namiesto delta hodnôt.
-  const cumulative = useMemo(() => {
-    const result = Array.from({ length: numRounds }, () => new Array(players.length).fill(null));
-    const running = new Array(players.length).fill(0);
-    const everScored = new Array(players.length).fill(false);
-    for (let r = 0; r < rounds.length; r++) {
-      for (let p = 0; p < players.length; p++) {
-        const v = rounds[r][p];
-        if (typeof v === 'number') {
-          running[p] += v;
-          everScored[p] = true;
-          result[r][p] = running[p];
-        } else if (v === 'dash') {
-          // Čiarka: ak hráč už predtým bodoval, kumulatívne ostáva (zobrazíme ako predošlú hodnotu — alebo radšej '—')
-          result[r][p] = 'dash';
-        } else {
-          result[r][p] = null;
-        }
-      }
-    }
-    return result;
-  }, [rounds, numRounds, players.length]);
-
-  return (
-    <div className="ks-card rounded-sm overflow-hidden">
+      {/* WIN-PENDING POPUP — zjednodušený / potlačený: karta bez click-outside */}
+      {!blockFollowupPopups && showWinPendingPopup && (funnyWindowsDisplayMode === 'simplified' || funnyWindowsDisplayMode === 'suppressed') && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+             style={{ background: 'rgba(10,8,6,0.92)' }}>
+          {/* intentionally NO onClick on backdrop — user must click a button */}
+          <div className="ks-card max-w-sm w-full rounded-sm border-2 p-5 text-center shadow-2xl"
+               style={{ borderColor: '#d4b86a' }}>
+            <div className="flex justify-center mb-3">
+              <Crown size={48} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.5))' }} />
+            </div>
+            <div className="ks-mono ks-gold text-xs tracking-widest mb-2">POTVRD VÝHRU</div>
+            <div className="ks-display text-2xl font-bold ks-cream leading-tight px-2 mb-1">
+              {players[currentPlayer]}
+            </div>
+            <div className="ks-body ks-cream text-sm opacity-90 leading-snug mb-5">
+              Hráč <em className="ks-gold">{players[currentPlayer]}</em> dosiahol <strong>{target.toLocaleString('sk-SK')}</strong>.<br/>
+              Potvrďte, že v overovom hode nič nepadlo.
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  const shouldShowDeferredKing = deferTemporaryKingUntilWinPopupCloses && temporaryKingToken !== null;
+                  setShowWinPendingPopup(false);
+                  if (shouldShowDeferredKing) setShowTemporaryKingPopup(true);
+                  if (pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
+                    advance(pendingWinScore, { confirmWin: true, confirmedRound: pendingWinMeta?.round ?? currentRound, confirmedPlayer: currentPlayer });
+                    setPendingWinScore(null);
+                    setPendingWinMeta(null);
+                  } else {
+                    advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
+                  }
+                }}
+                className="ks-press py-3 px-2 rounded-sm border-2 border-amber-700/60 bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
+                <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
+              </button>
+              <button
+                onClick={() => {
+                  setPendingWinScore(null);
+                  setPendingWinMeta(null);
+                  setShowWinPendingPopup(false);
+                  setDeferTemporaryKingUntilWinPopupCloses(false);
+                  setTemporaryKingToken(null);
+                  advance('dash');
+                }}
+                className="ks-press py-3 px-2 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
+                <div className="ks-display text-red-200 text-base font-bold">✗ Nepotvrdil</div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Toolbar s prepínačom módu — skrytý ak je tlačidlo už v Headeri */}
       {onToggleMode && !hideModeToolbar && (
         <div className={`flex items-center justify-between border-b border-amber-900/30 bg-stone-950/60 ${compactObserver ? 'px-3 py-1' : 'px-3 py-1.5'}`}>
