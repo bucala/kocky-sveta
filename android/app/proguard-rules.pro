@@ -1,0 +1,3 @@
+-keep class com.getcapacitor.** { *; }
+-keep class sk.bucala.kockysveta.** { *; }
+-dontwarn com.getcapacitor.**

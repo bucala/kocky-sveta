@@ -1,0 +1,16 @@
+Príčina chyby:
+
+Projekt mal :capacitor-android pripojený ručne cez include ':capacitor-android' a projectDir.
+Pri novšom AGP 8.7.0 to viedlo k tomu, že Android Studio nevidelo použiteľný variant knižnice a hlásilo 'No matching variant ... No variants exist'.
+
+Oprava:
+
+Použitý je oficiálny Capacitor spôsob:
+apply from: '../node_modules/@capacitor/android/capacitor.settings.gradle'
+
+Po otvorení projektu sprav ešte:
+1. npm install
+2. npx cap sync android
+3. v Android Studio klikni Sync Project with Gradle Files
+
+Ak by Android Studio stále držalo starý stav, zavri ho a zmaž priečinok android/.gradle a potom otvor projekt znova.

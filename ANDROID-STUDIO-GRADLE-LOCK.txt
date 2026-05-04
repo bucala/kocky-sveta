@@ -1,0 +1,15 @@
+Gradle lock chyba nie je chyba zdrojového kódu.
+
+Postup vo Windows:
+1. Zavri Android Studio.
+2. V Správcovi úloh ukonči všetky java.exe a gradle procesy.
+3. Ak zostane visieť PID 47840 alebo iný uvedený PID, ukonči ho.
+4. Vymaž priečinok C:\Users\bucal\.gradle\daemon\8.9 len ak procesy nejdú ukončiť.
+5. Znova otvor projekt a spusti build.
+
+Alternatíva v termináli Windows:
+- gradlew --stop
+- taskkill /PID 47840 /F
+- taskkill /IM java.exe /F
+
+Táto chyba vzniká, keď iný Gradle daemon drží lock na cache fileHashes.

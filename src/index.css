@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  background: #0e0c0a;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+input, button, textarea, select {
+  font-family: inherit;
+}
+
+button {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+html, body, #root { width: 100%; overflow-x: hidden; }
+.ks-live-table-wrap { width: 100%; }
+.ks-live-table { table-layout: auto; min-width: max-content; }
+.ks-live-table thead th { min-height: 52px; }
+.ks-live-table td, .ks-live-table th { vertical-align: middle; }
+.ks-live-row td { padding-top: 0.95rem; padding-bottom: 0.95rem; }
+@media (min-width: 768px) { .ks-live-row td { padding-top: 1.15rem; padding-bottom: 1.15rem; } }
+@media (min-width: 1200px) { .ks-live-table { min-width: 100%; } }
+
+/* Black/White skin overrides — ks-gold becomes pure white */
+[data-skin="blackwhite"] .ks-gold { color: #ffffff !important; }
+[data-skin="blackwhite"] .ks-cream { color: #ffffff !important; }
+[data-skin="blackwhite"] .ks-muted { color: #999999 !important; }
+[data-skin="blackwhite"] .ks-gold-bg { background: #ffffff !important; color: #000000 !important; }
+[data-skin="blackwhite"] .ks-card { background: rgba(22,22,22,0.95) !important; border-color: rgba(255,255,255,0.18) !important; }
+[data-skin="blackwhite"] .ks-live-table td, [data-skin="blackwhite"] .ks-live-table th { border-color: rgba(255,255,255,0.12) !important; }

@@ -1,0 +1,57 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace "sk.bucala.kockysveta"
+    compileSdk rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "sk.bucala.kockysveta"
+        minSdk       rootProject.ext.minSdkVersion
+        targetSdk    rootProject.ext.targetSdkVersion
+        versionCode  3
+        versionName  "1.2.3"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        resValue "string", "custom_url_scheme", applicationId
+    }
+    signingConfigs {
+        release {
+            // Set via env vars or edit directly:
+            storeFile     file(System.getenv("KEYSTORE_PATH")     ?: "release.keystore")
+            storePassword System.getenv("KEYSTORE_PASS")          ?: "CHANGE_ME"
+            keyAlias      System.getenv("KEY_ALIAS")              ?: "kockysveta"
+            keyPassword   System.getenv("KEY_PASS")               ?: "CHANGE_ME"
+        }
+    }
+    buildTypes {
+        debug {
+            minifyEnabled false
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':capacitor-android')
+    implementation project(':capacitor-filesystem')
+    implementation project(':capacitor-share')
+    implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$rootProject.ext.androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$rootProject.ext.coreSplashScreenVersion"
+    implementation "androidx.webkit:webkit:$rootProject.ext.androidxWebkitVersion"
+
+    testImplementation "junit:junit:$rootProject.ext.junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$rootProject.ext.androidxEspressoCoreVersion"
+}

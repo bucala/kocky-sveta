@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Kocky sveta</string>
+    <string name="title_activity_main">Kocky sveta</string>
+    <string name="custom_url_scheme">sk.bucala.kockysveta</string>
+</resources>
