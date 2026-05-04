@@ -1995,10 +1995,20 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
         return;
       }
       // Klasický mode: pôvodný flow s "dočasným kráľom"
-      if (!isLastPlayerInRound) {
-        setTemporaryKingToken(`${currentPlayer}-${currentRound}-${pendingSum}`);
-        setShowTemporaryKingPopup(true);
+      if (isLastPlayerInRound) {
+        // Posledný v kole → vyhráva automaticky, žiadny popup (nie je kto zosadiť)
+        maybeFunny();
+        advance(pendingSum, {
+          addCandidate: currentPlayer,
+          autoConfirm: true,
+          confirmedRound: currentRound,
+          confirmedPlayer: currentPlayer,
+        });
+        return;
       }
+      // Nie je posledný → Dočasný kráľ, čaká na koniec kola
+      setTemporaryKingToken(`${currentPlayer}-${currentRound}-${pendingSum}`);
+      setShowTemporaryKingPopup(true);
       advance(pendingSum, { addCandidate: currentPlayer });
       return;
     }
@@ -3129,7 +3139,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
   if (activeCategory === 'cat-settings') {
     return (
       <div className="min-h-screen ks-fade pb-32" style={{ background: (SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic).bg }}>
-        <Header title="Nastavenia hry" onBack={() => setActiveCategory(null)} />
+        <Header title="Hodnoty hry" onBack={() => setActiveCategory(null)} />
 
         <div className="p-4 max-w-2xl mx-auto space-y-3">
           <div className="ks-card rounded-sm p-3 ks-body text-sm ks-muted">
