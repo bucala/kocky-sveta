@@ -8,8 +8,7 @@ import {
   Download, Upload, Edit3, Clock, FileSpreadsheet, ChevronDown, TrendingUp,
   Sigma, Layers, Monitor, Bell
 } from 'lucide-react';
-
-const DICE_ICONS = { 1: Dice1, 2: Dice2, 3: Dice3, 4: Dice4, 5: Dice5, 6: Dice6 };
+import { SKIN_PRESETS, FUNNY_MESSAGES, POPUP_CONFIG } from '../lib/constants.js';
 
 function DiceIcon({ value, size = 28 }) {
   const Icon = DICE_ICONS[value];
@@ -89,6 +88,10 @@ function Toast({ msg, kind, onClose }) {
   );
 }
 
+// ─── StrikethroughCrown ──────────────────────────────────────────────────
+// Vylepšená SVG verzia "prečiarknutej koruny" pre dočasného kráľa.
+// Nahrádza pôvodný emoji '👑̸' (combining strikethrough), ktorý sa na
+// Androide/Windowse vykresľoval rôzne — niekde vôbec.
 function StrikethroughCrown({ size = 96, color = '#d4b86a', strikeColor = '#c44848' }) {
   return (
     <svg width={size} height={size} viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
@@ -99,24 +102,32 @@ function StrikethroughCrown({ size = 96, color = '#d4b86a', strikeColor = '#c448
           <stop offset="100%" stopColor={color} stopOpacity="0.7" />
         </linearGradient>
       </defs>
+      {/* Korunové telo */}
       <path d="M 16 36 L 24 60 L 72 60 L 80 36 L 66 48 L 48 24 L 30 48 Z"
             fill="url(#crownGold)" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+      {/* Spodná páska */}
       <rect x="22" y="60" width="52" height="8" fill={color} stroke={color} strokeWidth="1" rx="1" />
+      {/* Drahokamy */}
       <circle cx="48" cy="32" r="3.5" fill="#fff" stroke={color} strokeWidth="1" />
       <circle cx="20" cy="42" r="2.5" fill="#fff" stroke={color} strokeWidth="1" />
       <circle cx="76" cy="42" r="2.5" fill="#fff" stroke={color} strokeWidth="1" />
+      {/* Prečiarknutie — dve čiary pre kontrast (tmavá podkladová + farebná) */}
       <line x1="10" y1="78" x2="86" y2="18" stroke="#000" strokeWidth="7" strokeLinecap="round" opacity="0.5" />
       <line x1="10" y1="78" x2="86" y2="18" stroke={strikeColor} strokeWidth="4" strokeLinecap="round" />
     </svg>
   );
 }
 
+// ─── SimplifiedResult ────────────────────────────────────────────────────
+// Minimalistický výsledok pre režim "Zjednodušený". Karta v strede s
+// jasnou ikonkou, krátkym popisom a (voliteľne) action tlačidlom.
 function SimplifiedResult({ kind, title, subtitle, onClose, actionLabel }) {
+  // kind: 'victory' | 'draw' | 'temporary-king' | 'win-pending'
   const palette = {
-    victory:          { accent: '#d4b86a', label: 'VÍŤAZ' },
-    draw:             { accent: '#d4b86a', label: 'REMÍZA' },
+    victory:        { accent: '#d4b86a', label: 'VÍŤAZ' },
+    draw:           { accent: '#d4b86a', label: 'REMÍZA' },
     'temporary-king': { accent: '#c44848', label: 'DOČASNÝ KRÁĽ' },
-    'win-pending':    { accent: '#d4b86a', label: 'POTVRD VÝHRU' },
+    'win-pending':  { accent: '#d4b86a', label: 'POTVRD VÝHRU' },
   }[kind] || { accent: '#d4b86a', label: '' };
 
   const Icon = ({ size = 56 }) => {
@@ -178,6 +189,7 @@ function FunnyOverlay({ data, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg"
          style={{ background: style.bg }}
          onClick={onClose}>
+      {/* Dekoratívne kruhy v pozadí */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-20 -left-20 w-60 h-60 rounded-full ks-funny-orb"
              style={{ background: `radial-gradient(circle, ${style.glow}, transparent 70%)` }} />
@@ -188,27 +200,32 @@ function FunnyOverlay({ data, onClose }) {
       </div>
 
       <div className="ks-funny relative z-10 text-center max-w-sm" onClick={(e) => e.stopPropagation()}>
+        {/* Ornament hore */}
         <div className="flex items-center justify-center gap-2 mb-2">
           <div className="h-px flex-1 max-w-[60px]" style={{ background: `linear-gradient(90deg, transparent, ${style.labelColor})` }} />
           <span style={{ color: style.labelColor }} className="text-xs">✦</span>
           <div className="h-px flex-1 max-w-[60px]" style={{ background: `linear-gradient(90deg, ${style.labelColor}, transparent)` }} />
         </div>
 
+        {/* Ikona — buď SVG strikethrough crown alebo veľké unicode emoji */}
         <div className="mb-3 ks-funny-emoji flex justify-center" style={{ filter: `drop-shadow(0 4px 16px ${style.glow})` }}>
           {emoji === 'strikethrough-crown'
             ? <StrikethroughCrown size={112} color="#d4b86a" strikeColor="#c44848" />
             : <span className="text-7xl">{emoji}</span>}
         </div>
 
+        {/* Label */}
         <div className="ks-mono text-xs mb-3 tracking-widest" style={{ color: style.labelColor }}>
           {style.label}
         </div>
 
+        {/* Hlavná hláška */}
         <div className="ks-display text-5xl font-bold ks-cream leading-tight px-4"
              style={{ textShadow: `0 4px 24px ${style.glow}, 0 0 40px ${style.glow}` }}>
           {msg}
         </div>
 
+        {/* Ornament dole */}
         <div className="flex items-center justify-center gap-2 mt-4">
           <div className="h-px flex-1 max-w-[60px]" style={{ background: `linear-gradient(90deg, transparent, ${style.labelColor})` }} />
           <span style={{ color: style.labelColor }} className="text-xs">✦</span>
