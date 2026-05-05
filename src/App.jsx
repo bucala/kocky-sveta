@@ -2580,7 +2580,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
       )}
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-      {!blockFollowupPopups && funny && funnyWindowsDisplayMode === 'standard' && (
+      {!blockFollowupPopups && funny && !showWinPendingPopup && funnyWindowsDisplayMode === 'standard' && (
         <FunnyOverlay data={funny} onClose={funnyQueue.dismiss} />
       )}
 
