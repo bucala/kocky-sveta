@@ -2784,6 +2784,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
           </div>
         </div>
       )}
+    </div>
   );
 }
 
