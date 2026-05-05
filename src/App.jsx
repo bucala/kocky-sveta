@@ -35,9 +35,9 @@ const SKIN_PRESETS = {
     vars: { '--ks-bg-main':'#0d0918','--ks-bg-soft':'rgba(24,18,45,0.86)','--ks-bg-soft-2':'rgba(14,10,28,0.95)','--ks-card-sub':'rgba(22,16,40,0.62)','--ks-border':'rgba(196,167,255,0.24)','--ks-border-strong':'rgba(214,183,106,0.46)','--ks-text':'#f2eaff','--ks-text-muted':'#b6a6d8','--ks-accent':'#d4b86a','--ks-accent-2':'#8e66d9','--ks-button-text':'#170f25','--ks-danger':'#ffc0d9' }
   },
   parchment: {
-    id:'parchment', name:'Pergamen',
-    bg:'linear-gradient(180deg,#f2ead8 0%,#e9dfcb 100%)',
-    vars: { '--ks-bg-main':'#f8f1e2','--ks-bg-soft':'rgba(255,254,250,0.97)','--ks-bg-soft-2':'rgba(252,246,238,1.0)','--ks-card-sub':'rgba(247,241,230,0.97)','--ks-border':'rgba(195,165,112,0.36)','--ks-border-strong':'rgba(200,165,95,0.70)','--ks-text':'#6b5235','--ks-text-muted':'#967a55','--ks-accent':'#c09a50','--ks-accent-2':'#f0ddb0','--ks-button-text':'#fffbf3','--ks-danger':'#8f3a3a','--ks-sticky-bg':'rgba(248,241,226,0.97)','--ks-sticky-bg2':'rgba(244,237,220,0.98)' }
+      id:'parchment', name:'Pergamen',
+      bg:'linear-gradient(180deg,#f3ead7 0%,#eadfcb 100%)',
+      vars: { '--ks-bg-main':'#f7f0e0','--ks-bg-soft':'rgba(255,252,246,0.98)','--ks-bg-soft-2':'rgba(251,245,235,1.0)','--ks-card-sub':'rgba(244,236,223,0.98)','--ks-border':'rgba(174,140,88,0.34)','--ks-border-strong':'rgba(160,120,60,0.72)','--ks-text':'#6b5235','--ks-text-muted':'#8e7150','--ks-accent':'#7a4f1f','--ks-accent-2':'#d8b684','--ks-button-text':'#f9f2e6','--ks-danger':'#8f3a3a','--ks-sticky-bg':'rgba(247,240,224,0.97)','--ks-sticky-bg2':'rgba(241,233,216,0.98)' }
   },
   walnut: {
     id:'walnut', name:'Orech',
@@ -248,6 +248,9 @@ const STYLES = `
   .ks-text-danger    { color: var(--ks-danger); }
   .ks-bg-overlay     { background: color-mix(in srgb, var(--ks-bg-main) 92%, transparent); }
   .ks-border-sub     { border-color: color-mix(in srgb, var(--ks-border) 60%, transparent); }
+  .ks-text-on-accent  { color: var(--ks-button-text); }
+  .ks-bg-card         { background: var(--ks-bg-soft); }
+  .ks-text-accent      { color: var(--ks-accent); }
   .ks-press     { transition: all 0.15s ease; }
   .ks-press:active { transform: scale(0.97); }
   .ks-scroll{-ms-overflow-style:none;scrollbar-width:none;scrollbar-gutter:stable both-edges;}
@@ -317,10 +320,10 @@ function DiceRow({ dice, size = 24 }) {
 function GoldButton({ children, onClick, disabled, className = '', icon: Icon, variant = 'gold' }) {
   const base = 'ks-press ks-mono px-5 py-3 rounded-sm flex items-center justify-center gap-2 font-semibold tracking-wider';
   const styles = {
-    gold:    'ks-gold-bg hover:brightness-110 disabled:opacity-30 disabled:cursor-not-allowed',
-    outline: 'border border-amber-700/60 ks-gold hover:bg-amber-900/20 disabled:opacity-30 disabled:cursor-not-allowed',
+    gold:    'ks-gold-bg hover:brightness-110 disabled:opacity-30 disabled:cursor-not-allowed ks-text-on-accent',
+    outline: 'border ks-border-accent ks-gold hover:bg-amber-900/20 disabled:opacity-30 disabled:cursor-not-allowed',
     ghost:   'ks-cream hover:bg-stone-800/50 disabled:opacity-30',
-    danger:  'border border-red-900/60 text-red-300 hover:bg-red-950/40 disabled:opacity-30',
+    danger:  'border border-red-900/60 ks-text-accent hover:bg-red-950/40 disabled:opacity-30',
   };
   return (
     <button onClick={onClick} disabled={disabled} className={`${base} ${styles[variant]} ${className}`}>
@@ -342,7 +345,7 @@ function Ornament() {
 
 function Header({ title, onBack, right }) {
   return (
-    <div className="flex items-center justify-between px-5 py-4 border-b border-amber-900/30">
+    <div className="flex items-center justify-between px-5 py-4 border-b ks-border-sub">
       {onBack ? (
         <button onClick={onBack} className="ks-press ks-cream flex items-center gap-1 -ml-2 px-2 py-1">
           <ChevronLeft size={20} />
@@ -357,8 +360,8 @@ function Header({ title, onBack, right }) {
 
 function Toast({ msg, kind, onClose }) {
   const colorMap = {
-    info:      'border-amber-700/60 bg-amber-950/90 ks-cream',
-    warn:      'border-amber-600/70 bg-amber-900/80 text-amber-100',
+    info:      'ks-border-accent bg-amber-950/90 ks-cream',
+    warn:      'border-amber-600/70 bg-amber-900/80 ks-text-accent',
     overshoot: 'border-red-600/70 bg-gradient-to-b from-red-900 to-red-950 text-red-50',
   };
   const Icon = kind === 'overshoot' ? AlertTriangle : kind === 'warn' ? AlertCircle : Check;
@@ -527,9 +530,9 @@ function FunnyOverlay({ data, onClose }) {
 
 function StatusBanner({ kind, icon: Icon, children }) {
   const colors = {
-    info: 'border-amber-800/30 bg-amber-950/30 text-amber-100/90',
-    warn: 'border-red-800/40 bg-red-950/30 text-amber-100',
-    gold: 'border-amber-600/60 bg-amber-900/30 text-amber-100',
+    info: 'border-amber-800/30 bg-amber-950/30 ks-text-accent/90',
+    warn: 'border-red-800/40 bg-red-950/30 ks-text-accent',
+    gold: 'border-amber-600/60 bg-amber-900/30 ks-text-accent',
   };
   return (
     <div className={`flex items-start gap-2 text-sm border rounded-sm p-2 ${colors[kind]}`}>
@@ -1187,7 +1190,7 @@ function MenuButton({ icon: Icon, title, subtitle, onClick, primary, disabled })
   return (
     <button onClick={onClick} disabled={disabled}
       className={`ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left ${primary ? 'border-amber-700/40' : ''} ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}>
-      <div className={`w-12 h-12 rounded-sm flex items-center justify-center ${primary ? 'ks-gold-bg' : 'border border-amber-900/40'}`}>
+      <div className={`w-12 h-12 rounded-sm flex items-center justify-center ${primary ? 'ks-gold-bg' : 'border ks-border-sub'}`}>
         <Icon size={22} className={primary ? '' : 'ks-gold'} />
       </div>
       <div className="flex-1">
@@ -1224,7 +1227,7 @@ function SkinSelector({ selectedSkin, onSkinChange }) {
             <button
               key={skin.id}
               onClick={() => onSkinChange(skin.id)}
-              className={`ks-press text-left rounded-sm p-3 border-2 transition-all ${active ? 'ks-border-accent shadow-[0_0_0_1px_rgba(212,184,106,0.25)]' : 'border-amber-900/30'} ks-card`}
+              className={`ks-press text-left rounded-sm p-3 border-2 transition-all ${active ? 'ks-border-accent shadow-[0_0_0_1px_rgba(212,184,106,0.25)]' : 'ks-border-sub'} ks-card`}
             >
               <div className="flex items-start justify-between gap-2 mb-3">
                 <div>
@@ -1263,7 +1266,7 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
         <div className="ks-mono ks-gold text-xs px-1 pt-3">PRAVIDLÁ A HODNOTY HRY</div>
         <button onClick={onViewModes}
           className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border border-amber-900/40 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
             <Monitor size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
@@ -1275,7 +1278,7 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
 
         <div className="ks-card w-full p-4 rounded-sm">
           <div className="flex items-center gap-4 mb-3">
-            <div className="w-12 h-12 rounded-sm border border-amber-900/40 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
               <Bell size={22} className="ks-gold" />
             </div>
             <div className="flex-1">
@@ -1290,7 +1293,7 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
               ['suppressed','Potlačený']
             ].map(([value,label]) => (
               <button key={value} onClick={() => onFunnyWindowsDisplayModeChange(value)}
-                className={`ks-press px-3 py-2 rounded-sm text-sm ${funnyWindowsDisplayMode === value ? 'ks-gold-bg' : 'border border-amber-900/40 ks-card ks-cream'}`}>
+                className={`ks-press px-3 py-2 rounded-sm text-sm ${funnyWindowsDisplayMode === value ? 'ks-gold-bg' : 'border ks-border-sub ks-card ks-cream'}`}>
                 {label}
               </button>
             ))}
@@ -1299,7 +1302,7 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
 
         <button onClick={onRulesEditor}
           className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border border-amber-900/40 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
             <Settings size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
@@ -1316,7 +1319,7 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
 
         <button onClick={onExport} disabled={!tournamentCount}
           className={`ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left ${!tournamentCount ? 'opacity-40 cursor-not-allowed' : ''}`}>
-          <div className="w-12 h-12 rounded-sm border border-amber-900/40 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
             <FileSpreadsheet size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
@@ -1332,7 +1335,7 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
 
         <button onClick={() => fileInputRef.current?.click()}
           className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border border-amber-900/40 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
             <Upload size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
@@ -1347,7 +1350,7 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
 
         <button onClick={onArchive}
           className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border border-amber-900/40 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
             <Edit3 size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
@@ -1357,20 +1360,20 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
           <ChevronRight className="ks-muted" size={20} />
         </button>
 
-        <div className="ks-mono text-red-400 text-xs px-1 pt-4 flex items-center gap-1.5">
+        <div className="ks-mono ks-text-accent text-xs px-1 pt-4 flex items-center gap-1.5">
           <AlertTriangle size={11} /> NEBEZPEČNÁ ZÓNA
         </div>
 
         <button onClick={onClearAll}
           className="ks-press w-full p-4 rounded-sm flex items-center gap-4 text-left border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/60 hover:brightness-125">
           <div className="w-12 h-12 rounded-sm border border-red-700/60 bg-red-950/50 flex items-center justify-center">
-            <Trash2 size={22} className="text-red-300" />
+            <Trash2 size={22} className="ks-text-accent" />
           </div>
           <div className="flex-1">
-            <div className="ks-display text-red-100 text-xl font-semibold">Vymazať všetky dáta</div>
-            <div className="text-red-300/70 text-sm">Archív, rozohraná hra, pravidlá — nenávratná akcia</div>
+            <div className="ks-display ks-text-accent text-xl font-semibold">Vymazať všetky dáta</div>
+            <div className="ks-text-accent/70 text-sm">Archív, rozohraná hra, pravidlá — nenávratná akcia</div>
           </div>
-          <ChevronRight className="text-red-400" size={20} />
+          <ChevronRight className="ks-text-accent" size={20} />
         </button>
 
         <div className="ks-card rounded-sm p-3 ks-body text-xs ks-muted italic mt-2 flex items-start gap-2">
@@ -1398,7 +1401,7 @@ function GameViewModesScreen({ onBack, selectedMode, onChangeMode, selectedSkin 
       <Header title="Zobrazenie hry" onBack={onBack} />
       <div className="p-4 max-w-2xl mx-auto space-y-3">
         {options.map((opt) => (
-          <button key={opt.id} onClick={() => onChangeMode(opt.id)} className={`ks-card w-full p-4 rounded-sm text-left ks-press border ${selectedMode === opt.id ? 'border-amber-500/70 bg-amber-900/10' : 'border-amber-900/30'}`}>
+          <button key={opt.id} onClick={() => onChangeMode(opt.id)} className={`ks-card w-full p-4 rounded-sm text-left ks-press border ${selectedMode === opt.id ? 'border-amber-500/70 bg-amber-900/10' : 'ks-border-sub'}`}>
             <div className="flex items-center gap-4">
               <div className="flex-1 min-w-0">
                 <div className="ks-display ks-cream text-xl font-semibold">{opt.title}</div>
@@ -1504,7 +1507,7 @@ function NewTournament({ onBack, onStart }) {
           <div className="space-y-2">
             {Array.from({ length: count }).map((_, i) => (
               <div key={i} className="ks-card flex items-center gap-3 p-2 rounded-sm">
-                <div className="w-9 h-9 rounded-sm border border-amber-700/50 ks-gold ks-display flex items-center justify-center text-lg font-semibold">
+                <div className="w-9 h-9 rounded-sm border ks-border-accent ks-gold ks-display flex items-center justify-center text-lg font-semibold">
                   {i + 1}
                 </div>
                 <input
@@ -1533,7 +1536,7 @@ function PendingChips({ pending, removePending }) {
   return (
     <div className="flex flex-wrap gap-2">
       {pending.map((p, i) => (
-        <button key={i} onClick={() => removePending(i)} className={`px-3 py-2 rounded-sm border ks-press ${p === 'dash' ? 'border-amber-700/50 ks-gold' : p < 0 ? 'border-red-800/60 text-red-300' : 'border-amber-900/40 ks-cream'}`}>
+        <button key={i} onClick={() => removePending(i)} className={`px-3 py-2 rounded-sm border ks-press ${p === 'dash' ? 'ks-border-accent ks-gold' : p < 0 ? 'border-red-800/60 ks-text-accent' : 'ks-border-sub ks-cream'}`}>
           {p === 'dash' ? '— Čiarka' : `${p > 0 ? '+' : ''}${Number(p).toLocaleString('sk-SK')}`}
         </button>
       ))}
@@ -2395,7 +2398,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                   ? <Sigma size={16} />
                   : <Layers size={16} />}
               </button>
-              <button onClick={onAbort} className="ks-press text-red-300 px-2 py-1 text-xs ks-mono">ZRUŠIŤ</button>
+              <button onClick={onAbort} className="ks-press ks-text-accent px-2 py-1 text-xs ks-mono">ZRUŠIŤ</button>
             </div>
           }
         />
@@ -2416,7 +2419,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
           <div className="flex items-center justify-between gap-2 mb-2">
             <button onClick={onMenu} className="ks-press ks-cream flex items-center gap-1 px-2 py-1"><ChevronLeft size={20} /><span className="ks-body">Späť</span></button>
             <div className="ks-display ks-gold text-lg text-center">{players[currentPlayer]}</div>
-            <button onClick={onAbort} className="ks-press ks-card px-3 py-2 rounded-sm ks-mono text-xs text-red-300">ZRUŠIŤ</button>
+            <button onClick={onAbort} className="ks-press ks-card px-3 py-2 rounded-sm ks-mono text-xs ks-text-accent">ZRUŠIŤ</button>
           </div>
           <div className="ks-card-prom rounded-sm p-4 mb-2">
             <div className="flex items-baseline justify-between mb-2">
@@ -2430,7 +2433,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
               </div>
               <div className="text-right shrink-0">
                 <div className="ks-mono ks-muted text-[10px] mb-0.5">AKTUÁLNE SKÓRE</div>
-                <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'text-red-300' : 'ks-gold'}`} style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
+                <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'ks-text-accent' : 'ks-gold'}`} style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
                   {total.toLocaleString('sk-SK')}
                 </div>
               </div>
@@ -2446,7 +2449,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                 {pending[0] === 'dash' ? (
                   <div className="ks-display text-6xl font-bold ks-muted">—</div>
                 ) : (
-                  <div className={`ks-display text-6xl font-bold ${pendingSum < 0 ? 'text-red-300' : 'ks-gold'}`}>
+                  <div className={`ks-display text-6xl font-bold ${pendingSum < 0 ? 'ks-text-accent' : 'ks-gold'}`}>
                     {pendingSum > 0 ? '+' : ''}{pendingSum.toLocaleString('sk-SK')}
                   </div>
                 )}
@@ -2455,14 +2458,14 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
             {pending.length > 0 ? (
               <div className="flex flex-wrap gap-2 mb-3">
                 {pending.map((p, i) => (
-                  <button key={i} onClick={() => removePending(i)} className={`ks-press group flex items-center gap-1.5 px-3 py-1.5 rounded-sm border ${p === 'dash' ? 'border-stone-600/60 bg-stone-800/40 ks-muted' : p < 0 ? 'border-red-800/60 bg-red-950/40 text-red-200' : 'border-amber-700/50 bg-stone-900/70 ks-cream'}`}>
+                  <button key={i} onClick={() => removePending(i)} className={`ks-press group flex items-center gap-1.5 px-3 py-1.5 rounded-sm border ${p === 'dash' ? 'border-stone-600/60 bg-stone-800/40 ks-muted' : p < 0 ? 'border-red-800/60 bg-red-950/40 ks-text-accent' : 'ks-border-accent bg-stone-900/70 ks-cream'}`}>
                     <span className="ks-display font-semibold">{p === 'dash' ? '— čiarka' : (p > 0 ? `+${p}` : p)}</span>
                     <X size={14} className="opacity-60 group-hover:opacity-100" />
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed border-amber-900/30 rounded-sm">Pridaj body alebo čiarku z hodu nižšie…</div>
+              <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed ks-border-sub rounded-sm">Pridaj body alebo čiarku z hodu nižšie…</div>
             )}
             <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">Zapísať</GoldButton>
           </div>
@@ -2470,17 +2473,17 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
             <div className="ks-mono ks-muted text-xs mb-3">PRIDAJ BODY Z HODU</div>
             <div className="grid grid-cols-3 gap-2 mb-3">
               {QUICK_VALUES.map(v => (
-                <button key={v} onClick={() => addPoints(v)} className="ks-press border border-amber-900/30 bg-stone-950/40 hover:bg-stone-900/60 py-2.5 rounded-sm ks-display ks-cream text-lg font-semibold">+{v}</button>
+                <button key={v} onClick={() => addPoints(v)} className="ks-press border ks-border-sub bg-stone-950/40 hover:bg-stone-900/60 py-2.5 rounded-sm ks-display ks-cream text-lg font-semibold">+{v}</button>
               ))}
             </div>
             <div className="flex gap-2 mb-3">
-              <input type="number" value={customInput} onChange={(e) => setCustomInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCustom()} placeholder="Vlastná hodnota" className="flex-1 bg-stone-950/60 border border-amber-900/40 rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
+              <input type="number" value={customInput} onChange={(e) => setCustomInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCustom()} placeholder="Vlastná hodnota" className="flex-1 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
               <GoldButton onClick={addCustom} icon={Plus} variant="outline">Pridaj</GoldButton>
             </div>
             <div className="ks-divider my-3" />
             <div className="grid grid-cols-2 gap-2">
               <button onClick={addDash} className="ks-press p-3 rounded-sm border-2 border-stone-600/50 bg-gradient-to-b from-stone-900/60 to-stone-950/80 hover:brightness-125 flex items-center justify-center gap-2"><Minus size={20} className="ks-muted" /><span className="ks-mono ks-cream font-semibold">ČIARKA</span></button>
-              <button onClick={addPenalty} className="ks-press p-3 rounded-sm border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2"><Skull size={20} className="text-red-300" /><span className="ks-mono text-red-200 font-semibold">−1 000</span></button>
+              <button onClick={addPenalty} className="ks-press p-3 rounded-sm border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2"><Skull size={20} className="ks-text-accent" /><span className="ks-mono ks-text-accent font-semibold">−1 000</span></button>
             </div>
             <div className="grid grid-cols-2 gap-2 mt-4">
               <GoldButton onClick={() => setShowStandings(true)} icon={TrendingUp} variant="ghost">Priebeh hry</GoldButton>
@@ -2511,7 +2514,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
             </div>
             <div className="text-right shrink-0">
               <div className="ks-mono ks-muted text-[10px] mb-0.5">AKTUÁLNE SKÓRE</div>
-              <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'text-red-300' : 'ks-gold'}`}
+              <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'ks-text-accent' : 'ks-gold'}`}
                    style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
                 {total.toLocaleString('sk-SK')}
               </div>
@@ -2540,7 +2543,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                   {pending[0] === 'dash' ? (
                     <div className="ks-display text-6xl font-bold ks-muted">—</div>
                   ) : (
-                    <div className={`ks-display text-6xl font-bold ${pendingSum < 0 ? 'text-red-300' : 'ks-gold'}`}>
+                    <div className={`ks-display text-6xl font-bold ${pendingSum < 0 ? 'ks-text-accent' : 'ks-gold'}`}>
                       {pendingSum > 0 ? '+' : ''}{pendingSum.toLocaleString('sk-SK')}
                     </div>
                   )}
@@ -2553,8 +2556,8 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                     <button key={i} onClick={() => removePending(i)}
                       className={`ks-press group flex items-center gap-1.5 px-3 py-1.5 rounded-sm border
                         ${p === 'dash' ? 'border-stone-600/60 bg-stone-800/40 ks-muted' :
-                          p < 0 ? 'border-red-800/60 bg-red-950/40 text-red-200' :
-                          'border-amber-700/50 bg-stone-900/70 ks-cream'}`}>
+                          p < 0 ? 'border-red-800/60 bg-red-950/40 ks-text-accent' :
+                          'ks-border-accent bg-stone-900/70 ks-cream'}`}>
                       <span className="ks-display font-semibold">
                         {p === 'dash' ? '— čiarka' : (p > 0 ? `+${p}` : p)}
                       </span>
@@ -2562,13 +2565,13 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                     </button>
                   ))}
                   {pending.length > 1 && (
-                    <button onClick={clearPending} className="ks-press px-3 py-1.5 rounded-sm text-red-300 text-xs ks-mono">
+                    <button onClick={clearPending} className="ks-press px-3 py-1.5 rounded-sm ks-text-accent text-xs ks-mono">
                       VYMAZAŤ VŠETKO
                     </button>
                   )}
                 </div>
               ) : (
-                <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed border-amber-900/30 rounded-sm">
+                <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed ks-border-sub rounded-sm">
                   Pridaj body alebo čiarku z hodu nižšie…
                 </div>
               )}
@@ -2587,7 +2590,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {QUICK_VALUES.map(v => (
                   <button key={v} onClick={() => addPoints(v)}
-                    className="ks-press border border-amber-900/30 bg-stone-950/40 hover:bg-stone-900/60 py-2.5 rounded-sm ks-display ks-cream text-lg font-semibold">
+                    className="ks-press border ks-border-sub bg-stone-950/40 hover:bg-stone-900/60 py-2.5 rounded-sm ks-display ks-cream text-lg font-semibold">
                     +{v}
                   </button>
                 ))}
@@ -2598,7 +2601,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                   onChange={(e) => setCustomInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addCustom()}
                   placeholder="Vlastná hodnota"
-                  className="flex-1 bg-stone-950/60 border border-amber-900/40 rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700"
+                  className="flex-1 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700"
                 />
                 <GoldButton onClick={addCustom} icon={Plus} variant="outline">Pridaj</GoldButton>
               </div>
@@ -2614,8 +2617,8 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                 </button>
                 <button onClick={addPenalty}
                   className="ks-press p-3 rounded-sm border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2">
-                  <Skull size={20} className="text-red-300" />
-                  <span className="ks-mono text-red-200 font-semibold">−1 000</span>
+                  <Skull size={20} className="ks-text-accent" />
+                  <span className="ks-mono ks-text-accent font-semibold">−1 000</span>
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-2 mt-1">
@@ -2779,7 +2782,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                     advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
                   }
                 }}
-                className="ks-press py-4 px-3 rounded-sm border-2 border-amber-700/60 bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
+                className="ks-press py-4 px-3 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
                 <Crown size={20} className="ks-gold mx-auto mb-1" />
                 <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
                 <div className="ks-muted text-[10px] ks-mono mt-0.5">VÝHRA POTVRDENÁ</div>
@@ -2794,9 +2797,9 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                   advance('dash');
                 }}
                 className="ks-press py-4 px-3 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
-                <X size={20} className="text-red-300 mx-auto mb-1" />
-                <div className="ks-display text-red-200 text-base font-bold">Nepotvrdil</div>
-                <div className="text-red-300/60 text-[10px] ks-mono mt-0.5">VÝHRA NEPOTVRDENÁ</div>
+                <X size={20} className="ks-text-accent mx-auto mb-1" />
+                <div className="ks-display ks-text-accent text-base font-bold">Nepotvrdil</div>
+                <div className="ks-text-accent/60 text-[10px] ks-mono mt-0.5">VÝHRA NEPOTVRDENÁ</div>
               </button>
             </div>
           </div>
@@ -2834,7 +2837,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                     advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
                   }
                 }}
-                className="ks-press py-3 px-2 rounded-sm border-2 border-amber-700/60 bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
+                className="ks-press py-3 px-2 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
                 <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
               </button>
               <button
@@ -2847,7 +2850,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                   advance('dash');
                 }}
                 className="ks-press py-3 px-2 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
-                <div className="ks-display text-red-200 text-base font-bold">✗ Nepotvrdil</div>
+                <div className="ks-display ks-text-accent text-base font-bold">✗ Nepotvrdil</div>
               </button>
             </div>
           </div>
@@ -2865,7 +2868,7 @@ function Modal({ children, onClose, title }) {
          style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
       <div className="ks-card w-full max-w-lg max-h-[85vh] flex flex-col rounded-t-lg sm:rounded-sm ks-fade"
            onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-4 border-b border-amber-900/30">
+        <div className="flex items-center justify-between p-4 border-b ks-border-sub">
           <h3 className="ks-display ks-gold text-xl font-semibold">{title}</h3>
           <button onClick={onClose} className="ks-press ks-cream p-1"><X size={22} /></button>
         </div>
@@ -2885,9 +2888,9 @@ function Standings({ players, totals, target }) {
       {ranked.map((p, idx) => {
         const pct = target ? Math.min(100, Math.max(0, (p.total / target) * 100)) : 0;
         return (
-          <div key={p.i} className="flex items-center gap-3 p-3 rounded-sm border border-amber-900/30">
+          <div key={p.i} className="flex items-center gap-3 p-3 rounded-sm border ks-border-sub">
             <div className={`w-10 h-10 rounded-sm flex items-center justify-center ks-display text-xl font-bold
-              ${idx === 0 ? 'ks-gold-bg' : 'border border-amber-900/40 ks-gold'}`}>
+              ${idx === 0 ? 'ks-gold-bg' : 'border ks-border-sub ks-gold'}`}>
               {idx + 1}
             </div>
             <div className="flex-1 min-w-0">
@@ -2898,7 +2901,7 @@ function Standings({ players, totals, target }) {
                 </div>
               )}
             </div>
-            <div className={`ks-display text-2xl font-bold ${p.total < 0 ? 'text-red-300' : 'ks-gold'}`}>
+            <div className={`ks-display text-2xl font-bold ${p.total < 0 ? 'ks-text-accent' : 'ks-gold'}`}>
               {p.total.toLocaleString('sk-SK')}
             </div>
           </div>
@@ -2981,7 +2984,7 @@ function ProgressChart({ tournament, totals, target }) {
                 {idx === 0 && p.total > 0 && <Crown size={11} className="ks-gold inline mr-1 -mt-0.5" />}
                 {p.name}
               </div>
-              <div className={`ks-display text-sm font-bold ${p.total < 0 ? 'text-red-300' : 'ks-gold'}`}>
+              <div className={`ks-display text-sm font-bold ${p.total < 0 ? 'ks-text-accent' : 'ks-gold'}`}>
                 {p.total.toLocaleString('sk-SK')}
               </div>
             </div>
@@ -3071,7 +3074,7 @@ function RulesView({ rules, onBack }) {
           <p className="ks-body ks-cream leading-relaxed mt-2">
             Každý zápis musí byť aspoň <strong className="ks-gold">{minWO} bodov</strong> (minimálny odpis) — alebo daj <em>čiarku</em>.
             Hru sa dá <em>začať</em> aj čiarkou bez bodov. Ak v hode nepadla žiadna bodujúca kocka,
-            z aktuálneho skóre sa odpočíta <strong className="text-red-300">{Math.abs(penalty).toLocaleString('sk-SK')} bodov</strong>.
+            z aktuálneho skóre sa odpočíta <strong className="ks-text-accent">{Math.abs(penalty).toLocaleString('sk-SK')} bodov</strong>.
           </p>
           <p className="ks-body ks-cream leading-relaxed mt-2">
             Ak hod prekročí cieľ, body sa nezapočítajú a podľa nastavenia sa zapíše neplatný ťah, spravidla <em>čiarka</em>.
@@ -3100,7 +3103,7 @@ function RulesContent({ rules, compact = false }) {
           <div className="flex-1">
             <div className="flex items-baseline justify-between gap-2 mb-1">
               <h4 className="ks-display ks-cream text-lg font-semibold">{rule.name}</h4>
-              <div className={`ks-display text-xl font-bold whitespace-nowrap ${Number(rule.points) < 0 ? 'text-red-300' : 'ks-gold'}`}>
+              <div className={`ks-display text-xl font-bold whitespace-nowrap ${Number(rule.points) < 0 ? 'ks-text-accent' : 'ks-gold'}`}>
                 {rule.type === 'select'
                   ? <span className="text-sm italic">{rule.selected}</span>
                   : `${Number(rule.points).toLocaleString('sk-SK')} b.`}
@@ -3170,7 +3173,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
           ))}
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 p-3 border-t border-amber-900/30 backdrop-blur"
+        <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
              style={{ background: 'rgba(14,12,10,0.95)' }}>
           <div className="max-w-2xl mx-auto grid grid-cols-2 gap-2">
             <GoldButton onClick={() => setActiveCategory(null)} variant="outline" icon={ChevronLeft}>Späť</GoldButton>
@@ -3224,7 +3227,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
           )}
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 p-3 border-t border-amber-900/30 backdrop-blur"
+        <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
              style={{ background: 'rgba(14,12,10,0.95)' }}>
           <div className="max-w-2xl mx-auto grid grid-cols-2 gap-2">
             <GoldButton onClick={() => { setActiveCategory(null); setEditingId(null); }} variant="outline" icon={ChevronLeft}>Späť</GoldButton>
@@ -3248,7 +3251,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
           return (
             <button key={cat.id} onClick={() => setActiveCategory(cat.id)}
               className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-              <div className="w-10 h-10 rounded-sm border border-amber-700/50 ks-gold ks-display flex items-center justify-center text-lg font-bold">
+              <div className="w-10 h-10 rounded-sm border ks-border-accent ks-gold ks-display flex items-center justify-center text-lg font-bold">
                 {catrules.length}
               </div>
               <div className="flex-1">
@@ -3262,7 +3265,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
 
         <button onClick={() => setActiveCategory('cat-custom')}
           className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left border-dashed">
-          <div className="w-10 h-10 rounded-sm border border-amber-700/50 ks-gold flex items-center justify-center">
+          <div className="w-10 h-10 rounded-sm border ks-border-accent ks-gold flex items-center justify-center">
             <ListPlus size={18} />
           </div>
           <div className="flex-1">
@@ -3288,7 +3291,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
         </button>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-3 border-t border-amber-900/30 backdrop-blur"
+      <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
            style={{ background: 'rgba(14,12,10,0.95)' }}>
         <div className="max-w-2xl mx-auto grid grid-cols-3 gap-2">
           <GoldButton onClick={onReset} variant="danger" icon={RotateCcw}>Reset</GoldButton>
@@ -3318,7 +3321,7 @@ function SettingEditCard({ rule, onUpdate }) {
             type="number"
             value={rule.points}
             onChange={(e) => onUpdate({ points: parseInt(e.target.value, 10) || 0 })}
-            className={`flex-1 bg-stone-950/60 border border-amber-900/40 rounded-sm px-3 py-2 ks-display text-2xl font-semibold outline-none focus:border-amber-700 ${isNeg ? 'text-red-300' : 'ks-gold'}`}
+            className={`flex-1 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-display text-2xl font-semibold outline-none focus:border-amber-700 ${isNeg ? 'ks-text-accent' : 'ks-gold'}`}
           />
           <div className="ks-mono ks-muted text-xs">BODOV</div>
         </div>
@@ -3326,7 +3329,7 @@ function SettingEditCard({ rule, onUpdate }) {
         <select
           value={rule.selected}
           onChange={(e) => onUpdate({ selected: e.target.value })}
-          className="w-full bg-stone-950/60 border border-amber-900/40 rounded-sm px-3 py-2 ks-cream ks-body text-base outline-none focus:border-amber-700"
+          className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body text-base outline-none focus:border-amber-700"
         >
           {(rule.options || []).map(o => <option key={o} value={o}>{o}</option>)}
         </select>
@@ -3342,7 +3345,7 @@ function RuleEditCard({ rule, isEditing, onEdit, onUpdate, onRemove }) {
       <div className="flex items-center gap-3 p-3" onClick={onEdit}>
         <div className="flex-1 cursor-pointer">
           <div className="ks-display ks-cream text-lg font-semibold">{rule.name}</div>
-          <div className={`text-xs italic ${isNeg ? 'text-red-300' : 'ks-muted'}`}>
+          <div className={`text-xs italic ${isNeg ? 'ks-text-accent' : 'ks-muted'}`}>
             {rule.type === 'select' ? rule.selected : `${rule.points} bodov`}
           </div>
         </div>
@@ -3353,14 +3356,14 @@ function RuleEditCard({ rule, isEditing, onEdit, onUpdate, onRemove }) {
       </div>
 
       {isEditing && (
-        <div className="border-t border-amber-900/30 p-3 space-y-3 ks-fade">
+        <div className="border-t ks-border-sub p-3 space-y-3 ks-fade">
           <Field label="Názov">
             <input value={rule.name} onChange={(e) => onUpdate({ name: e.target.value })}
-              className="w-full bg-stone-950/60 border border-amber-900/40 rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
+              className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
           </Field>
           <Field label="Popis">
             <textarea value={rule.description} onChange={(e) => onUpdate({ description: e.target.value })} rows={2}
-              className="w-full bg-stone-950/60 border border-amber-900/40 rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700 resize-none" />
+              className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700 resize-none" />
           </Field>
 
           <Field label="Typ pravidla">
@@ -3371,7 +3374,7 @@ function RuleEditCard({ rule, isEditing, onEdit, onUpdate, onRemove }) {
                   onUpdate({ type: 'select', options: rule.options || ['Možnosť 1', 'Možnosť 2'], selected: rule.selected || (rule.options?.[0] || 'Možnosť 1') });
                 } else onUpdate({ type: 'numeric' });
               }}
-              className="w-full bg-stone-950/60 border border-amber-900/40 rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700">
+              className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700">
               <option value="numeric">Číselné (pevný počet bodov)</option>
               <option value="select">Výber zo zoznamu</option>
             </select>
@@ -3381,13 +3384,13 @@ function RuleEditCard({ rule, isEditing, onEdit, onUpdate, onRemove }) {
             <Field label="Body (môže byť aj záporné)">
               <input type="number" value={rule.points}
                 onChange={(e) => onUpdate({ points: parseInt(e.target.value, 10) || 0 })}
-                className={`w-full bg-stone-950/60 border border-amber-900/40 rounded-sm px-3 py-2 ks-display text-xl font-semibold outline-none focus:border-amber-700 ${isNeg ? 'text-red-300' : 'ks-gold'}`} />
+                className={`w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-display text-xl font-semibold outline-none focus:border-amber-700 ${isNeg ? 'ks-text-accent' : 'ks-gold'}`} />
             </Field>
           ) : (
             <>
               <Field label="Aktívna možnosť">
                 <select value={rule.selected} onChange={(e) => onUpdate({ selected: e.target.value })}
-                  className="w-full bg-stone-950/60 border border-amber-900/40 rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700">
+                  className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700">
                   {(rule.options || []).map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               </Field>
@@ -3398,7 +3401,7 @@ function RuleEditCard({ rule, isEditing, onEdit, onUpdate, onRemove }) {
                     const sel = opts.includes(rule.selected) ? rule.selected : (opts[0] || '');
                     onUpdate({ options: opts, selected: sel });
                   }}
-                  className="w-full bg-stone-950/60 border border-amber-900/40 rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
+                  className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
               </Field>
             </>
           )}
@@ -3407,7 +3410,7 @@ function RuleEditCard({ rule, isEditing, onEdit, onUpdate, onRemove }) {
             <DicePicker dice={rule.dice || []} onChange={(d) => onUpdate({ dice: d })} />
           </Field>
 
-          <button onClick={onRemove} className="ks-press text-red-300 ks-mono text-xs flex items-center gap-1">
+          <button onClick={onRemove} className="ks-press ks-text-accent ks-mono text-xs flex items-center gap-1">
             <Trash2 size={14} /> Vymazať pravidlo
           </button>
         </div>
@@ -3428,7 +3431,7 @@ function Field({ label, children }) {
 function DicePicker({ dice, onChange }) {
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2 min-h-[36px] p-2 rounded-sm border border-amber-900/30 bg-stone-950/40">
+      <div className="flex flex-wrap items-center gap-2 min-h-[36px] p-2 rounded-sm border ks-border-sub bg-stone-950/40">
         {dice.length === 0 && <span className="ks-muted text-sm italic">Žiadne kocky</span>}
         {dice.map((d, i) => (
           <button key={i} onClick={() => onChange(dice.filter((_, idx) => idx !== i))}
@@ -3440,13 +3443,13 @@ function DicePicker({ dice, onChange }) {
       <div className="flex gap-1.5">
         {[1,2,3,4,5,6].map(v => (
           <button key={v} onClick={() => dice.length < 6 && onChange([...dice, v])}
-            className="ks-press ks-cream hover:text-amber-300 p-1.5 border border-amber-900/30 rounded-sm">
+            className="ks-press ks-cream hover:text-amber-300 p-1.5 border ks-border-sub rounded-sm">
             <DiceIcon value={v} size={22} />
           </button>
         ))}
         {dice.length > 0 && (
           <button onClick={() => onChange([])}
-            className="ks-press ml-auto text-red-300 ks-mono text-xs px-2">
+            className="ks-press ml-auto ks-text-accent ks-mono text-xs px-2">
             VYMAZAŤ
           </button>
         )}
@@ -3504,7 +3507,7 @@ function ArchiveItem({ t, onView, onDelete, readOnly }) {
     <div className="ks-card rounded-sm overflow-hidden">
       <button onClick={onView} className="ks-press w-full p-4 text-left flex items-center gap-3">
         <div className={`w-12 h-12 rounded-sm flex items-center justify-center
-          ${t.status === 'finished' ? 'ks-gold-bg' : 'border border-amber-900/40 ks-muted'}`}>
+          ${t.status === 'finished' ? 'ks-gold-bg' : 'border ks-border-sub ks-muted'}`}>
           {t.status === 'finished' ? <Trophy size={22} /> : <X size={22} />}
         </div>
         <div className="flex-1 min-w-0">
@@ -3530,7 +3533,7 @@ function ArchiveItem({ t, onView, onDelete, readOnly }) {
           {Math.max(...totals).toLocaleString('sk-SK')} bodov
         </div>
         {!readOnly && (
-          <button onClick={onDelete} className="ks-press text-red-300 text-xs ks-mono flex items-center gap-1">
+          <button onClick={onDelete} className="ks-press ks-text-accent text-xs ks-mono flex items-center gap-1">
             <Trash2 size={12} /> VYMAZAŤ
           </button>
         )}
@@ -3696,7 +3699,7 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
             <div className="ks-muted italic">{tournament.status === 'aborted' ? 'Zrušený turnaj' : 'Nedokončený turnaj'}</div>
           )}
 
-          <div className="mt-4 pt-4 border-t border-amber-900/30 grid grid-cols-2 gap-3 text-left">
+          <div className="mt-4 pt-4 border-t ks-border-sub grid grid-cols-2 gap-3 text-left">
             <div>
               <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Play size={10} /> ZAČIATOK</div>
               <div className="ks-body ks-cream text-sm mt-0.5">{formatDateTime(tournament.date)}</div>
@@ -3728,9 +3731,9 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
         {hasDiscrepancy && winnerComputation && (
           <div className="ks-card rounded-sm p-3 border-2 border-red-700/60 bg-red-950/30">
             <div className="flex items-start gap-2">
-              <AlertTriangle size={20} className="text-red-300 shrink-0 mt-0.5" />
+              <AlertTriangle size={20} className="ks-text-accent shrink-0 mt-0.5" />
               <div className="flex-1">
-                <div className="ks-mono text-red-200 text-xs tracking-widest mb-1">⚠ NEZHODA V URČENÍ VÍŤAZA</div>
+                <div className="ks-mono ks-text-accent text-xs tracking-widest mb-1">⚠ NEZHODA V URČENÍ VÍŤAZA</div>
                 <div className="ks-body ks-cream text-sm leading-snug">
                   Hlavička uvádza:{' '}
                   <strong className="ks-gold">
@@ -3745,12 +3748,12 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
                   </strong>
                 </div>
                 {winnerComputation.errors.length > 0 && (
-                  <div className="ks-body text-red-300 text-xs mt-2">
+                  <div className="ks-body ks-text-accent text-xs mt-2">
                     {winnerComputation.errors.join(' · ')}
                   </div>
                 )}
                 {!readOnly && (
-                  <div className="ks-body text-red-300 text-xs mt-2 italic">
+                  <div className="ks-body ks-text-accent text-xs mt-2 italic">
                     Použi tlačidlo UPRAVIŤ na opravu zoznamu víťazov.
                   </div>
                 )}
@@ -3801,7 +3804,7 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
       </div>
 
       {editing && (
-        <div className="fixed bottom-0 left-0 right-0 p-3 border-t border-amber-900/30 backdrop-blur"
+        <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
              style={{ background: 'rgba(14,12,10,0.95)' }}>
           <div className="max-w-2xl mx-auto grid grid-cols-2 gap-2">
             <GoldButton onClick={cancelEdit} variant="outline" icon={X}>Zrušiť</GoldButton>
@@ -3834,7 +3837,7 @@ function EditableScoreTable({ players, rounds, totals, target, winner, onChangeC
             <col style={{ width: 36 }} />
           </colgroup>
           <thead>
-            <tr className="border-b border-amber-900/40">
+            <tr className="border-b ks-border-sub">
               <th className="ks-mono ks-muted text-xs font-normal py-2 px-2 text-center sticky left-0" style={{ width: 36, background: 'var(--ks-sticky-bg, rgba(14,12,10,0.97))' }}>K</th>
               {players.map((p, i) => (
                 <th key={i} className="ks-display ks-cream py-2 px-1 text-sm font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis">{p}</th>
@@ -3855,8 +3858,8 @@ function EditableScoreTable({ players, rounds, totals, target, winner, onChangeC
                         value={display}
                         onChange={(e) => onChangeCell(rIdx, pIdx, parseCellValue(e.target.value))}
                         placeholder="·"
-                        className={`w-full bg-stone-950/40 border border-amber-900/30 rounded-sm px-2 py-1 ks-display text-center text-sm outline-none focus:border-amber-700 ${
-                          v === 'dash' ? 'ks-muted' : (typeof v === 'number' && v < 0 ? 'text-red-300' : 'ks-cream')
+                        className={`w-full bg-stone-950/40 border ks-border-sub rounded-sm px-2 py-1 ks-display text-center text-sm outline-none focus:border-amber-700 ${
+                          v === 'dash' ? 'ks-muted' : (typeof v === 'number' && v < 0 ? 'ks-text-accent' : 'ks-cream')
                         }`}
                       />
                     </td>
@@ -3864,7 +3867,7 @@ function EditableScoreTable({ players, rounds, totals, target, winner, onChangeC
                 })}
                 <td className="text-center">
                   <button onClick={() => onRemoveRound(rIdx)}
-                    className="ks-press text-red-400 hover:text-red-300 p-1">
+                    className="ks-press ks-text-accent hover:ks-text-accent p-1">
                     <Trash2 size={12} />
                   </button>
                 </td>
@@ -3872,7 +3875,7 @@ function EditableScoreTable({ players, rounds, totals, target, winner, onChangeC
             ))}
           </tbody>
           <tfoot>
-            <tr className="border-t-2 border-amber-700/50">
+            <tr className="border-t-2 ks-border-accent">
               <td className="ks-mono ks-gold text-xs py-2 px-2 text-center sticky left-0" style={{ background: 'var(--ks-sticky-bg2, rgba(10,8,6,0.98))' }}>Σ</td>
               {totals.map((t, i) => {
                 const reached = t >= target;
@@ -3886,7 +3889,7 @@ function EditableScoreTable({ players, rounds, totals, target, winner, onChangeC
                       className={`ks-press w-full ks-display text-base font-bold rounded-sm py-1 px-2 ${
                         isWinner ? 'ks-gold-bg'
                         : reached ? 'ks-gold border border-amber-700/40'
-                        : t < 0 ? 'text-red-300' : 'ks-cream'
+                        : t < 0 ? 'ks-text-accent' : 'ks-cream'
                       }`}>
                       {isWinner && <Crown size={12} className="inline mr-1" />}
                       {t.toLocaleString('sk-SK')}
