@@ -6,10 +6,10 @@
 ![React](https://img.shields.io/badge/React-18.x-0f172a?style=for-the-badge&logo=react)
 ![Capacitor](https://img.shields.io/badge/Capacitor-6.x-2563eb?style=for-the-badge&logo=capacitor&logoColor=white)
 
-## 📦 Status: STABILNÝ — v1.2.9
+## 📦 Status: STABILNÝ — v1.4.0
 
-> **ZIP release:** `kocky-sveta-1.2.9.zip`
-> **Tag:** `v1.2.9`
+> **ZIP release:** `kocky-sveta-1.4.0.zip`
+> **Tag:** `v1.4.0`
 
 ---
 
@@ -22,12 +22,23 @@
 - niekoľko vizuálnych skinov (Klasik, Les, Royal, Pergamen…)
 - progress chart, štandings, history graf
 - Android build cez Capacitor + Android Studio
+- **React Hooks architekúra** — komponenty prepísané na hooks, vlastné `useFunnyQueue` hook
 
 > Aplikácia je **plne offline**. Všetky dáta sa ukladávajú lokálne na zariadenie cez `localStorage`.
 
 ---
 
 ## 📝 Changelog
+
+### v1.4.0 — 2026-05-06 — Hooks Refactor Release
+
+```
+♻️ refactor: Migrácia komponentov na React Hooks
+• Extrakcia useFunnyQueue hooku do samostatného súboru
+• Modularizácia aplikácie — rozdelenie App.jsx na menšie moduly
+• Vyčistenie class-based patterns, nahradené čistými hooks
+• Zlepšená čitateľnosť a udržiavateľnosť kódu
+```
 
 ### v1.2.9 — 2026-05-05 — Performance Release
 
@@ -52,17 +63,24 @@
 
 ---
 
-## ✅ Testing Checklist v1.2.9
+## ✅ Testing Checklist v1.4.0 — Hooks Refactor
+
+### 🔁 Hooks Refactor
+- [ ] `useFunnyQueue` hook funguje — funny messages sa zobrazujú správne
+- [ ] Žiadne regresy v hernej logike po refaktore
+- [ ] Komponenty používajú hooks namiesto class patterns
+- [ ] Console — žiadne React warnings (missing deps, stale closures)
 
 ### Bundle & Initial Load
-- [ ] `npm run dev` — overití čas initial load (DevTools → Network → JS)
-- [ ] Vite bundle analyzer — xlsx není súčasťou main chunk
+- [ ] `npm run dev` — app štartuje bez chýb
+- [ ] `npm run build` — build prebehne bez chýb
+- [ ] Vite bundle analyzer — žiadne neočakávané veľké chunks
 
 ### Export / Import (Lazy XLSX)
 - [ ] Settings → Export do Excelu — prvý klik (~300ms load, súbor sa stiahne)
 - [ ] Settings → Export — druhý klik (okamžitý, modul cached)
 - [ ] Settings → Import z Excelu — vybrať `.xlsx`, turnaje sa importujú
-- [ ] Import prázdneho / nezámodného súboru — error message, nie crash
+- [ ] Import prázdneho / neznámeho súboru — error message, nie crash
 
 ### ScoreTable (React.memo)
 - [ ] Typing do custom input → ScoreTable sa nehýbe (bez re-renderu)
@@ -74,14 +92,14 @@
 ### Turnaj — Master Logika
 - [ ] Nový turnaj — 2/3/6 hráčov, do 5000 aj 10000
 - [ ] Penalizácia −1000 funguje
-- [ ] Vítħazstvo (r18=Áno a Nie)
+- [ ] Víťazstvo (r18=Áno a Nie)
 - [ ] Remíza — 2 hráči v rovnakom kole
 - [ ] Import turnaja → archív → Detail
 
 ### Android Build
 - [ ] `npm run build-android`
 - [ ] `npx cap open android` → Clean + Rebuild
-- [ ] APK na zariadeni — export, import, tournament flow
+- [ ] APK na zariadení — export, import, tournament flow
 
 ---
 
@@ -121,7 +139,8 @@ V Android Studio: **Build → Clean Project**, potom **Build → Rebuild Project
 
 ## 🧱 Štruktúra projektu
 
-- `src/App.jsx` — hlavná herná logika a UI (≈3 200 riadkov)
+- `src/App.jsx` — hlavná herná logika a UI
+- `src/hooks/useFunnyQueue.js` — vlastný hook pre funny queue systém
 - `src/components/ScoreTable.jsx` — tabuľka skóre (memo-izovaná od v1.2.9)
 - `src/main.jsx` — entry point + `window.storage` polyfill nad `localStorage`
 - `src/index.css` — global styles
@@ -149,4 +168,4 @@ V dev tools: **Application → Service Workers → Unregister**, potom hard-refr
 
 ## 📘 Poznámka
 
-Aplikácia bola pôvodne navrhnutá s Firebase online miestnosťami. Tie boli odstránené pre zjednodusenie a zníženie závislostí — celý projekt je teraz čisto offline a ľahšie sa udržiava (žiaden `google-services.json`, žiiadne Firestore rules, žiiadne env premenné).
+Aplikácia bola pôvodne navrhnutá s Firebase online miestnosťami. Tie boli odstránené pre zjednodušenie a zníženie závislostí — celý projekt je teraz čisto offline a ľahšie sa udržiava (žiadny `google-services.json`, žiadne Firestore rules, žiadne env premenné).
