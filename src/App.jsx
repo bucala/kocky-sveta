@@ -49,6 +49,11 @@ const SKIN_PRESETS = {
     bg:'radial-gradient(circle at top, rgba(180,40,72,0.22), transparent 42%), linear-gradient(180deg,#2a0812 0%,#12060b 100%)',
     vars: { '--ks-bg-main':'#1a0710','--ks-bg-soft':'rgba(46,12,24,0.86)','--ks-bg-soft-2':'rgba(28,10,18,0.95)','--ks-card-sub':'rgba(36,11,20,0.64)','--ks-border':'rgba(236,128,152,0.26)','--ks-border-strong':'rgba(255,170,191,0.56)','--ks-text':'#ffe7ec','--ks-text-muted':'#d2a2af','--ks-accent':'#f2a0b3','--ks-accent-2':'#c24569','--ks-button-text':'#2b0b15','--ks-danger':'#ffb4c2','--ks-sticky-bg':'rgba(24,8,14,0.97)','--ks-sticky-bg2':'rgba(18,6,10,0.98)' }
   },
+  ruby: {
+    id:'ruby', name:'Rubín',
+    bg:'radial-gradient(circle at top, rgba(220,30,60,0.18), transparent 42%), linear-gradient(180deg,#22070d 0%,#10050a 100%)',
+    vars: { '--ks-bg-main':'#15060b','--ks-bg-soft':'rgba(44,10,18,0.86)','--ks-bg-soft-2':'rgba(24,8,14,0.95)','--ks-card-sub':'rgba(34,10,17,0.66)','--ks-border':'rgba(234,115,132,0.26)','--ks-border-strong':'rgba(255,166,180,0.58)','--ks-text':'#ffe9ec','--ks-text-muted':'#d7aab2','--ks-accent':'#ff6f86','--ks-accent-2':'#b92e4a','--ks-button-text':'#2a0810','--ks-danger':'#ffb4c2','--ks-sticky-bg':'rgba(24,8,14,0.97)','--ks-sticky-bg2':'rgba(18,6,10,0.98)' }
+  },
   blackwhite: {
     id:'blackwhite', name:'Čierno-biely',
     bg:'#000000',
@@ -1200,6 +1205,46 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
   return <div className="min-h-screen flex items-center justify-center p-6 ks-cream"><div className="ks-card rounded-sm p-5 text-center max-w-md"><div className="ks-display text-2xl ks-gold mb-2">{title}</div><div className="ks-muted text-sm">Skús sa vrátiť späť alebo otvoriť turnaj znova.</div></div></div>;
 }
 
+
+function SkinSelector({ selectedSkin, onSkinChange }) {
+  const skins = Object.values(SKIN_PRESETS);
+  return (
+    <div className="ks-card rounded-sm p-4">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <div className="ks-display ks-cream text-xl font-semibold">Skiny</div>
+          <div className="ks-muted text-sm">Vyber si vizuál aplikácie</div>
+        </div>
+        <div className="ks-mono ks-gold text-xs">ONE-PROMPT SKINNING</div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {skins.map((skin) => {
+          const active = skin.id === selectedSkin;
+          return (
+            <button
+              key={skin.id}
+              onClick={() => onSkinChange(skin.id)}
+              className={`ks-press text-left rounded-sm p-3 border-2 transition-all ${active ? 'ks-border-accent shadow-[0_0_0_1px_rgba(212,184,106,0.25)]' : 'border-amber-900/30'} ks-card`}
+            >
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div>
+                  <div className="ks-display ks-cream text-lg font-semibold leading-tight">{skin.name}</div>
+                  <div className="ks-muted text-[11px] mt-0.5 uppercase tracking-[0.2em]">{skin.id}</div>
+                </div>
+                {active && <div className="ks-gold ks-mono text-[10px]">Aktívny</div>}
+              </div>
+              <div className="h-12 rounded-sm overflow-hidden border border-amber-900/25 flex">
+                <div className="flex-1" style={{ background: skin.bg }} />
+                <div className="w-10" style={{ background: 'var(--ks-accent)' }} />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange }) {
   const fileInputRef = useRef(null);
 
@@ -1263,6 +1308,9 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
+
+        <div className="ks-mono ks-gold text-xs px-1 pt-3">VIZUÁL A SKINY</div>
+        <SkinSelector selectedSkin={selectedSkin} onSkinChange={onSkinChange} />
 
         <div className="ks-mono ks-gold text-xs px-1 pt-3">SPRÁVA TURNAJOV</div>
 
