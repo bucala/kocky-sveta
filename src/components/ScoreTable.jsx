@@ -128,5 +128,4 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
 
 // ─── Modal + tabuľka poradia ──────────────────────────────────────────────
 
-
-export default ScoreTable;
+export default React.memo(ScoreTable);
