@@ -2281,6 +2281,22 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
     return () => clearTimeout(t);
   }, [currentPlayer, currentRound, isEndgame, isWinPendingTurn, exactNeeded]);
 
+
+  // ─── Auto-popup pri nástupe na potvrdzovacie kolo (winPending) ─────────
+  // Keď hráč nastúpi na ťah a je označený ako winPending (musel potvrdiť
+  // výhru ničnehodením v ďalšom kole), automaticky zobraz WinPending popup.
+  useEffect(() => {
+    if (!isWinPendingTurn) return;
+    if (showWinPendingPopup) return; // already shown
+    const key = `winpending_${currentPlayer}_${currentRound}`;
+    if (winPopupShownRef.current.has(key)) return;
+    winPopupShownRef.current.add(key);
+    const t = setTimeout(() => {
+      setShowWinPendingPopup(true);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [isWinPendingTurn, currentPlayer, currentRound, showWinPendingPopup]);
+
   // Popup sa spúšťa priamo z commitPoints keď hráč dosiahne cieľ — žiadny ďalší useEffect.
 
   const isObserverMode = tournamentViewMode === 'observer';
