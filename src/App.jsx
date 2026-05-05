@@ -238,6 +238,11 @@ const STYLES = `
   .ks-cream     { color: var(--ks-text); }
   .ks-muted     { color: var(--ks-text-muted); }
   .ks-divider   { background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ks-accent) 40%, transparent), transparent); height: 1px; }
+  .ks-border-accent { border-color: color-mix(in srgb, var(--ks-accent) 40%, transparent); }
+  .ks-bg-danger     { background: color-mix(in srgb, var(--ks-danger) 15%, var(--ks-bg-soft)); }
+  .ks-text-danger    { color: var(--ks-danger); }
+  .ks-bg-overlay     { background: color-mix(in srgb, var(--ks-bg-main) 92%, transparent); }
+  .ks-border-sub     { border-color: color-mix(in srgb, var(--ks-border) 60%, transparent); }
   .ks-press     { transition: all 0.15s ease; }
   .ks-press:active { transform: scale(0.97); }
   .ks-scroll{-ms-overflow-style:none;scrollbar-width:none;scrollbar-gutter:stable both-edges;}
