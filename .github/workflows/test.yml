@@ -1,12 +1,13 @@
 name: 🧪 Tests — Kocky sveta
+
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
-      - refactor/modularize-app # Spustí sa pri pushi na obidve vetvy
+      - refactor/modularize-app
   pull_request:
     branches: [main]
-  workflow_dispatch:           # Teraz je to správne zarovnané
 
 jobs:
   test:
