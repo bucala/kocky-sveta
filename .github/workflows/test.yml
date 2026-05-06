@@ -3,9 +3,7 @@ name: 🧪 Tests — Kocky sveta
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-      - refactor/modularize-app
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -13,6 +11,7 @@ jobs:
   test:
     name: Vitest — useFunnyQueue & hooks
     runs-on: ubuntu-latest
+
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
