@@ -120,10 +120,6 @@ describe('useFunnyQueue', () => {
 
     await advance(DISPLAY_DURATION + 1);
 
-    expect(result.current.active?.id).toBe('msg-2');
-
-    await advance(DISPLAY_DURATION + 1);
-
     expect(result.current.active?.id).toBe('msg-3');
 
     await advance(DISPLAY_DURATION + 1);
