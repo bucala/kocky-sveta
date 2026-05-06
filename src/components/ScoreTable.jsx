@@ -9,13 +9,7 @@ import {
   Sigma, Layers, Monitor, Bell
 } from 'lucide-react';
 
-function ScoreTable({
-  tournament, totals, highlightPlayer, pendingPreview = 0, target,
-  displayMode = 'delta', onToggleMode,
-  hideModeToolbar = false,
-  hideModeToggle = false,
-  compactObserver = false
-}) {
+function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, target, displayMode = 'delta', onToggleMode, hideModeToolbar = false, hideModeToggle = false, compactObserver = false }) {
   if (!tournament || !Array.isArray(tournament.players)) return null;
   const { players, rounds } = tournament;
   const tableRef = useRef(null);
@@ -27,6 +21,7 @@ function ScoreTable({
   const numRounds = Math.max(rounds.length, 1);
 
   // Predpočítané kumulatívne stavy pre každého hráča v každom kole.
+  // V kumul. móde zobrazíme tieto namiesto delta hodnôt.
   const cumulative = useMemo(() => {
     const result = Array.from({ length: numRounds }, () => new Array(players.length).fill(null));
     const running = new Array(players.length).fill(0);
@@ -39,6 +34,7 @@ function ScoreTable({
           everScored[p] = true;
           result[r][p] = running[p];
         } else if (v === 'dash') {
+          // Čiarka: ak hráč už predtým bodoval, kumulatívne ostáva (zobrazíme ako predošlú hodnotu — alebo radšej '—')
           result[r][p] = 'dash';
         } else {
           result[r][p] = null;
@@ -50,11 +46,10 @@ function ScoreTable({
 
   return (
     <div className="ks-card rounded-sm overflow-hidden">
-      {/* Toolbar s prepínačom módu — skrytý ak hideModeToolbar=true */}
+      {/* Toolbar s prepínačom módu — skrytý ak je tlačidlo už v Headeri */}
       {onToggleMode && !hideModeToolbar && (
         <div className={`flex items-center justify-between border-b border-amber-900/30 bg-stone-950/60 ${compactObserver ? 'px-3 py-1' : 'px-3 py-1.5'}`}>
           <div className={`ks-display ks-gold text-center flex-1 ${compactObserver ? 'text-xs' : 'text-sm'}`}>POZOROVATEĽ · ŽIVÝ PREHĽAD SKÓRE</div>
-          {/* hideModeToggle=true skryje len tlačidlo (napr. keď je toggle už v hlavnej lište) */}
           {!hideModeToggle && (
             <button onClick={onToggleMode} className={`ks-press ks-mono ks-gold flex items-center gap-1 rounded-sm hover:bg-amber-900/20 ${compactObserver ? 'text-[10px] px-2 py-0.5' : 'text-[10px] px-2 py-0.5'}`}>
               <RotateCcw size={10} />
@@ -64,8 +59,8 @@ function ScoreTable({
         </div>
       )}
       <div className="overflow-x-auto ks-live-table-wrap">
-        {/* inline style pre tableLayout a minWidth odstránený — rieši to CSS .ks-live-table */}
-        <table className="border-collapse ks-live-table" style={{ minWidth: `${36 + Math.max(players.length, 1) * Math.max(72, 300 / Math.max(players.length, 1))}px` }}>
+        {/* inline style pre tableLayout a minWidth odstránený — riešené cez .ks-live-table v index.css */}
+        <table className="border-collapse ks-live-table">
           <colgroup>
             <col style={{ width: 36 }} />
             {players.map((_, i) => (
