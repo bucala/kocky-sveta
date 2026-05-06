@@ -1,10 +1,6 @@
 import React from 'react';
 
-/**
- * PendingChips — zoznam čipov pripisovaných bodov.
- * Každý čip je klikateľný (removePending).
- */
-export default React.memo(function PendingChips({ pending, removePending }) {
+export function PendingChips({ pending, removePending }) {
   return (
     <div className="flex flex-wrap gap-2">
       {pending.map((p, i) => (
@@ -19,11 +15,9 @@ export default React.memo(function PendingChips({ pending, removePending }) {
               : 'ks-border-sub ks-cream'
           }`}
         >
-          {p === 'dash'
-            ? '— Čiarka'
-            : `${p > 0 ? '+' : ''}${Number(p).toLocaleString('sk-SK')}`}
+          {p === 'dash' ? '— Čiarka' : `${p > 0 ? '+' : ''}${Number(p).toLocaleString('sk-SK')}`}
         </button>
       ))}
     </div>
   );
-});
+}

@@ -3,16 +3,13 @@ import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6 } from 'lucide-react';
 
 const DICE_ICONS = { 1: Dice1, 2: Dice2, 3: Dice3, 4: Dice4, 5: Dice5, 6: Dice6 };
 
-function DiceIcon({ value, size = 28 }) {
+export function DiceIcon({ value, size = 28 }) {
   const Icon = DICE_ICONS[value];
   if (!Icon) return null;
   return <Icon size={size} strokeWidth={1.5} />;
 }
 
-/**
- * DiceRow — rad kociek pre pravidlá a kombinácie.
- */
-export default React.memo(function DiceRow({ dice, size = 24 }) {
+export function DiceRow({ dice, size = 24 }) {
   if (!dice || dice.length === 0)
     return <span className="ks-muted text-sm italic">—</span>;
   return (
@@ -24,4 +21,4 @@ export default React.memo(function DiceRow({ dice, size = 24 }) {
       ))}
     </div>
   );
-});
+}
