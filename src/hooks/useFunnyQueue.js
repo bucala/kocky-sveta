@@ -2,11 +2,15 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { POPUP_CONFIG } from '../constants.js';
 
 /**
- * useFunnyQueue — queue pre funny popupy
+ * useFunnyQueue — queue pre funny popupy.
  *
- * Garantuje min. POPUP_DISPLAY_DURATION ms zobrazenia aktívneho popupu
- * pred tým, než ho môže vystriedať ďalší (ochrana proti preblikávaniu).
- * Queue kapacita = QUEUE_SIZE (default 1), newer-wins pri plnej fronte.
+ * Logika:
+ *   • aktívny popup sa zobrazí min POPUP_CONFIG.POPUP_DISPLAY_DURATION ms
+ *   • čakajúca pozícia: kapacita POPUP_CONFIG.QUEUE_SIZE (default 1, newer-wins)
+ *   • dismiss() — okamžité ukončenie aktívneho, rešpektuje minDuration pre next
+ *   • clear() — vyčistí všetko (pri odchode z turnaja)
+ *
+ * API: { active, enqueue, dismiss, clear }
  */
 export default function useFunnyQueue() {
   const [active, setActive] = useState(null);
@@ -17,13 +21,22 @@ export default function useFunnyQueue() {
   const minDuration  = POPUP_CONFIG.POPUP_DISPLAY_DURATION;
   const maxQueue     = POPUP_CONFIG.QUEUE_SIZE;
 
-  function clearTimer() {
-    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-  }
+  // Sync activeRef so callbacks never read stale state
+  useEffect(() => { activeRef.current = active; }, [active]);
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
 
   const popNext = useCallback(() => {
     clearTimer();
-    if (queueRef.current.length === 0) { setActive(null); return; }
+    if (queueRef.current.length === 0) {
+      setActive(null);
+      return;
+    }
     const next = queueRef.current.shift();
     lockUntilRef.current = Date.now() + minDuration;
     setActive(next);
@@ -39,6 +52,7 @@ export default function useFunnyQueue() {
       timerRef.current = setTimeout(popNext, data.duration ?? minDuration);
       return;
     }
+    // Aktívny existuje — zaraď do queue (newer-wins ak je plná)
     if (queueRef.current.length >= maxQueue) {
       queueRef.current[queueRef.current.length - 1] = data;
     } else {
@@ -50,8 +64,10 @@ export default function useFunnyQueue() {
     clearTimer();
     const remaining = Math.max(0, lockUntilRef.current - Date.now());
     setActive(null);
-    if (queueRef.current.length > 0) timerRef.current = setTimeout(popNext, remaining);
-  }
+    if (queueRef.current.length > 0) {
+      timerRef.current = setTimeout(popNext, remaining);
+    }
+  }, [clearTimer, popNext]);
 
   const clear = useCallback(() => {
     queueRef.current = [];
@@ -60,7 +76,8 @@ export default function useFunnyQueue() {
     lockUntilRef.current = 0;
   }, [clearTimer]);
 
-  useEffect(() => clearTimer, []);
+  // Cleanup pri unmounte — správny pattern
+  useEffect(() => () => clearTimer(), [clearTimer]);
 
   return { active, enqueue, dismiss, clear };
 }
