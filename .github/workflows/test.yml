@@ -2,18 +2,16 @@ name: 🧪 Tests — Kocky sveta
 on:
   push:
     branches:
-      - refactor/modularize-app  # Toto spustí testy automaticky pri každom pushi na túto vetvu
-  workflow_dispatch:            # Toto tam nechaj pre budúcnosť
-  push:
-    branches: [main]
+      - main
+      - refactor/modularize-app # Spustí sa pri pushi na obidve vetvy
   pull_request:
     branches: [main]
+  workflow_dispatch:           # Teraz je to správne zarovnané
 
 jobs:
   test:
     name: Vitest — useFunnyQueue & hooks
     runs-on: ubuntu-latest
-
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
