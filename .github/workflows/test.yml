@@ -1,7 +1,9 @@
 name: 🧪 Tests — Kocky sveta
-
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - refactor/modularize-app  # Toto spustí testy automaticky pri každom pushi na túto vetvu
+  workflow_dispatch:            # Toto tam nechaj pre budúcnosť
   push:
     branches: [main]
   pull_request:
