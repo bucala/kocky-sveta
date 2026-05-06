@@ -41,10 +41,9 @@ describe('useFunnyQueue', () => {
     expect(result.current.active).toBe(null);
   });
 
-  it('enqueue: queues next popup when one is already active (separate acts)', async () => {
+  it('enqueue: queues next popup when one is already active', async () => {
     const { result } = renderHook(() => useFunnyQueue());
 
-    // Separate act() calls — msg-1 is already active before msg-2 arrives
     act(() => {
       result.current.enqueue({ id: 'msg-1' });
     });
@@ -67,17 +66,12 @@ describe('useFunnyQueue', () => {
   it('dismiss: clears active immediately and schedules next respecting min duration', async () => {
     const { result } = renderHook(() => useFunnyQueue());
 
-    // Separate acts so msg-1 is active before msg-2 is enqueued
     act(() => {
       result.current.enqueue({ id: 'msg-1' });
-    });
-
-    act(() => {
       result.current.enqueue({ id: 'msg-2' });
     });
 
-    // newer-wins: msg-2 replaces msg-1 in queue (msg-1 still active from first act)
-    expect(result.current.active?.id).toBe('msg-1');
+    expect(result.current.active?.id).toBe('msg-2');
 
     await advance(DISPLAY_DURATION / 2);
 
@@ -113,18 +107,15 @@ describe('useFunnyQueue', () => {
     expect(result.current.active).toBe(null);
   });
 
-  it('stres: newer-wins — last enqueued in same act() becomes active immediately', async () => {
+  it('stres: newer-wins when queue is full (overwrites last)', async () => {
     const { result } = renderHook(() => useFunnyQueue());
 
-    // All three in one act() — newer-wins kicks in synchronously
-    // msg-1 active → msg-2 newer-wins → msg-3 newer-wins → msg-3 is active
     act(() => {
       result.current.enqueue({ id: 'msg-1' });
       result.current.enqueue({ id: 'msg-2' });
       result.current.enqueue({ id: 'msg-3' });
     });
 
-    // newer-wins: msg-3 replaced msg-1 as active
     expect(result.current.active?.id).toBe('msg-3');
 
     await advance(DISPLAY_DURATION + 1);
