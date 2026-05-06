@@ -15,7 +15,8 @@
     "postcap-sync": "node scripts/apply-android-fixes.js",
     "build-android": "npm run build && npx cap sync android && npm run postcap-sync",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest --coverage"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.0",
@@ -37,6 +38,8 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^6.0.3",
     "vite": "^6.0.5",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/jest-dom": "^6.6.3"
   }
 }
