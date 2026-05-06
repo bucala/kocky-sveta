@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { POPUP_CONFIG } from '../constants.js';
 
 /**
@@ -14,20 +14,24 @@ import { POPUP_CONFIG } from '../constants.js';
  */
 export default function useFunnyQueue() {
   const [active, setActive] = useState(null);
-  const queueRef    = useRef([]);
+  const activeRef    = useRef(null);       // stale-closure guard
+  const queueRef     = useRef([]);
   const lockUntilRef = useRef(0);
-  const timerRef    = useRef(null);
-  const minDuration = POPUP_CONFIG.POPUP_DISPLAY_DURATION;
-  const maxQueue    = POPUP_CONFIG.QUEUE_SIZE;
+  const timerRef     = useRef(null);
+  const minDuration  = POPUP_CONFIG.POPUP_DISPLAY_DURATION;
+  const maxQueue     = POPUP_CONFIG.QUEUE_SIZE;
 
-  function clearTimer() {
+  // Sync activeRef so callbacks never read stale state
+  useEffect(() => { activeRef.current = active; }, [active]);
+
+  const clearTimer = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-  }
+  }, []);
 
-  function popNext() {
+  const popNext = useCallback(() => {
     clearTimer();
     if (queueRef.current.length === 0) {
       setActive(null);
@@ -37,11 +41,11 @@ export default function useFunnyQueue() {
     lockUntilRef.current = Date.now() + minDuration;
     setActive(next);
     timerRef.current = setTimeout(popNext, next.duration ?? minDuration);
-  }
+  }, [clearTimer, minDuration]);
 
-  function enqueue(data) {
+  const enqueue = useCallback((data) => {
     if (!data) return;
-    if (!active) {
+    if (!activeRef.current) {
       lockUntilRef.current = Date.now() + minDuration;
       setActive(data);
       clearTimer();
@@ -54,26 +58,26 @@ export default function useFunnyQueue() {
     } else {
       queueRef.current.push(data);
     }
-  }
+  }, [clearTimer, minDuration, maxQueue, popNext]);
 
-  function dismiss() {
+  const dismiss = useCallback(() => {
     clearTimer();
     const remaining = Math.max(0, lockUntilRef.current - Date.now());
     setActive(null);
     if (queueRef.current.length > 0) {
       timerRef.current = setTimeout(popNext, remaining);
     }
-  }
+  }, [clearTimer, popNext]);
 
-  function clear() {
+  const clear = useCallback(() => {
     queueRef.current = [];
     clearTimer();
     setActive(null);
     lockUntilRef.current = 0;
-  }
+  }, [clearTimer]);
 
-  // Cleanup pri unmounte
-  useEffect(() => clearTimer, []);
+  // Cleanup pri unmounte — správny pattern
+  useEffect(() => () => clearTimer(), [clearTimer]);
 
   return { active, enqueue, dismiss, clear };
 }
