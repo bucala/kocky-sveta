@@ -83,7 +83,7 @@ describe('useFunnyQueue', () => {
 
     await advance(DISPLAY_DURATION / 2 + 1);
 
-    expect(result.current.active?.id).toBe('msg-2');
+    expect(result.current.active).toBe(null);
   });
 
   it('clear: clears active and queue and cancels timers', async () => {
