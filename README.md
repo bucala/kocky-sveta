@@ -6,10 +6,10 @@
 ![React](https://img.shields.io/badge/React-18.x-0f172a?style=for-the-badge&logo=react)
 ![Capacitor](https://img.shields.io/badge/Capacitor-6.x-2563eb?style=for-the-badge&logo=capacitor&logoColor=white)
 
-## 📦 Status: STABILNÝ — v1.4.0
+## 📦 Status: STABILNÝ — v1.4.1
 
-> **ZIP release:** `kocky-sveta-1.4.0.zip`
-> **Tag:** `v1.4.0`
+> **ZIP release:** `kocky-sveta-1.4.1.zip`
+> **Tag:** `v1.4.1`
 
 ---
 
@@ -22,22 +22,39 @@
 - niekoľko vizuálnych skinov (Klasik, Les, Royal, Pergamen…)
 - progress chart, štandings, history graf
 - Android build cez Capacitor + Android Studio
-- **React Hooks architekúra** — komponenty prepísané na hooks, vlastné `useFunnyQueue` hook
+- **React Hooks architektura** — komponenty prepísane na hooks, vlastné `useFunnyQueue` hook
 
-> Aplikácia je **plne offline**. Všetky dáta sa ukladávajú lokálne na zariadenie cez `localStorage`.
+> Aplikácia je **plne offline**. Všetky dáta sa ukládajú lokálne na zariadenie cez `localStorage`.
 
 ---
 
 ## 📝 Changelog
 
+### v1.4.1 — 2026-05-06 — Hook Quality Release
+
+```
+🐞 fix: useFunnyQueue — cleanup, stale closure, memoization
+• useEffect cleanup opravený: () => () => clearTimer() (predtým odovzdával ref namiesto volania)
+• Stale closure v enqueue odstránená: activeRef.current namiesto priameho čítania state
+• Všetky interné funkcie memoizované cez useCallback s príslušnými dependency arrays:
+    clearTimer []  |  popNext [clearTimer, minDuration]  |  enqueue [clearTimer, minDuration, maxQueue, popNext]
+    dismiss [clearTimer, popNext]  |  clear [clearTimer]
+• Logika (newer-wins, QUEUE_SIZE, DISPLAY_DURATION) — nedotknutá
+• Dotknutý súbor: src/hooks/useFunnyQueue.js
+
+🧪 ci: Vitest test suite pre useFunnyQueue
+• Automatizované testy pre init, enqueue, dismiss, clear
+• GitHub Actions workflow: .github/workflows/test.yml
+```
+
 ### v1.4.0 — 2026-05-06 — Hooks Refactor Release
 
 ```
 ♻️ refactor: Migrácia komponentov na React Hooks
-• Extrakcia useFunnyQueue hooku do samostatného súboru
-• Modularizácia aplikácie — rozdelenie App.jsx na menšie moduly
+• Extrákcia useFunnyQueue hooku do samostatného súboru
+• Modulizácia aplikácie — rozdelenie App.jsx na menšie moduly
 • Vyčistenie class-based patterns, nahradené čistými hooks
-• Zlepšená čitateľnosť a udržiavateľnosť kódu
+• Zlepšená čitatelʼnosť a udržiovateļnosť kódu
 ```
 
 ### v1.2.9 — 2026-05-05 — Performance Release
@@ -63,18 +80,27 @@
 
 ---
 
-## ✅ Testing Checklist v1.4.0 — Hooks Refactor
+## ✅ Manual Testing Checklist — v1.4.1
 
-### 🔁 Hooks Refactor
-- [ ] `useFunnyQueue` hook funguje — funny messages sa zobrazujú správne
-- [ ] Žiadne regresy v hernej logike po refaktore
-- [ ] Komponenty používajú hooks namiesto class patterns
-- [ ] Console — žiadne React warnings (missing deps, stale closures)
+> Pred tagom `v1.4.1` over všetky body nižšie na skutočnom zariadeni.
 
-### Bundle & Initial Load
+### 🧪 useFunnyQueue Hook (nové v 1.4.1)
+- [ ] Funny message sa zobrazí po udalosti (víťazstvo kola, tombola...)
+- [ ] Popup drží `POPUP_DISPLAY_DURATION` ms pred automat. zatvorením
+- [ ] Rýchle 2 udalosti za sebou — druhá sa zaradí do queue, zobrazí sa po prvej
+- [ ] `dismiss()` — kliknutím na popup ho zatvorí okamžite
+- [ ] Po `clear()` (odchod z turnaja) — žiadny popup sa neobjaví
+- [ ] Console — žiadne React warnings (`missing deps`, stale closures, memory leaks)
+
+### 🔁 Regresné testy (hooks refactor)
+- [ ] Funny messages fungujú rovnako ako pred refaktorom
+- [ ] Popupy sa nezobrazujú po odchode z turnaja (unmount cleanup OK)
+- [ ] Console bez warníng po 2+ minútovej hre
+
+### Bundle & Build
 - [ ] `npm run dev` — app štartuje bez chýb
 - [ ] `npm run build` — build prebehne bez chýb
-- [ ] Vite bundle analyzer — žiadne neočakávané veľké chunks
+- [ ] `npm test` — všetky Vitest testy zelené ✅
 
 ### Export / Import (Lazy XLSX)
 - [ ] Settings → Export do Excelu — prvý klik (~300ms load, súbor sa stiahne)
@@ -99,7 +125,8 @@
 ### Android Build
 - [ ] `npm run build-android`
 - [ ] `npx cap open android` → Clean + Rebuild
-- [ ] APK na zariadení — export, import, tournament flow
+- [ ] APK na zariadeni — export, import, tournament flow
+- [ ] Funny popupy na mobile — zobrazujú sa a zatvárajú správne
 
 ---
 
@@ -108,6 +135,7 @@
 ```bash
 npm install
 npm run dev          # web dev server
+npm test             # Vitest unit testy
 ```
 
 ## 📦 Buildy
@@ -140,10 +168,11 @@ V Android Studio: **Build → Clean Project**, potom **Build → Rebuild Project
 ## 🧱 Štruktúra projektu
 
 - `src/App.jsx` — hlavná herná logika a UI
-- `src/hooks/useFunnyQueue.js` — vlastný hook pre funny queue systém
+- `src/hooks/useFunnyQueue.js` — vlastný hook pre funny queue systém (memoizovaný, v1.4.1)
 - `src/components/ScoreTable.jsx` — tabuľka skóre (memo-izovaná od v1.2.9)
 - `src/main.jsx` — entry point + `window.storage` polyfill nad `localStorage`
 - `src/index.css` — global styles
+- `.github/workflows/test.yml` — GitHub Actions CI (Vitest)
 - `public/` — PWA manifest, ikóny, service worker
 - `android/` — natívny Android wrapper (Capacitor)
 - `scripts/apply-android-fixes.js` — post-cap-sync úpravy (SDK verzie, permissions)
@@ -164,8 +193,14 @@ npx cap sync android
 ### Service worker drží starý web build
 V dev tools: **Application → Service Workers → Unregister**, potom hard-refresh (Ctrl+Shift+R).
 
+### Vitest testy nefungujú
+```bash
+npm install          # zabezpečí @testing-library/react a vitest
+npm test
+```
+
 ---
 
 ## 📘 Poznámka
 
-Aplikácia bola pôvodne navrhnutá s Firebase online miestnosťami. Tie boli odstránené pre zjednodušenie a zníženie závislostí — celý projekt je teraz čisto offline a ľahšie sa udržiava (žiadny `google-services.json`, žiadne Firestore rules, žiadne env premenné).
+Aplikácia bola pôvodne navrhnutá s Firebase online miestnosami. Tie boli odstránené pre zjednodušenie a zníženie závislostí — celý projekt je teraz čisto offline a ļahkšie sa udržiava (žiadny `google-services.json`, žiadne Firestore rules, žiadne env prementé).
