@@ -35,7 +35,11 @@ input, textarea, [contenteditable] {
 
 html, body, #root { width: 100%; overflow-x: hidden; }
 .ks-live-table-wrap { width: 100%; }
-.ks-live-table { table-layout: auto; min-width: max-content; }
+/* table-layout: fixed + width: 100% — tabuľka sa roztiahne na plnú šírku rodiča.
+   Predchádzajúce min-width: max-content bolo odstrihnuté — kolidovalo s fixed layoutom. */
+.ks-live-table { table-layout: fixed; width: 100%; }
+.ks-live-table th,
+.ks-live-table td { min-width: 72px; }
 .ks-live-table thead th { min-height: 52px; }
 .ks-live-table td, .ks-live-table th { vertical-align: middle; }
 .ks-live-row td { padding-top: 0.95rem; padding-bottom: 0.95rem; }
