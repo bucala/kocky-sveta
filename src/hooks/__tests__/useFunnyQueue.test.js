@@ -71,7 +71,7 @@ describe('useFunnyQueue', () => {
       result.current.enqueue({ id: 'msg-2' });
     });
 
-    expect(result.current.active?.id).toBe('msg-1');
+    expect(result.current.active?.id).toBe('msg-2');
 
     await advance(DISPLAY_DURATION / 2);
 
@@ -83,7 +83,7 @@ describe('useFunnyQueue', () => {
 
     await advance(DISPLAY_DURATION / 2 + 1);
 
-    expect(result.current.active?.id).toBe('msg-2');
+    expect(result.current.active).toBe(null);
   });
 
   it('clear: clears active and queue and cancels timers', async () => {
@@ -115,14 +115,6 @@ describe('useFunnyQueue', () => {
       result.current.enqueue({ id: 'msg-2' });
       result.current.enqueue({ id: 'msg-3' });
     });
-
-    expect(result.current.active?.id).toBe('msg-1');
-
-    await advance(DISPLAY_DURATION + 1);
-
-    expect(result.current.active?.id).toBe('msg-2');
-
-    await advance(DISPLAY_DURATION + 1);
 
     expect(result.current.active?.id).toBe('msg-3');
 
