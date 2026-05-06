@@ -2410,7 +2410,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
             <div className="h-full overflow-auto [font-size:clamp(18px,2.3vw,34px)]">
               <ScoreTable tournament={tournament} totals={totals} highlightPlayer={currentPlayer}
                           pendingPreview={pendingSum > 0 ? pendingSum : 0} target={target}
-                          displayMode={scoreDisplayMode} onToggleMode={onToggleScoreMode} hideModeToolbar={false} compactObserver={true} />
+                          displayMode={scoreDisplayMode} onToggleMode={onToggleScoreMode} hideModeToolbar={false} hideModeToggle={true} compactObserver={true} />
             </div>
           </div>
         </div>
