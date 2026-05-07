@@ -1,13 +1,13 @@
-import React from 'react';
+﻿import React from 'react';
 import { Crown } from 'lucide-react';
-import StrikethroughCrown from './StrikethroughCrown.jsx';
+import { StrikethroughCrown } from './StrikethroughCrown.jsx';
 
 export default function SimplifiedResult({ kind, title, subtitle, onClose, actionLabel }) {
   const palette = {
-    victory:          { accent: '#d4b86a', label: 'VÍŤAZ' },
-    draw:             { accent: '#d4b86a', label: 'REMÍZA' },
-    'temporary-king': { accent: '#c44848', label: 'DOČASNÝ KRÁĽ' },
-    'win-pending':    { accent: '#d4b86a', label: 'POTVRD VÝHRU' },
+    victory:          { accent: '#d4b86a', label: 'VĂŤĹ¤AZ' },
+    draw:             { accent: '#d4b86a', label: 'REMĂŤZA' },
+    'temporary-king': { accent: '#c44848', label: 'DOÄŚASNĂť KRĂÄ˝' },
+    'win-pending':    { accent: '#d4b86a', label: 'POTVRD VĂťHRU' },
   }[kind] || { accent: '#d4b86a', label: '' };
 
   const Icon = ({ size = 56 }) => {

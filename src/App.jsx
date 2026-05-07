@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Dice1, Dice2, Dice3, Dice4, Dice5, Dice6,
   Plus, Minus, Trash2, Save, X, ChevronLeft,
@@ -8,7 +8,7 @@ import {
   Download, Upload, Edit3, Clock, FileSpreadsheet, ChevronDown, TrendingUp,
   Sigma, Layers, Monitor, Bell
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+// XLSX sa načíta lazy pri prvom použití
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
@@ -16,6 +16,9 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import ScoreTable from './components/ScoreTable.jsx';
 import { MainMenu, MenuButton } from './screens/MainMenu.jsx';
 import { NewTournament } from './screens/NewTournament.jsx';
+import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
+import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
+import './app.css';
 
 // ─── Konštanty ────────────────────────────────────────────────────────────
 
@@ -219,95 +222,6 @@ const DEFAULT_RULES = [
   { id: 'r18', name: 'Režim potvrdenia víťazstva', description: 'Určuje, či sa po presnom dosiahnutí cieľa ešte vyžaduje overenie víťazstva v ďalšom ťahu ničnehodením (čiarkou), alebo sa výhra uzná okamžite po dokončení kola.', points: 0, type: 'select', options: ['Áno', 'Nie'], selected: 'Áno', dice: [] },
 ];
 
-const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Crimson+Pro:wght@300;400;500;600&family=Bebas+Neue&display=swap');
-
-  /* ─── Popup / notifikačný systém — globálne premenné ─────────────────
-     Tieto hodnoty driví aj POPUP_CONFIG v JS, ale CSS premenné umožňujú
-     override z konkrétneho komponentu alebo skinu, ak by bolo treba.    */
-  :root {
-    --ks-popup-offset: 0px;       /* vertikálny posun pre toast-y a simplified karty */
-    --ks-popup-opacity: 0.92;     /* default opacity pozadia popupov */
-    --ks-popup-safe-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  /* Pomocná trieda pre nepriebehové popupy (toast, simplified result).
-     Posúva ich smerom dolu o --ks-popup-offset + safe-area-inset-bottom.
-     Fullscreen popupy ju NEPOUŽÍVAJÚ — zostávajú vystredené cez inset-0. */
-  .ks-popup-anchor {
-    transform: translateY(calc(var(--ks-popup-offset) + var(--ks-popup-safe-bottom)));
-  }
-
-  .ks-display { font-family: var(--ks-font-display, 'Cormorant Garamond', serif); letter-spacing: 0.02em; }
-  .ks-mono    { font-family: var(--ks-font-mono, 'Bebas Neue', sans-serif); letter-spacing: 0.08em; }
-  .ks-body    { font-family: var(--ks-font-body, 'Crimson Pro', serif); }
-  .ks-bg      { background:
-                  radial-gradient(ellipse at top, color-mix(in srgb, var(--ks-accent) 12%, transparent), transparent 60%),
-                  radial-gradient(ellipse at bottom, color-mix(in srgb, var(--ks-accent-2) 18%, transparent), transparent 60%),
-                  var(--ks-bg-main); }
-  .ks-card    { background: linear-gradient(180deg, var(--ks-bg-soft), var(--ks-bg-soft-2));
-                border: 1px solid var(--ks-border); }
-  .ks-card-prom { background: linear-gradient(180deg, color-mix(in srgb, var(--ks-accent) 10%, var(--ks-bg-soft)), var(--ks-bg-soft-2));
-                  border: 2px solid var(--ks-border-strong);
-                  box-shadow: 0 4px 24px rgba(0,0,0,0.35), inset 0 1px 0 color-mix(in srgb, var(--ks-accent) 20%, transparent); }
-  .ks-card-sub  { background: var(--ks-card-sub);
-                  border: 1px solid color-mix(in srgb, var(--ks-border) 72%, transparent); }
-  .ks-gold      { color: var(--ks-accent); }
-  .ks-gold-bg   { background: linear-gradient(180deg, color-mix(in srgb, var(--ks-accent) 70%, white), var(--ks-accent-2)); color: var(--ks-button-text); }
-  .ks-cream     { color: var(--ks-text); }
-  .ks-muted     { color: var(--ks-text-muted); }
-  .ks-divider   { background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ks-accent) 40%, transparent), transparent); height: 1px; }
-  .ks-border-accent { border-color: color-mix(in srgb, var(--ks-accent) 40%, transparent); }
-  .ks-bg-danger     { background: color-mix(in srgb, var(--ks-danger) 15%, var(--ks-bg-soft)); }
-  .ks-text-danger    { color: var(--ks-danger); }
-  .ks-bg-overlay     { background: color-mix(in srgb, var(--ks-bg-main) 92%, transparent); }
-  .ks-border-sub     { border-color: color-mix(in srgb, var(--ks-border) 60%, transparent); }
-  .ks-text-on-accent  { color: var(--ks-button-text); }
-  .ks-bg-card         { background: var(--ks-bg-soft); }
-  .ks-text-accent      { color: var(--ks-accent); }
-  .ks-press     { transition: all 0.15s ease; }
-  .ks-press:active { transform: scale(0.97); }
-  .ks-scroll{-ms-overflow-style:none;scrollbar-width:none;scrollbar-gutter:stable both-edges;}
-  .ks-scroll::-webkit-scrollbar { width: 0; height: 0; display:none; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-  .ks-fade { animation: fadeIn 0.3s ease-out; }
-  @keyframes pulseGold { 0%,100% { box-shadow: 0 0 0 0 rgba(212,184,106,0.4); } 50% { box-shadow: 0 0 0 8px rgba(212,184,106,0); } }
-  .ks-pulse { animation: pulseGold 2s ease-in-out infinite; }
-  @keyframes slideDown { from { opacity: 0; transform: translateY(-100%); } to { opacity: 1; transform: translateY(0); } }
-  .ks-slide-down { animation: slideDown 0.3s ease-out; }
-  @keyframes funnyIn {
-    0%   { opacity: 0; transform: scale(0.5) rotate(-8deg); }
-    60%  { opacity: 1; transform: scale(1.08) rotate(2deg); }
-    100% { opacity: 1; transform: scale(1) rotate(-2deg); }
-  }
-  .ks-funny { animation: funnyIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-  @keyframes funnyOrbPulse {
-    0%, 100% { opacity: 0.4; transform: scale(1); }
-    50% { opacity: 0.8; transform: scale(1.2); }
-  }
-  .ks-funny-orb { animation: funnyOrbPulse 3s ease-in-out infinite; }
-  @keyframes funnyEmojiBob {
-    0%, 100% { transform: translateY(0) rotate(-3deg); }
-    50% { transform: translateY(-8px) rotate(3deg); }
-  }
-  .ks-funny-emoji { animation: funnyEmojiBob 2s ease-in-out infinite; }
-  @keyframes overlayFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  .ks-overlay-bg { animation: overlayFadeIn 0.3s ease-out forwards; }
-
-  /* ── FIX5 Responsive ────────────────────────── */
-  html,body,#root{width:100%;max-width:100vw;overflow-x:hidden;}
-  body{padding-top:0;padding-bottom:env(safe-area-inset-bottom,0);}
-  @media(min-width:900px){.ks-game-container{max-width:860px;margin:0 auto}}
-  @media(min-width:1400px){.ks-game-container{max-width:1180px}}
-  @media(max-height:520px) and (orientation:landscape){.ks-score-table-wrap{max-height:40vh;overflow-y:auto}}
-  .ks-quick-btn,button{min-height:44px}
-  input,select,textarea{font-size:16px!important}
-  table{display:block;overflow-x:auto;width:100%}
-  .ks-app-scroll{min-height:100vh;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior-y:auto;}
-
-`;
 
 // ─── Pomocné komponenty ───────────────────────────────────────────────────
 
@@ -383,7 +297,7 @@ function Toast({ msg, kind, onClose }) {
       <div className={`max-w-md mx-auto p-3 rounded-sm border ${colorMap[kind] || colorMap.info} flex items-start gap-2 shadow-2xl`} style={{ pointerEvents: 'auto', opacity: 'var(--ks-popup-opacity, 0.92)' }}>
         <Icon size={20} className="shrink-0 mt-0.5" />
         <div className="ks-body flex-1 text-sm font-medium">{msg}</div>
-        <button onClick={onClose} className="opacity-70 hover:opacity-100"><X size={16} /></button>
+        <button aria-label="Zatvoriť" onClick={onClose} className="opacity-70 hover:opacity-100"><X size={16} /></button>
       </div>
     </div>
   );
@@ -705,6 +619,7 @@ export default function App() {
 
   async function exportToExcel() {
     if (tournaments.length === 0) {
+  const XLSX = (await import('xlsx')).default || await import('xlsx');
       window.alert('Archív je prázdny — nie je čo exportovať.');
       return;
     }
@@ -1071,7 +986,6 @@ export default function App() {
   return (
     <div className="ks-bg min-h-screen ks-cream ks-body" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
       <style>{skinVarsCss(selectedSkin, selectedFont)}</style>
-      <style>{STYLES}</style>
       <style>{`:root { --ks-popup-offset: ${POPUP_CONFIG.VERTICAL_OFFSET}; --ks-popup-opacity: ${POPUP_CONFIG.OPACITY}; }`}</style>
 
       {view === 'menu' && (
@@ -1183,95 +1097,8 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
 }
 
 
-function SkinSelector({ selectedSkin, onSkinChange }) {
-  const skins = Object.values(SKIN_PRESETS);
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-      {skins.map((skin) => {
-        const active = skin.id === selectedSkin;
-        const accent  = skin.vars['--ks-accent'];
-        const accent2 = skin.vars['--ks-accent-2'];
-        const bgMain  = skin.vars['--ks-bg-main'];
-        const bgSoft  = skin.vars['--ks-bg-soft'];
-        const text    = skin.vars['--ks-text'];
-        return (
-          <button
-            key={skin.id}
-            onClick={() => onSkinChange(skin.id)}
-            className="ks-press rounded-sm border-2 transition-all flex flex-col pt-3 pb-3 px-3 gap-1 hover:brightness-110 relative"
-            style={{ minHeight: '120px', background: bgMain, borderColor: active ? accent : 'rgba(255,255,255,0.12)' }}
-          >
-            {active && (
-              <div className="absolute top-3 right-3 ks-mono font-bold text-[13px] tracking-wider" style={{ color: accent }}>
-                ✦ AKTÍVNY
-              </div>
-            )}
-            <div className="flex items-start w-full">
-              <div className="ks-display text-base font-semibold leading-tight" style={{ color: text }}>
-                {skin.name}
-              </div>
-            </div>
-            <div className="mt-auto w-full grid items-end" style={{ gridTemplateColumns: '1fr auto', columnGap: '12px', rowGap: '4px' }}>
-              <div className="rounded-[4px] shrink-0" style={{ width: 38, height: 38, background: accent, gridColumn: '2', gridRow: '1 / 3' }} />
-              <div className="flex items-center gap-1.5 w-full">
-                <div className="rounded-[3px] border border-white/10 flex-1" style={{ height: 15, background: bgSoft }} />
-                <div className="rounded-[3px] flex-1" style={{ height: 15, background: accent2 }} />
-              </div>
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function FontSelector({ selectedFont, onFontChange }) {
-  const fonts = Object.values(FONT_PRESETS);
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      {fonts.map((font) => {
-        const active = font.id === selectedFont;
-        return (
-          <button
-            key={font.id}
-            onClick={() => onFontChange(font.id)}
-            className={`ks-press rounded-sm p-3 border-2 transition-all flex flex-col items-center text-center ks-card ${active ? 'ks-card-prom ks-border-accent' : 'ks-border-sub hover:shadow-md'}`}
-          >
-            {active && <div className="ks-mono ks-gold text-[9px] tracking-[0.18em] mb-1">✦ AKTÍVNE</div>}
-            <div className="ks-cream text-base font-semibold leading-tight" style={{ fontFamily: font.stack }}>
-              {font.name}
-            </div>
-            <div className="ks-muted text-xs mt-1.5" style={{ fontFamily: font.stack }}>
-              Ukážka · Abc 123
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 
 // ─── Vizuál a Skiny submenu ───────────────────────────────────────────────
-
-function VisualAndSkinScreen({ onBack, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes }) {
-  return (
-    <div className="min-h-screen ks-fade pb-8">
-      <Header title="Vizuál a Skiny" onBack={onBack} />
-      <div className="p-4 max-w-2xl mx-auto space-y-5">
-
-        {/* Skiny */}
-        <div className="ks-mono ks-gold text-xs px-1 pt-2">SKINY</div>
-        <SkinSelector selectedSkin={selectedSkin} onSkinChange={onSkinChange} />
-
-        {/* Písma */}
-        <div className="ks-mono ks-gold text-xs px-1 pt-2">PÍSMO</div>
-        <FontSelector selectedFont={selectedFont} onFontChange={onFontChange} />
-
-      </div>
-    </div>
-  );
-}
 
 function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange }) {
   const fileInputRef = useRef(null);
@@ -1423,75 +1250,6 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
   );
 }
 
-function GameViewModesScreen({ onBack, selectedMode, onChangeMode, selectedSkin }) {
-  const options = [
-    { id: 'basic', title: 'Klasický', desc: 'Tabuľka hore a zapisovanie bodov pod ňou.' },
-    { id: 'observer', title: 'Pozorovateľ', desc: 'Veľký živý prehľad skóre pre obrazovku alebo TV.' },
-    { id: 'recorder', title: 'Zapisovateľ', desc: 'Jednoduché veľké ovládanie pre rýchly zápis bodov.' },
-  ];
-  const skin = SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic;
-
-  return (
-    <div className="min-h-screen ks-fade pb-8" style={{ background: skin.bg }}>
-      <Header title="Zobrazenie hry" onBack={onBack} />
-      <div className="p-4 max-w-2xl mx-auto space-y-3">
-        {options.map((opt) => (
-          <button key={opt.id} onClick={() => onChangeMode(opt.id)} className={`ks-card w-full p-4 rounded-sm text-left ks-press border ${selectedMode === opt.id ? 'border-amber-500/70 bg-amber-900/10' : 'ks-border-sub'}`}>
-            <div className="flex items-center gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="ks-display ks-cream text-xl font-semibold">{opt.title}</div>
-                <div className="ks-muted text-sm mt-1">{opt.desc}</div>
-              </div>
-              <div className="shrink-0 w-[62px]">
-                <div className="h-[92px] rounded-sm border border-amber-900/25 overflow-hidden" style={{ background: skin.bg }}>
-                  {opt.id === 'basic' ? (
-                    <div style={{height:'100%', display:'grid', gridTemplateRows:'18px 28px 1fr', gap:'4px', padding:'5px'}}>
-                      <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(212,184,106,0.24)'}} />
-                      <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.18)', border:'1px solid rgba(212,184,106,0.22)'}} />
-                      <div style={{display:'grid', gridTemplateRows:'1fr 1fr', gap:'4px'}}>
-                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.04)'}} />
-                        <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.78)'}} />
-                      </div>
-                    </div>
-                  ) : opt.id === 'observer' ? (
-                    <div style={{height:'100%', display:'grid', gridTemplateRows:'14px 1fr', gap:'4px', padding:'5px'}}>
-                      <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.18)', border:'1px solid rgba(212,184,106,0.2)'}} />
-                      <div style={{display:'grid', gridTemplateColumns:'8px 1fr 1fr 1fr', gap:'3px'}}>
-                        <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.08)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.08)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.08)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.08)'}} /></div>
-                        <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(212,184,106,0.14)'}} /></div>
-                        <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /></div>
-                        <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /></div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{height:'100%', display:'grid', gridTemplateRows:'14px 22px 1fr 12px', gap:'4px', padding:'5px'}}>
-                      <div style={{display:'grid', gridTemplateColumns:'1fr 18px', gap:'3px'}}>
-                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} />
-                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} />
-                      </div>
-                      <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.18)', border:'1px solid rgba(212,184,106,0.22)'}} />
-                      <div style={{display:'grid', gridTemplateRows:'1fr 1fr', gap:'4px'}}>
-                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.04)'}} />
-                        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.04)'}} /><div style={{borderRadius:'2px', background:'rgba(212,184,106,0.78)'}} /></div>
-                      </div>
-                      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px'}}>
-                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.06)'}} />
-                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.06)'}} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {selectedMode === opt.id ? <div className="ks-gold ks-mono text-[10px] text-right mt-1">AKTÍVNE</div> : <div className="h-[14px] mt-1" />}
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Nový turnaj (s voľbou cieľa) ─────────────────────────────────────────
 
 function PendingChips({ pending, removePending }) {
   return (
@@ -2831,7 +2589,7 @@ function Modal({ children, onClose, title }) {
            onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b ks-border-sub">
           <h3 className="ks-display ks-gold text-xl font-semibold">{title}</h3>
-          <button onClick={onClose} className="ks-press ks-cream p-1"><X size={22} /></button>
+          <button aria-label="Zatvoriť" onClick={onClose} className="ks-press ks-cream p-1"><X size={22} /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-4" style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}>{children}</div>
       </div>
@@ -3311,7 +3069,7 @@ function RuleEditCard({ rule, isEditing, onEdit, onUpdate, onRemove }) {
           </div>
         </div>
         <DiceRow dice={rule.dice?.slice(0, 6)} size={18} />
-        <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="ks-press ks-gold p-1">
+        <button aria-label="Upraviť" onClick={(e) => { e.stopPropagation(); onEdit(); }} className="ks-press ks-gold p-1">
           <Pencil size={16} />
         </button>
       </div>

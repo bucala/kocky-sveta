@@ -1,0 +1,6 @@
+﻿f = open('src/App.jsx', encoding='utf-8')
+c = f.read()
+f.close()
+c = c.replace("import React, { Suspense, { useState,", "import React, { Suspense, useState,", 1)
+open('src/App.jsx', 'w', encoding='utf-8').write(c)
+print('Fixed')
