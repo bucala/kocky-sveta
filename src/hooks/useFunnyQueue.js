@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { POPUP_CONFIG } from '../constants.js';
+import { POPUP_CONFIG } from '../constants/game.js';
 
 /**
  * useFunnyQueue — queue pre funny popupy.
