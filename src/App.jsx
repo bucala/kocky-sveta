@@ -1053,8 +1053,10 @@ export default function App() {
     setViewingTournament(null);
     setrules(DEFAULT_RULES);
     setSelectedSkin('classic');
+    setSelectedFont('segoe');
 
     await window.storage.delete('tournaments').catch(() => {});
+    await window.storage.delete('selectedFont').catch(() => {});
     await window.storage.delete('active').catch(() => {});
     await window.storage.set('rules', JSON.stringify(DEFAULT_RULES)).catch(() => {});
     await window.storage.set('selectedSkin', JSON.stringify('classic')).catch(() => {});
@@ -1090,6 +1092,8 @@ export default function App() {
           tournamentCount={tournaments.length}
           selectedSkin={selectedSkin}
           onSkinChange={setSelectedSkin}
+          selectedFont={selectedFont}
+          onFontChange={setSelectedFont}
           tournamentViewMode={tournamentViewMode}
           onTournamentViewModeChange={setTournamentViewMode}
           onViewModes={() => setView('viewModes')}
@@ -1260,7 +1264,41 @@ function SkinSelector({ selectedSkin, onSkinChange }) {
   );
 }
 
-function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange }) {
+function FontSelector({ selectedFont, onFontChange }) {
+  const fonts = Object.values(FONT_PRESETS);
+  return (
+    <div className="ks-card rounded-sm p-4">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <div className="ks-display ks-cream text-xl font-semibold">Písmo</div>
+          <div className="ks-muted text-sm">Vyber štýl textu aplikácie</div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {fonts.map((font) => {
+          const active = font.id === selectedFont;
+          return (
+            <button
+              key={font.id}
+              onClick={() => onFontChange(font.id)}
+              className={`ks-press text-left rounded-sm p-3 border-2 transition-all ${active ? 'ks-border-accent shadow-[0_0_0_1px_rgba(212,184,106,0.2)]' : 'ks-border-sub'} ks-card`}
+            >
+              <div className="ks-cream text-base font-semibold leading-tight" style={{ fontFamily: font.stack }}>
+                {font.name}
+              </div>
+              <div className="ks-muted text-xs mt-1" style={{ fontFamily: font.stack }}>
+                Ukážka · Abc 123
+              </div>
+              {active && <div className="ks-gold ks-mono text-[10px] mt-1.5">✦ AKTÍVNE</div>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange }) {
   const fileInputRef = useRef(null);
 
   function handleFilePick(e) {
@@ -1326,6 +1364,7 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
 
         <div className="ks-mono ks-gold text-xs px-1 pt-3">VIZUÁL A SKINY</div>
         <SkinSelector selectedSkin={selectedSkin} onSkinChange={onSkinChange} />
+        <FontSelector selectedFont={selectedFont} onFontChange={onFontChange} />
 
         <div className="ks-mono ks-gold text-xs px-1 pt-3">SPRÁVA TURNAJOV</div>
 
