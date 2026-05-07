@@ -2784,7 +2784,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                 }}
                 className="ks-press py-4 px-3 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
                 <Crown size={20} className="ks-gold mx-auto mb-1" />
-                <div className="ks-display ks-gold text-base font-bold">Ôťô Potvrdil</div>
+                <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
                 <div className="ks-muted text-[10px] ks-mono mt-0.5">VÝHRA POTVRDENÁ</div>
               </button>
               <button
@@ -2838,7 +2838,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                   }
                 }}
                 className="ks-press py-3 px-2 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
-                <div className="ks-display ks-gold text-base font-bold">Ôťô Potvrdil</div>
+                <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
               </button>
               <button
                 onClick={() => {
@@ -2850,7 +2850,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                   advance('dash');
                 }}
                 className="ks-press py-3 px-2 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
-                <div className="ks-display ks-text-accent text-base font-bold">ÔťŚ Nepotvrdil</div>
+                <div className="ks-display ks-text-accent text-base font-bold">✗ Nepotvrdil</div>
               </button>
             </div>
           </div>
