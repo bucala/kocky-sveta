@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Dice1, Dice2, Dice3, Dice4, Dice5, Dice6,
   Plus, Minus, Trash2, Save, X, ChevronLeft,
@@ -16,6 +16,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import ScoreTable from './components/ScoreTable.jsx';
 import { MainMenu, MenuButton } from './screens/MainMenu.jsx';
 import { NewTournament } from './screens/NewTournament.jsx';
+import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
+import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
 
 // ─── Konštanty ────────────────────────────────────────────────────────────
 
@@ -356,7 +358,7 @@ function Ornament() {
   );
 }
 
-function Header({ title, onBack, right }) {
+export function Header({ title, onBack, right }) {
   return (
     <div className="flex items-center justify-between px-5 py-4 border-b ks-border-sub">
       {onBack ? (
@@ -1183,7 +1185,7 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
 }
 
 
-function SkinSelector({ selectedSkin, onSkinChange }) {
+export function SkinSelector({ selectedSkin, onSkinChange }) {
   const skins = Object.values(SKIN_PRESETS);
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -1225,7 +1227,7 @@ function SkinSelector({ selectedSkin, onSkinChange }) {
   );
 }
 
-function FontSelector({ selectedFont, onFontChange }) {
+export function FontSelector({ selectedFont, onFontChange }) {
   const fonts = Object.values(FONT_PRESETS);
   return (
     <div className="grid grid-cols-2 gap-3">
@@ -1253,25 +1255,6 @@ function FontSelector({ selectedFont, onFontChange }) {
 
 
 // ─── Vizuál a Skiny submenu ───────────────────────────────────────────────
-
-function VisualAndSkinScreen({ onBack, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes }) {
-  return (
-    <div className="min-h-screen ks-fade pb-8">
-      <Header title="Vizuál a Skiny" onBack={onBack} />
-      <div className="p-4 max-w-2xl mx-auto space-y-5">
-
-        {/* Skiny */}
-        <div className="ks-mono ks-gold text-xs px-1 pt-2">SKINY</div>
-        <SkinSelector selectedSkin={selectedSkin} onSkinChange={onSkinChange} />
-
-        {/* Písma */}
-        <div className="ks-mono ks-gold text-xs px-1 pt-2">PÍSMO</div>
-        <FontSelector selectedFont={selectedFont} onFontChange={onFontChange} />
-
-      </div>
-    </div>
-  );
-}
 
 function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange }) {
   const fileInputRef = useRef(null);
@@ -1423,75 +1406,6 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
   );
 }
 
-function GameViewModesScreen({ onBack, selectedMode, onChangeMode, selectedSkin }) {
-  const options = [
-    { id: 'basic', title: 'Klasický', desc: 'Tabuľka hore a zapisovanie bodov pod ňou.' },
-    { id: 'observer', title: 'Pozorovateľ', desc: 'Veľký živý prehľad skóre pre obrazovku alebo TV.' },
-    { id: 'recorder', title: 'Zapisovateľ', desc: 'Jednoduché veľké ovládanie pre rýchly zápis bodov.' },
-  ];
-  const skin = SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic;
-
-  return (
-    <div className="min-h-screen ks-fade pb-8" style={{ background: skin.bg }}>
-      <Header title="Zobrazenie hry" onBack={onBack} />
-      <div className="p-4 max-w-2xl mx-auto space-y-3">
-        {options.map((opt) => (
-          <button key={opt.id} onClick={() => onChangeMode(opt.id)} className={`ks-card w-full p-4 rounded-sm text-left ks-press border ${selectedMode === opt.id ? 'border-amber-500/70 bg-amber-900/10' : 'ks-border-sub'}`}>
-            <div className="flex items-center gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="ks-display ks-cream text-xl font-semibold">{opt.title}</div>
-                <div className="ks-muted text-sm mt-1">{opt.desc}</div>
-              </div>
-              <div className="shrink-0 w-[62px]">
-                <div className="h-[92px] rounded-sm border border-amber-900/25 overflow-hidden" style={{ background: skin.bg }}>
-                  {opt.id === 'basic' ? (
-                    <div style={{height:'100%', display:'grid', gridTemplateRows:'18px 28px 1fr', gap:'4px', padding:'5px'}}>
-                      <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(212,184,106,0.24)'}} />
-                      <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.18)', border:'1px solid rgba(212,184,106,0.22)'}} />
-                      <div style={{display:'grid', gridTemplateRows:'1fr 1fr', gap:'4px'}}>
-                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.04)'}} />
-                        <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.78)'}} />
-                      </div>
-                    </div>
-                  ) : opt.id === 'observer' ? (
-                    <div style={{height:'100%', display:'grid', gridTemplateRows:'14px 1fr', gap:'4px', padding:'5px'}}>
-                      <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.18)', border:'1px solid rgba(212,184,106,0.2)'}} />
-                      <div style={{display:'grid', gridTemplateColumns:'8px 1fr 1fr 1fr', gap:'3px'}}>
-                        <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.08)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.08)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.08)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.08)'}} /></div>
-                        <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(212,184,106,0.14)'}} /></div>
-                        <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /></div>
-                        <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /></div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{height:'100%', display:'grid', gridTemplateRows:'14px 22px 1fr 12px', gap:'4px', padding:'5px'}}>
-                      <div style={{display:'grid', gridTemplateColumns:'1fr 18px', gap:'3px'}}>
-                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} />
-                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} />
-                      </div>
-                      <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.18)', border:'1px solid rgba(212,184,106,0.22)'}} />
-                      <div style={{display:'grid', gridTemplateRows:'1fr 1fr', gap:'4px'}}>
-                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.04)'}} />
-                        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.04)'}} /><div style={{borderRadius:'2px', background:'rgba(212,184,106,0.78)'}} /></div>
-                      </div>
-                      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px'}}>
-                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.06)'}} />
-                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.06)'}} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {selectedMode === opt.id ? <div className="ks-gold ks-mono text-[10px] text-right mt-1">AKTÍVNE</div> : <div className="h-[14px] mt-1" />}
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Nový turnaj (s voľbou cieľa) ─────────────────────────────────────────
 
 function PendingChips({ pending, removePending }) {
   return (

@@ -1,3 +1,5 @@
+﻿import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6 } from 'lucide-react';
+
 // ─── Skin presets — vizuálne témy aplikácie ──────────────────────────────
 // Každý skin obsahuje:
 //   id:   unikátny kľúč (string)
