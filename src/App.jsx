@@ -129,9 +129,9 @@ const FUNNY_MESSAGES = [
   { msg: 'Tak bojuj nééé?!?',        emoji: '­😄', variant: 'doubt' },
   { msg: 'Tak bojuj nééé?!?',        emoji: '­😄', variant: 'fight' },
   { msg: 'Také mrviny? Vážne?',      emoji: '­😀', variant: 'doubt' },
-  { msg: 'Toto ťa nezachrániÔÇŽ',      emoji: '­čĺÇ', variant: 'doom' },
+  { msg: 'Toto ťa nezachráni…',      emoji: '­💀', variant: 'doom' },
   { msg: 'Tak takto sa hra nevyhráva!', emoji: '­🎭', variant: 'fight' },
-  { msg: 'Hej majsterÔÇŽ si si istý?', emoji: '­😆', variant: 'doubt' },
+  { msg: 'Hej majster… si si istý?', emoji: '­😆', variant: 'doubt' },
   { msg: 'Riskni to konečne!',       emoji: '­🎲', variant: 'fight' },
 ];
 
@@ -194,7 +194,7 @@ const DEFAULT_RULES = [
   { id: 'r6',  name: 'Tri štvorky',      description: 'Trojica štvoriek',                                     points: 400,   type: 'numeric', dice: [4,4,4] },
   { id: 'r7',  name: 'Tri päťky',        description: 'Trojica päťok',                                        points: 500,   type: 'numeric', dice: [5,5,5] },
   { id: 'r8',  name: 'Tri šestky',       description: 'Trojica šestiek',                                      points: 600,   type: 'numeric', dice: [6,6,6] },
-  { id: 'r9',  name: 'Postupka 1–6',     description: 'Šesť kociek za sebou: 1┬Ě2┬Ě3┬Ě4┬Ě5┬Ě6',                    points: 2000,  type: 'numeric', dice: [1,2,3,4,5,6] },
+  { id: 'r9',  name: 'Postupka 1–6',     description: 'Šesť kociek za sebou: 1·2·3·4·5·6',                    points: 2000,  type: 'numeric', dice: [1,2,3,4,5,6] },
   { id: 'r10', name: 'Tri páry',         description: 'Tri rôzne páry kociek',                                points: 1000,  type: 'numeric', dice: [2,2,4,4,6,6] },
   { id: 'r11', name: 'Štyri rovnaké',    description: 'Štyri rovnaké kocky',                                  points: 0,     type: 'select', options: ['Dvojnásobok trojice', 'Pevná hodnota'], selected: 'Dvojnásobok trojice', dice: [3,3,3,3] },
   { id: 'r12', name: 'Päť rovnakých',    description: 'Päť rovnakých kociek',                                 points: 0,     type: 'select', options: ['Štvornásobok trojice', 'Pevná hodnota'], selected: 'Štvornásobok trojice', dice: [4,4,4,4,4] },
@@ -219,7 +219,7 @@ const STYLES = `
   }
   /* Pomocná trieda pre nepriebehové popupy (toast, simplified result).
      Posúva ich smerom dolu o --ks-popup-offset + safe-area-inset-bottom.
-     Fullscreen popupy ju NEPOUŽ├ŹVAJÚ — zostávajú vystredené cez inset-0. */
+     Fullscreen popupy ju NEPOUŽÍVAJÚ — zostávajú vystredené cez inset-0. */
   .ks-popup-anchor {
     transform: translateY(calc(var(--ks-popup-offset) + var(--ks-popup-safe-bottom)));
   }
@@ -412,8 +412,8 @@ function StrikethroughCrown({ size = 96, color = '#d4b86a', strikeColor = '#c448
 function SimplifiedResult({ kind, title, subtitle, onClose, actionLabel }) {
   // kind: 'victory' | 'draw' | 'temporary-king' | 'win-pending'
   const palette = {
-    victory:        { accent: '#d4b86a', label: 'V├ŹŤAZ' },
-    draw:           { accent: '#d4b86a', label: 'REM├ŹZA' },
+    victory:        { accent: '#d4b86a', label: 'VÍŤAZ' },
+    draw:           { accent: '#d4b86a', label: 'REMÍZA' },
     'temporary-king': { accent: '#c44848', label: 'DOČASN├Ł KR├ü─Ż' },
     'win-pending':  { accent: '#d4b86a', label: 'POTVRD V├ŁHRU' },
   }[kind] || { accent: '#d4b86a', label: '' };
@@ -1165,7 +1165,7 @@ function MainMenu({ onNew, onArchive, onrules, onSettings, onResume, active, tou
             <div className="text-left flex-1">
               <div className="ks-mono ks-gold text-sm">POKRAČOVAŤ V TURNAJI</div>
               <div className="ks-body ks-cream text-sm opacity-80">
-                {active.players.length} hráčov ┬Ě do {(active.targetScore || 10000).toLocaleString('sk-SK')} ┬Ě kolo {active.currentRound + 1}
+                {active.players.length} hráčov · do {(active.targetScore || 10000).toLocaleString('sk-SK')} · kolo {active.currentRound + 1}
               </div>
             </div>
             <ChevronRight className="ks-gold" size={20} />
@@ -1180,7 +1180,7 @@ function MainMenu({ onNew, onArchive, onrules, onSettings, onResume, active, tou
 
       <div className="text-center ks-muted text-xs pb-6 ks-mono">
         <Ornament />
-        KOCKY ┬Ě SVETA ┬Ě KOCKY
+        KOCKY · SVETA · KOCKY
       </div>
     </div>
   );
@@ -1307,7 +1307,7 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
           </div>
           <div className="flex-1">
             <div className="ks-display ks-cream text-xl font-semibold">Úprava pravidiel</div>
-            <div className="ks-muted text-sm">Bodové kombinácie ┬Ě cieľ ┬Ě prvý zápis ┬Ě koncovka ┬Ě potvrdenie výhry ┬Ě penalizácia</div>
+            <div className="ks-muted text-sm">Bodové kombinácie · cieľ · prvý zápis · koncovka · potvrdenie výhry · penalizácia</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
@@ -1326,7 +1326,7 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
             <div className="ks-display ks-cream text-xl font-semibold">Export do Excelu</div>
             <div className="ks-muted text-sm">
               {tournamentCount > 0
-                ? `${tournamentCount} turnajov ┬Ě súbor .xlsx s listami`
+                ? `${tournamentCount} turnajov · súbor .xlsx s listami`
                 : 'Žiadne turnaje na export'}
             </div>
           </div>
@@ -1446,7 +1446,7 @@ function GameViewModesScreen({ onBack, selectedMode, onChangeMode, selectedSkin 
                     </div>
                   )}
                 </div>
-                {selectedMode === opt.id ? <div className="ks-gold ks-mono text-[10px] text-right mt-1">AKT├ŹVNE</div> : <div className="h-[14px] mt-1" />}
+                {selectedMode === opt.id ? <div className="ks-gold ks-mono text-[10px] text-right mt-1">AKTÍVNE</div> : <div className="h-[14px] mt-1" />}
               </div>
             </div>
           </button>
@@ -1576,7 +1576,7 @@ function computeTotals(rounds, playersCount) {
 
 // ÔöÇÔöÇÔöÇ computeWinners — autoritatívne určenie víťazov ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 // Používa sa AKO single source of truth pre:
-//   ÔÇó hlavičku V├ŹŤAZI (winnerCelebration)
+//   ÔÇó hlavičku VÍŤAZI (winnerCelebration)
 //   ÔÇó finálnu tabuľku v archíve
 //   ÔÇó finishTournament checksum validáciu
 //
@@ -2373,7 +2373,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
     const n = parseInt(customInput, 10);
     if (!Number.isFinite(n) || n === 0) return;
     if (n % 50 !== 0) {
-      showToast('Hodnota musí byť násobok 50 (50, 100, 150ÔÇŽ)', 'warn');
+      showToast('Hodnota musí byť násobok 50 (50, 100, 150…)', 'warn');
       return;
     }
     addPoints(n);
@@ -2385,7 +2385,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
     <div className={`min-h-screen ks-fade ${isRecorderMode ? 'pb-6' : 'pb-32'}`} style={{ background: (SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic).bg }}>
       {!isRecorderMode && (
         <Header
-          title={`Turnaj ┬Ě do ${target.toLocaleString('sk-SK')}`}
+          title={`Turnaj · do ${target.toLocaleString('sk-SK')}`}
           onBack={onMenu}
           right={
             <div className="flex items-center gap-2">
@@ -2423,7 +2423,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
           </div>
           <div className="ks-card-prom rounded-sm p-4 mb-2">
             <div className="flex items-baseline justify-between mb-2">
-              <div className="ks-mono ks-gold text-xs">NA ŤAHU ┬Ě KOLO {currentRound + 1}</div>
+              <div className="ks-mono ks-gold text-xs">NA ŤAHU · KOLO {currentRound + 1}</div>
               <div className="ks-mono ks-muted text-xs">CIE─Ż {target.toLocaleString('sk-SK')}</div>
             </div>
             <div className="flex items-end justify-between gap-3 mb-1">
@@ -2465,7 +2465,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                 ))}
               </div>
             ) : (
-              <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed ks-border-sub rounded-sm">Pridaj body alebo čiarku z hodu nižšieÔÇŽ</div>
+              <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed ks-border-sub rounded-sm">Pridaj body alebo čiarku z hodu nižšie…</div>
             )}
             <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">Zapísať</GoldButton>
           </div>
@@ -2502,7 +2502,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
       <div className="px-4 mt-4">
         <div className="ks-card-prom rounded-sm p-4">
           <div className="flex items-baseline justify-between mb-2">
-            <div className="ks-mono ks-gold text-xs">NA ŤAHU ┬Ě KOLO {currentRound + 1}</div>
+            <div className="ks-mono ks-gold text-xs">NA ŤAHU · KOLO {currentRound + 1}</div>
             <div className="ks-mono ks-muted text-xs">CIE─Ż {target.toLocaleString('sk-SK')}</div>
           </div>
           <div className="flex items-end justify-between gap-3 mb-1">
@@ -2572,7 +2572,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
                 </div>
               ) : (
                 <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed ks-border-sub rounded-sm">
-                  Pridaj body alebo čiarku z hodu nižšieÔÇŽ
+                  Pridaj body alebo čiarku z hodu nižšie…
                 </div>
               )}
 
@@ -2582,7 +2582,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
             </div>
           </div>
 
-          {/* SUBT├ŹLNA KARTA — predvolené hodnoty */}
+          {/* SUBTÍLNA KARTA — predvolené hodnoty */}
           <div className="px-4 mt-4">
             <div className="ks-card-sub rounded-sm p-4">
               <div className="ks-mono ks-muted text-xs mb-3">PRIDAJ BODY Z HODU</div>
@@ -2695,15 +2695,15 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
         />
       )}
 
-      {/* V├ŹŤAZSTVO / REM├ŹZA — celoobrazovkové, nezávisle na queue */}
+      {/* VÍŤAZSTVO / REMÍZA — celoobrazovkové, nezávisle na queue */}
       {winnerCelebration && funnyWindowsDisplayMode === 'standard' && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-6 ks-overlay-bg" style={{ background: 'radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98))' }}>
           <div className="ks-funny relative z-10 text-center max-w-md">
             <div className="text-7xl mb-3 ks-funny-emoji">{winnerCelebration.isDraw ? '­čĹĹ­čĹĹ' : '­čĹĹ'}</div>
             <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">
               {winnerCelebration.isDraw
-                ? `REM├ŹZA — ${winnerCelebration.winnerArr.length} V├ŹŤAZI`
-                : 'V├ŹŤAZ'}
+                ? `REMÍZA — ${winnerCelebration.winnerArr.length} VÍŤAZI`
+                : 'VÍŤAZ'}
             </div>
             <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2">
               {winnerCelebration.isDraw ? 'Víťazi' : 'Víťaz'}
@@ -3285,7 +3285,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
           </div>
           <div className="flex-1">
             <div className="ks-display ks-cream text-lg font-semibold">Hodnoty hry</div>
-            <div className="ks-muted text-sm">Cieľ ┬Ě prvý zápis ┬Ě koncovka ┬Ě potvrdenie výhry ┬Ě penalizácia</div>
+            <div className="ks-muted text-sm">Cieľ · prvý zápis · koncovka · potvrdenie výhry · penalizácia</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
@@ -3519,11 +3519,11 @@ function ArchiveItem({ t, onView, onDelete, readOnly }) {
           <div className="flex items-center gap-1.5 mt-0.5">
             <Calendar size={11} className="ks-muted" />
             <div className="ks-mono ks-muted text-xs truncate">
-              {formatDateTime(t.date)}{duration ? ` ┬Ě ${duration}` : ''}
+              {formatDateTime(t.date)}{duration ? ` · ${duration}` : ''}
             </div>
           </div>
           <div className="ks-muted text-xs truncate mt-0.5">
-            {t.players.length} hráčov ┬Ě do {target.toLocaleString('sk-SK')} ┬Ě {t.players.join(' ┬Ě ')}
+            {t.players.length} hráčov · do {target.toLocaleString('sk-SK')} · {t.players.join(' · ')}
           </div>
         </div>
         <ChevronRight className="ks-muted" size={20} />
@@ -3684,7 +3684,7 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
             return (
               <>
                 <Crown className="ks-gold mx-auto" size={40} />
-                <div className="ks-mono ks-gold text-xs mt-2">{isDraw ? `REM├ŹZA ┬Ě ${winnerArr.length} V├ŹŤAZI` : 'V├ŹŤAZ'}</div>
+                <div className="ks-mono ks-gold text-xs mt-2">{isDraw ? `REMÍZA · ${winnerArr.length} VÍŤAZI` : 'VÍŤAZ'}</div>
                 <div className="space-y-1.5 mt-1">
                   {winnerArr.map(idx => (
                     <div key={idx}>
@@ -3733,7 +3733,7 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
             <div className="flex items-start gap-2">
               <AlertTriangle size={20} className="ks-text-accent shrink-0 mt-0.5" />
               <div className="flex-1">
-                <div className="ks-mono ks-text-accent text-xs tracking-widest mb-1">ÔÜá NEZHODA V URČEN├Ź V├ŹŤAZA</div>
+                <div className="ks-mono ks-text-accent text-xs tracking-widest mb-1">ÔÜá NEZHODA V URČENÍ VÍŤAZA</div>
                 <div className="ks-body ks-cream text-sm leading-snug">
                   Hlavička uvádza:{' '}
                   <strong className="ks-gold">
@@ -3749,7 +3749,7 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
                 </div>
                 {winnerComputation.errors.length > 0 && (
                   <div className="ks-body ks-text-accent text-xs mt-2">
-                    {winnerComputation.errors.join(' ┬Ě ')}
+                    {winnerComputation.errors.join(' · ')}
                   </div>
                 )}
                 {!readOnly && (
@@ -3820,7 +3820,7 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
 function EditableScoreTable({ players, rounds, totals, target, winner, onChangeCell, onRemoveRound, onSetWinner }) {
   function parseCellValue(str) {
     const s = (str || '').trim();
-    if (s === '' || s === '┬Ě') return null;
+    if (s === '' || s === '·') return null;
     if (s === '—' || s === '-' || s.toLowerCase() === 'dash') return 'dash';
     const n = parseInt(s, 10);
     if (Number.isFinite(n)) return n;
@@ -3857,7 +3857,7 @@ function EditableScoreTable({ players, rounds, totals, target, winner, onChangeC
                       <input
                         value={display}
                         onChange={(e) => onChangeCell(rIdx, pIdx, parseCellValue(e.target.value))}
-                        placeholder="┬Ě"
+                        placeholder="·"
                         className={`w-full bg-stone-950/40 border ks-border-sub rounded-sm px-2 py-1 ks-display text-center text-sm outline-none focus:border-amber-700 ${
                           v === 'dash' ? 'ks-muted' : (typeof v === 'number' && v < 0 ? 'ks-text-accent' : 'ks-cream')
                         }`}
@@ -3903,7 +3903,7 @@ function EditableScoreTable({ players, rounds, totals, target, winner, onChangeC
         </table>
       </div>
       <div className="p-2 border-t border-amber-900/20 ks-muted text-xs italic text-center ks-body">
-        Klepni na bunku pre úpravu ┬Ě Klepni na súčet pre nastavenie víťaza ┬Ě Číslo, ÔÇ×—" alebo prázdne pre vymazanie
+        Klepni na bunku pre úpravu · Klepni na súčet pre nastavenie víťaza · Číslo, ÔÇ×—" alebo prázdne pre vymazanie
       </div>
     </div>
   );
