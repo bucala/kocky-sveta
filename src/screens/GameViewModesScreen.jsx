@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Header } from '../App.jsx';
+import { Header } from '../components/ui.jsx';
 import { SKIN_PRESETS } from '../constants/skins.js';
 
 export function GameViewModesScreen({ onBack, selectedMode, onChangeMode, selectedSkin }) {

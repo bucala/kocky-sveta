@@ -1,3 +1,5 @@
+﻿import { SKIN_PRESETS, FONT_PRESETS } from '../constants/skins.js';
+
 // ─── Základné UI komponenty ────────────────────────────────────────────────
 // Sdielané micro-komponenty používané naprieč celou appkou.
 // Žiadna business logika — len vizuál a layout.
@@ -115,6 +117,74 @@ export function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať
         <div className="ks-display text-2xl ks-gold mb-2">{title}</div>
         <div className="ks-muted text-sm">Skús sa vrátiť späť alebo otvoriť turnaj znova.</div>
       </div>
+    </div>
+  );
+}
+
+export function SkinSelector({ selectedSkin, onSkinChange }) {
+  const skins = Object.values(SKIN_PRESETS);
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      {skins.map((skin) => {
+        const active = skin.id === selectedSkin;
+        const accent  = skin.vars['--ks-accent'];
+        const accent2 = skin.vars['--ks-accent-2'];
+        const bgMain  = skin.vars['--ks-bg-main'];
+        const bgSoft  = skin.vars['--ks-bg-soft'];
+        const text    = skin.vars['--ks-text'];
+        return (
+          <button
+            key={skin.id}
+            onClick={() => onSkinChange(skin.id)}
+            className="ks-press rounded-sm border-2 transition-all flex flex-col pt-3 pb-3 px-3 gap-1 hover:brightness-110 relative"
+            style={{ minHeight: '120px', background: bgMain, borderColor: active ? accent : 'rgba(255,255,255,0.12)' }}
+          >
+            {active && (
+              <div className="absolute top-3 right-3 ks-mono font-bold text-[13px] tracking-wider" style={{ color: accent }}>
+                ✦ AKTÍVNY
+              </div>
+            )}
+            <div className="flex items-start w-full">
+              <div className="ks-display text-base font-semibold leading-tight" style={{ color: text }}>
+                {skin.name}
+              </div>
+            </div>
+            <div className="mt-auto w-full grid items-end" style={{ gridTemplateColumns: '1fr auto', columnGap: '12px', rowGap: '4px' }}>
+              <div className="rounded-[4px] shrink-0" style={{ width: 38, height: 38, background: accent, gridColumn: '2', gridRow: '1 / 3' }} />
+              <div className="flex items-center gap-1.5 w-full">
+                <div className="rounded-[3px] border border-white/10 flex-1" style={{ height: 15, background: bgSoft }} />
+                <div className="rounded-[3px] flex-1" style={{ height: 15, background: accent2 }} />
+              </div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function FontSelector({ selectedFont, onFontChange }) {
+  const fonts = Object.values(FONT_PRESETS);
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {fonts.map((font) => {
+        const active = font.id === selectedFont;
+        return (
+          <button
+            key={font.id}
+            onClick={() => onFontChange(font.id)}
+            className={`ks-press rounded-sm p-3 border-2 transition-all flex flex-col items-center text-center ks-card ${active ? 'ks-card-prom ks-border-accent' : 'ks-border-sub hover:shadow-md'}`}
+          >
+            {active && <div className="ks-mono ks-gold text-[9px] tracking-[0.18em] mb-1">✦ AKTÍVNE</div>}
+            <div className="ks-cream text-base font-semibold leading-tight" style={{ fontFamily: font.stack }}>
+              {font.name}
+            </div>
+            <div className="ks-muted text-xs mt-1.5" style={{ fontFamily: font.stack }}>
+              Ukážka · Abc 123
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }

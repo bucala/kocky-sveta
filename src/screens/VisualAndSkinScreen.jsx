@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Header, SkinSelector, FontSelector } from '../App.jsx';
+import { Header, SkinSelector, FontSelector } from '../components/ui.jsx';
 
 export function VisualAndSkinScreen({ onBack, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes }) {
   return (
