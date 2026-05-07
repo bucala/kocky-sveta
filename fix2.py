@@ -1,0 +1,6 @@
+﻿f = open('src/App.jsx', encoding='utf-8')
+c = f.read()
+f.close()
+c = c.replace("import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';\n", "")
+open('src/App.jsx', 'w', encoding='utf-8').write(c)
+print('Done')
