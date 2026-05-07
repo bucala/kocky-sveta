@@ -66,10 +66,19 @@ const SKIN_PRESETS = {
   },
 };
 
-function skinVarsCss(selectedSkin) {
+const FONT_PRESETS = {
+  segoe:    { id: 'segoe',    name: 'Segoe (systém)',  stack: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",  monoStack: "'Bebas Neue', sans-serif" },
+  cormorant:{ id: 'cormorant',name: 'Cormorant',       stack: "'Cormorant Garamond', Georgia, serif",             monoStack: "'Bebas Neue', sans-serif" },
+  crimson:  { id: 'crimson',  name: 'Crimson Pro',     stack: "'Crimson Pro', Georgia, serif",                    monoStack: "'Bebas Neue', sans-serif" },
+  inter:    { id: 'inter',    name: 'Inter (moderný)', stack: "'Inter', 'Helvetica Neue', Arial, sans-serif",     monoStack: "'Bebas Neue', sans-serif" },
+};
+
+function skinVarsCss(selectedSkin, selectedFont) {
+  const font = FONT_PRESETS[selectedFont] || FONT_PRESETS.segoe;
   const skin = SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic;
   const vars = skin.vars;
-  let css = ':root{' + Object.entries(vars).map(([k,v]) => `${k}:${v}`).join(';') + '}';
+  let css = ':root{' + Object.entries(vars).map(([k,v]) => `${k}:${v}`).join(';')
+    + `;--ks-font-display:${font.stack};--ks-font-body:${font.stack};--ks-font-mono:${font.monoStack}}`;
   if (selectedSkin === 'blackwhite') {
     css += `
 .ks-gold{color:#fff!important}
@@ -224,9 +233,9 @@ const STYLES = `
     transform: translateY(calc(var(--ks-popup-offset) + var(--ks-popup-safe-bottom)));
   }
 
-  .ks-display { font-family: 'Cormorant Garamond', serif; letter-spacing: 0.02em; }
-  .ks-mono    { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.08em; }
-  .ks-body    { font-family: 'Crimson Pro', serif; }
+  .ks-display { font-family: var(--ks-font-display, 'Cormorant Garamond', serif); letter-spacing: 0.02em; }
+  .ks-mono    { font-family: var(--ks-font-mono, 'Bebas Neue', sans-serif); letter-spacing: 0.08em; }
+  .ks-body    { font-family: var(--ks-font-body, 'Crimson Pro', serif); }
   .ks-bg      { background:
                   radial-gradient(ellipse at top, color-mix(in srgb, var(--ks-accent) 12%, transparent), transparent 60%),
                   radial-gradient(ellipse at bottom, color-mix(in srgb, var(--ks-accent-2) 18%, transparent), transparent 60%),
@@ -553,6 +562,7 @@ export default function App() {
   const [archiveReturnTo, setArchiveReturnTo] = useState('menu');
   const [loaded, setLoaded] = useState(false);
   const [selectedSkin, setSelectedSkin] = useState('classic');
+  const [selectedFont, setSelectedFont] = useState('segoe');
 
   // Display mode pre tabuľky: 'delta' (prípis) alebo 'cumulative' (kumulatívne skóre)
   const [scoreDisplayMode, setScoreDisplayMode] = useState('delta');
@@ -565,6 +575,7 @@ export default function App() {
       try { const dm = await window.storage.get('scoreDisplayMode'); if (dm?.value) setScoreDisplayMode(JSON.parse(dm.value)); } catch {}
       try { const tvm = await window.storage.get('tournamentViewMode'); if (tvm?.value) setTournamentViewMode(JSON.parse(tvm.value)); } catch {}
       try { const fwdm = await window.storage.get('funnyWindowsDisplayMode'); if (fwdm?.value) setFunnyWindowsDisplayMode(JSON.parse(fwdm.value)); } catch {}
+      try { const f = await window.storage.get('selectedFont'); if (f?.value) { const fv = JSON.parse(f.value); setSelectedFont(FONT_PRESETS[fv] ? fv : 'segoe'); } } catch {}
       try { const skin = await window.storage.get('selectedSkin'); if (skin?.value) { const s = JSON.parse(skin.value); setSelectedSkin(SKIN_PRESETS[s] ? s : 'classic'); } } catch {
         try { const legacySkin = localStorage.getItem('ks-skin'); if (legacySkin) setSelectedSkin(legacySkin); } catch {}
       }
@@ -577,6 +588,7 @@ export default function App() {
   useEffect(() => { if (loaded) window.storage.set('scoreDisplayMode', JSON.stringify(scoreDisplayMode)).catch(() => {}); }, [scoreDisplayMode, loaded]);
   useEffect(() => { if (loaded) window.storage.set('tournamentViewMode', JSON.stringify(tournamentViewMode)).catch(() => {}); }, [tournamentViewMode, loaded]);
   useEffect(() => { if (loaded) window.storage.set('funnyWindowsDisplayMode', JSON.stringify(funnyWindowsDisplayMode)).catch(() => {}); }, [funnyWindowsDisplayMode, loaded]);
+  useEffect(() => { if (loaded) window.storage.set('selectedFont', JSON.stringify(selectedFont)).catch(() => {}); }, [selectedFont, loaded]);
   useEffect(() => {
     if (!loaded) return;
     window.storage.set('selectedSkin', JSON.stringify(selectedSkin)).catch(() => {});
@@ -1052,7 +1064,7 @@ export default function App() {
 
   return (
     <div className="ks-bg min-h-screen ks-cream ks-body" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
-      <style>{skinVarsCss(selectedSkin)}</style>
+      <style>{skinVarsCss(selectedSkin, selectedFont)}</style>
       <style>{STYLES}</style>
       <style>{`:root { --ks-popup-offset: ${POPUP_CONFIG.VERTICAL_OFFSET}; --ks-popup-opacity: ${POPUP_CONFIG.OPACITY}; }`}</style>
 
