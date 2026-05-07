@@ -16,11 +16,114 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import ScoreTable from './components/ScoreTable.jsx';
 import { MainMenu, MenuButton } from './screens/MainMenu.jsx';
 import { NewTournament } from './screens/NewTournament.jsx';
-import { SkinSelector, FontSelector, VisualAndSkinScreen, SettingsMenu, GameViewModesScreen } from './screens/SettingsMenu.jsx';
-import { SKIN_PRESETS, FONT_PRESETS, skinVarsCss, DICE_ICONS } from './constants/skins.js';
 
 // ─── Konštanty ────────────────────────────────────────────────────────────
 
+const DICE_ICONS = { 1: Dice1, 2: Dice2, 3: Dice3, 4: Dice4, 5: Dice5, 6: Dice6 };
+const SKIN_PRESETS = {
+  classic: {
+    id:'classic', name:'Klasik',
+    bg:'radial-gradient(circle at top, rgba(120,76,24,0.10), transparent 38%), linear-gradient(180deg,#120f0c 0%,#0d0a08 100%)',
+    vars: { '--ks-bg-main':'#0e0c0a','--ks-bg-soft':'rgba(28,22,16,0.85)','--ks-bg-soft-2':'rgba(18,14,10,0.92)','--ks-card-sub':'rgba(20,16,12,0.6)','--ks-border':'rgba(201,168,92,0.18)','--ks-border-strong':'rgba(212,184,106,0.55)','--ks-text':'#f3ead4','--ks-text-muted':'#a89679','--ks-accent':'#d4b86a','--ks-accent-2':'#b8954a','--ks-button-text':'#1a1410','--ks-danger':'#efb0b0' }
+  },
+  forest: {
+    id:'forest', name:'Les',
+    bg:'radial-gradient(circle at top, rgba(40,110,70,0.18), transparent 42%), linear-gradient(180deg,#0b1611 0%,#0a0d0b 100%)',
+    vars: { '--ks-bg-main':'#09110d','--ks-bg-soft':'rgba(17,34,24,0.84)','--ks-bg-soft-2':'rgba(10,21,14,0.94)','--ks-card-sub':'rgba(12,23,16,0.62)','--ks-border':'rgba(175,160,95,0.22)','--ks-border-strong':'rgba(200,188,116,0.52)','--ks-text':'#eef0d8','--ks-text-muted':'#aeb495','--ks-accent':'#d7c56d','--ks-accent-2':'#7e9e56','--ks-button-text':'#152013','--ks-danger':'#f0b3b3' }
+  },
+  royal: {
+    id:'royal', name:'Royal',
+    bg:'radial-gradient(circle at top, rgba(74,52,148,0.18), transparent 42%), linear-gradient(180deg,#0d0b17 0%,#09080d 100%)',
+    vars: { '--ks-bg-main':'#0d0918','--ks-bg-soft':'rgba(24,18,45,0.86)','--ks-bg-soft-2':'rgba(14,10,28,0.95)','--ks-card-sub':'rgba(22,16,40,0.62)','--ks-border':'rgba(196,167,255,0.24)','--ks-border-strong':'rgba(214,183,106,0.46)','--ks-text':'#f2eaff','--ks-text-muted':'#b6a6d8','--ks-accent':'#d4b86a','--ks-accent-2':'#8e66d9','--ks-button-text':'#170f25','--ks-danger':'#ffc0d9' }
+  },
+  parchment: {
+      id:'parchment', name:'Pergamen',
+      bg:'linear-gradient(180deg,#f3ead7 0%,#eadfcb 100%)',
+      vars: { '--ks-bg-main':'#f7f0e0','--ks-bg-soft':'rgba(255,252,246,0.98)','--ks-bg-soft-2':'rgba(251,245,235,1.0)','--ks-card-sub':'rgba(244,236,223,0.98)','--ks-border':'rgba(174,140,88,0.34)','--ks-border-strong':'rgba(160,120,60,0.72)','--ks-text':'#6b5235','--ks-text-muted':'#8e7150','--ks-accent':'#7a4f1f','--ks-accent-2':'#d8b684','--ks-button-text':'#f9f2e6','--ks-danger':'#8f3a3a','--ks-sticky-bg':'rgba(247,240,224,0.97)','--ks-sticky-bg2':'rgba(241,233,216,0.98)' }
+  },
+  walnut: {
+    id:'walnut', name:'Orech',
+    bg:'linear-gradient(180deg,#24150c 0%,#140d09 100%)',
+    vars: { '--ks-bg-main':'#1a100b','--ks-bg-soft':'rgba(45,25,14,0.85)','--ks-bg-soft-2':'rgba(26,15,9,0.95)','--ks-card-sub':'rgba(33,19,12,0.66)','--ks-border':'rgba(205,155,94,0.23)','--ks-border-strong':'rgba(224,184,123,0.55)','--ks-text':'#f4e2c8','--ks-text-muted':'#be9f78','--ks-accent':'#dfb06b','--ks-accent-2':'#8c4f21','--ks-button-text':'#24150c','--ks-danger':'#f0b9a2' ,'--ks-sticky-bg':'rgba(14,12,10,0.97)','--ks-sticky-bg2':'rgba(10,8,6,0.98)'}
+  },
+  rosered: {
+    id:'rosered', name:'Rose Red',
+    bg:'radial-gradient(circle at top, rgba(180,40,72,0.22), transparent 42%), linear-gradient(180deg,#2a0812 0%,#12060b 100%)',
+    vars: { '--ks-bg-main':'#1a0710','--ks-bg-soft':'rgba(46,12,24,0.86)','--ks-bg-soft-2':'rgba(28,10,18,0.95)','--ks-card-sub':'rgba(36,11,20,0.64)','--ks-border':'rgba(236,128,152,0.26)','--ks-border-strong':'rgba(255,170,191,0.56)','--ks-text':'#ffe7ec','--ks-text-muted':'#d2a2af','--ks-accent':'#f2a0b3','--ks-accent-2':'#c24569','--ks-button-text':'#2b0b15','--ks-danger':'#ffb4c2','--ks-sticky-bg':'rgba(24,8,14,0.97)','--ks-sticky-bg2':'rgba(18,6,10,0.98)' }
+  },
+  ruby: {
+    id:'ruby', name:'Rubín',
+    bg:'radial-gradient(circle at top, rgba(220,30,60,0.18), transparent 42%), linear-gradient(180deg,#22070d 0%,#10050a 100%)',
+    vars: { '--ks-bg-main':'#15060b','--ks-bg-soft':'rgba(44,10,18,0.86)','--ks-bg-soft-2':'rgba(24,8,14,0.95)','--ks-card-sub':'rgba(34,10,17,0.66)','--ks-border':'rgba(234,115,132,0.26)','--ks-border-strong':'rgba(255,166,180,0.58)','--ks-text':'#ffe9ec','--ks-text-muted':'#d7aab2','--ks-accent':'#ff6f86','--ks-accent-2':'#b92e4a','--ks-button-text':'#2a0810','--ks-danger':'#ffb4c2','--ks-sticky-bg':'rgba(24,8,14,0.97)','--ks-sticky-bg2':'rgba(18,6,10,0.98)' }
+  },
+  blackwhite: {
+    id:'blackwhite', name:'Čierno-biely',
+    bg:'#000000',
+    vars: { '--ks-bg-main':'#000000','--ks-bg-soft':'rgba(18,18,18,0.98)','--ks-bg-soft-2':'rgba(24,24,24,1.0)','--ks-card-sub':'rgba(28,28,28,0.98)','--ks-border':'rgba(255,255,255,0.22)','--ks-border-strong':'rgba(255,255,255,0.55)','--ks-text':'#ffffff','--ks-text-muted':'#aaaaaa','--ks-accent':'#ffffff','--ks-accent-2':'#444444','--ks-button-text':'#000000','--ks-danger':'#ff4444','--ks-sticky-bg':'rgba(6,6,6,0.99)','--ks-sticky-bg2':'rgba(0,0,0,1.0)' }
+  },
+  whiteblack: {
+    id:'whiteblack', name:'Bielo-čierny',
+    bg:'linear-gradient(180deg,#f0f0f0 0%,#e4e4e4 100%)',
+    vars: { '--ks-bg-main':'#f5f5f5','--ks-bg-soft':'rgba(255,255,255,0.98)','--ks-bg-soft-2':'rgba(250,250,250,1.0)','--ks-card-sub':'rgba(245,245,245,0.98)','--ks-border':'rgba(0,0,0,0.15)','--ks-border-strong':'rgba(0,0,0,0.40)','--ks-text':'#111111','--ks-text-muted':'#555555','--ks-accent':'#111111','--ks-accent-2':'#cccccc','--ks-button-text':'#ffffff','--ks-danger':'#cc0000','--ks-sticky-bg':'rgba(240,240,240,0.99)','--ks-sticky-bg2':'rgba(230,230,230,1.0)' }
+  },
+};
+
+const FONT_PRESETS = {
+  default:   { id: 'default',   name: 'Default',        stack: "'Cormorant Garamond', 'Crimson Pro', Georgia, serif",   monoStack: "'Bebas Neue', sans-serif" },
+  calibri:   { id: 'calibri',   name: 'Calibri',         stack: "'Calibri', 'Segoe UI', sans-serif",                    monoStack: "'Bebas Neue', sans-serif" },
+  arial:     { id: 'arial',     name: 'Arial',           stack: "Arial, 'Helvetica Neue', sans-serif",                  monoStack: "'Bebas Neue', sans-serif" },
+  crimson:   { id: 'crimson',   name: 'Crimson Pro',     stack: "'Crimson Pro', Georgia, serif",                        monoStack: "'Bebas Neue', sans-serif" },
+  comicsans: { id: 'comicsans', name: 'Comic Sans MS',   stack: "'Comic Sans MS', 'Comic Sans', cursive",               monoStack: "'Bebas Neue', sans-serif" },
+  inkfree:   { id: 'inkfree',   name: 'Ink Free',        stack: "'Ink Free', 'Segoe Script', cursive",                  monoStack: "'Bebas Neue', sans-serif" },
+};
+
+function skinVarsCss(selectedSkin, selectedFont) {
+  const font = FONT_PRESETS[selectedFont] || FONT_PRESETS.default;
+  const skin = SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic;
+  const vars = skin.vars;
+  let css = ':root{' + Object.entries(vars).map(([k,v]) => `${k}:${v}`).join(';')
+    + `;--ks-font-display:${font.stack};--ks-font-body:${font.stack};--ks-font-mono:${font.monoStack}}`;
+  if (selectedSkin === 'blackwhite') {
+    css += `
+.ks-gold{color:#fff!important}
+.ks-cream{color:#fff!important}
+.ks-muted{color:#aaa!important}
+.ks-gold-bg{background:#fff!important;color:#000!important}
+.ks-card{background:rgba(16,16,16,0.98)!important;border-color:rgba(255,255,255,0.20)!important}
+.ks-card:hover{border-color:rgba(255,255,255,0.42)!important}
+.ks-live-row td,.ks-live-table th{border-color:rgba(255,255,255,0.10)!important}
+.ks-live-pos-1{color:#fff!important;border-color:rgba(255,255,255,0.6)!important}
+.ks-live-pos-2{color:#ccc!important}
+.ks-live-pos-3{color:#999!important}
+`;
+  }
+  if (selectedSkin === 'parchment') {
+    css += `
+.ks-card{background:rgba(248,241,226,0.96)!important;border-color:rgba(195,165,112,0.36)!important}
+.ks-card:hover{border-color:rgba(200,165,95,0.60)!important}
+.ks-live-row td,.ks-live-table th{border-color:rgba(195,165,112,0.25)!important}
+.ks-live-row:hover td{background:rgba(232,218,196,0.55)!important}
+`;
+  }
+  if (selectedSkin === 'whiteblack') {
+    css += `
+.ks-gold{color:#111!important}
+.ks-cream{color:#111!important}
+.ks-muted{color:#555!important}
+.ks-gold-bg{background:#111!important;color:#fff!important}
+.ks-card{background:rgba(255,255,255,0.97)!important;border-color:rgba(0,0,0,0.13)!important}
+.ks-card:hover{border-color:rgba(0,0,0,0.30)!important}
+.ks-live-row td,.ks-live-table th{border-color:rgba(0,0,0,0.08)!important}
+.ks-live-row:hover td{background:rgba(220,220,220,0.45)!important}
+.ks-press{border-color:rgba(0,0,0,0.25)!important}
+.ks-press:hover{background:rgba(0,0,0,0.07)!important}
+.ks-live-pos-1{color:#111!important;border-color:rgba(0,0,0,0.55)!important}
+.ks-live-pos-2{color:#333!important}
+.ks-live-pos-3{color:#666!important}
+`;
+  }
+  return css;
+}
 
 
 
@@ -1080,6 +1183,311 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
 }
 
 
+function SkinSelector({ selectedSkin, onSkinChange }) {
+  const skins = Object.values(SKIN_PRESETS);
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      {skins.map((skin) => {
+        const active = skin.id === selectedSkin;
+        const accent  = skin.vars['--ks-accent'];
+        const accent2 = skin.vars['--ks-accent-2'];
+        const bgMain  = skin.vars['--ks-bg-main'];
+        const bgSoft  = skin.vars['--ks-bg-soft'];
+        const text    = skin.vars['--ks-text'];
+        return (
+          <button
+            key={skin.id}
+            onClick={() => onSkinChange(skin.id)}
+            className="ks-press rounded-sm border-2 transition-all flex flex-col pt-3 pb-3 px-3 gap-1 hover:brightness-110"
+            style={{ minHeight: '120px', background: bgMain, borderColor: active ? accent : 'rgba(255,255,255,0.12)' }}
+          >
+            <div className="flex items-start w-full">
+              <div className="ks-display text-base font-semibold leading-tight" style={{ color: text }}>
+                {skin.name}
+              </div>
+            </div>
+            <div className="mt-auto w-full grid items-end" style={{ gridTemplateColumns: '1fr auto', columnGap: '12px', rowGap: '4px' }}>
+              <div className="ks-mono text-[10px] tracking-wider" style={{ color: accent2 }}>
+                {active ? '✦ AKTÍVNY' : 'Náhľad'}
+              </div>
+              <div className="rounded-[4px] shrink-0" style={{ width: 38, height: 38, background: accent, gridColumn: '2', gridRow: '1 / 3' }} />
+              <div className="flex items-center gap-1.5 w-full">
+                <div className="rounded-[3px] border border-white/10 flex-1" style={{ height: 15, background: bgSoft }} />
+                <div className="rounded-[3px] flex-1" style={{ height: 15, background: accent2 }} />
+              </div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function FontSelector({ selectedFont, onFontChange }) {
+  const fonts = Object.values(FONT_PRESETS);
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {fonts.map((font) => {
+        const active = font.id === selectedFont;
+        return (
+          <button
+            key={font.id}
+            onClick={() => onFontChange(font.id)}
+            className={`ks-press rounded-sm p-3 border-2 transition-all flex flex-col items-center text-center ks-card ${active ? 'ks-card-prom ks-border-accent' : 'ks-border-sub hover:shadow-md'}`}
+          >
+            {active && <div className="ks-mono ks-gold text-[9px] tracking-[0.18em] mb-1">✦ AKTÍVNE</div>}
+            <div className="ks-cream text-base font-semibold leading-tight" style={{ fontFamily: font.stack }}>
+              {font.name}
+            </div>
+            <div className="ks-muted text-xs mt-1.5" style={{ fontFamily: font.stack }}>
+              Ukážka · Abc 123
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+
+// ─── Vizuál a Skiny submenu ───────────────────────────────────────────────
+
+function VisualAndSkinScreen({ onBack, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes }) {
+  return (
+    <div className="min-h-screen ks-fade pb-8">
+      <Header title="Vizuál a Skiny" onBack={onBack} />
+      <div className="p-4 max-w-2xl mx-auto space-y-5">
+
+        {/* Skiny */}
+        <div className="ks-mono ks-gold text-xs px-1 pt-2">SKINY</div>
+        <SkinSelector selectedSkin={selectedSkin} onSkinChange={onSkinChange} />
+
+        {/* Písma */}
+        <div className="ks-mono ks-gold text-xs px-1 pt-2">PÍSMO</div>
+        <FontSelector selectedFont={selectedFont} onFontChange={onFontChange} />
+
+      </div>
+    </div>
+  );
+}
+
+function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange }) {
+  const fileInputRef = useRef(null);
+
+  function handleFilePick(e) {
+    const file = e.target.files?.[0];
+    if (file && onImport) onImport(file);
+    // Reset input aby sa dal vybrať ten istý súbor znova
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  return (
+    <div className="min-h-screen ks-fade pb-8">
+      <Header title="Nastavenia" onBack={onBack} />
+      <div className="p-4 max-w-2xl mx-auto space-y-3">
+
+        <div className="ks-mono ks-gold text-xs px-1 pt-3">PRAVIDLÁ A HODNOTY HRY</div>
+        <button onClick={onRulesEditor}
+          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <Settings size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">Úprava pravidiel</div>
+            <div className="ks-muted text-sm">Bodové kombinácie · cieľ · prvý zápis · koncovka · potvrdenie výhry · penalizácia</div>
+          </div>
+          <ChevronRight className="ks-muted" size={20} />
+        </button>
+
+        <div className="ks-mono ks-gold text-xs px-1 pt-3">VIZUÁL A SKINY</div>
+        <button onClick={onViewModes}
+          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <Monitor size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">Režim zobrazenia hry</div>
+            <div className="ks-muted text-sm">{tournamentViewMode === 'observer' ? 'Pozorovateľ' : tournamentViewMode === 'recorder' ? 'Zapisovateľ' : 'Klasický'}</div>
+          </div>
+          <ChevronRight className="ks-muted" size={20} />
+        </button>
+
+        <div className="ks-card w-full p-4 rounded-sm">
+          <div className="flex items-center gap-4 mb-3">
+            <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+              <Bell size={22} className="ks-gold" />
+            </div>
+            <div className="flex-1">
+              <div className="ks-display ks-cream text-xl font-semibold">Štýl oznámení</div>
+              <div className="ks-muted text-sm">Fullscreen funny okná, malé popupy alebo potlačený režim</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              ['standard','Štandardný'],
+              ['simplified','Zjednodušený'],
+              ['suppressed','Potlačený']
+            ].map(([value,label]) => (
+              <button key={value} onClick={() => onFunnyWindowsDisplayModeChange(value)}
+                className={`ks-press px-3 py-2 rounded-sm text-sm ${funnyWindowsDisplayMode === value ? 'ks-gold-bg' : 'border ks-border-sub ks-card ks-cream'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button onClick={onVisualAndSkins}
+          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <Layers size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">Vizuál a Skiny</div>
+            <div className="ks-muted text-sm">Farby, písmo a vzhľad aplikácie</div>
+          </div>
+          <ChevronRight className="ks-muted" size={20} />
+        </button>
+
+        <div className="ks-mono ks-gold text-xs px-1 pt-3">SPRÁVA TURNAJOV</div>
+
+        <button onClick={onExport} disabled={!tournamentCount}
+          className={`ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left ${!tournamentCount ? 'opacity-40 cursor-not-allowed' : ''}`}>
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <FileSpreadsheet size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">Export do Excelu</div>
+            <div className="ks-muted text-sm">
+              {tournamentCount > 0
+                ? `${tournamentCount} turnajov · súbor .xlsx s listami`
+                : 'Žiadne turnaje na export'}
+            </div>
+          </div>
+          <Download className="ks-muted" size={20} />
+        </button>
+
+        <button onClick={() => fileInputRef.current?.click()}
+          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <Upload size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">Import z Excelu</div>
+            <div className="ks-muted text-sm">Pridá turnaje z .xlsx súboru do archívu</div>
+          </div>
+          <ChevronRight className="ks-muted" size={20} />
+        </button>
+        <input ref={fileInputRef} type="file"
+          accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+          onChange={handleFilePick} className="hidden" />
+
+        <button onClick={onArchive}
+          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <Edit3 size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">Editácia archívu</div>
+            <div className="ks-muted text-sm">Otvor turnaj a klepni „Upraviť" — body, víťaza, kolá</div>
+          </div>
+          <ChevronRight className="ks-muted" size={20} />
+        </button>
+
+        <div className="ks-mono ks-text-accent text-xs px-1 pt-4 flex items-center gap-1.5">
+          <AlertTriangle size={11} /> NEBEZPEČNÁ ZÓNA
+        </div>
+
+        <button onClick={onClearAll}
+          className="ks-press w-full p-4 rounded-sm flex items-center gap-4 text-left border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/60 hover:brightness-125">
+          <div className="w-12 h-12 rounded-sm border border-red-700/60 bg-red-950/50 flex items-center justify-center">
+            <Trash2 size={22} className="ks-text-accent" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-text-accent text-xl font-semibold">Vymazať všetky dáta</div>
+            <div className="ks-text-accent/70 text-sm">Archív, rozohraná hra, pravidlá — nenávratná akcia</div>
+          </div>
+          <ChevronRight className="ks-text-accent" size={20} />
+        </button>
+
+        <div className="ks-card rounded-sm p-3 ks-body text-xs ks-muted italic mt-2 flex items-start gap-2">
+          <AlertCircle size={14} className="ks-gold shrink-0 mt-0.5" />
+          <div>
+            Pred vymazaním dát si <strong className="ks-gold">vytvor zálohu</strong> cez Export do Excelu.
+            Súbor neskôr môžeš obnoviť cez Import. Každý dohraný turnaj si pamätá dátum a čas začiatku aj konca.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GameViewModesScreen({ onBack, selectedMode, onChangeMode, selectedSkin }) {
+  const options = [
+    { id: 'basic', title: 'Klasický', desc: 'Tabuľka hore a zapisovanie bodov pod ňou.' },
+    { id: 'observer', title: 'Pozorovateľ', desc: 'Veľký živý prehľad skóre pre obrazovku alebo TV.' },
+    { id: 'recorder', title: 'Zapisovateľ', desc: 'Jednoduché veľké ovládanie pre rýchly zápis bodov.' },
+  ];
+  const skin = SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic;
+
+  return (
+    <div className="min-h-screen ks-fade pb-8" style={{ background: skin.bg }}>
+      <Header title="Zobrazenie hry" onBack={onBack} />
+      <div className="p-4 max-w-2xl mx-auto space-y-3">
+        {options.map((opt) => (
+          <button key={opt.id} onClick={() => onChangeMode(opt.id)} className={`ks-card w-full p-4 rounded-sm text-left ks-press border ${selectedMode === opt.id ? 'border-amber-500/70 bg-amber-900/10' : 'ks-border-sub'}`}>
+            <div className="flex items-center gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="ks-display ks-cream text-xl font-semibold">{opt.title}</div>
+                <div className="ks-muted text-sm mt-1">{opt.desc}</div>
+              </div>
+              <div className="shrink-0 w-[62px]">
+                <div className="h-[92px] rounded-sm border border-amber-900/25 overflow-hidden" style={{ background: skin.bg }}>
+                  {opt.id === 'basic' ? (
+                    <div style={{height:'100%', display:'grid', gridTemplateRows:'18px 28px 1fr', gap:'4px', padding:'5px'}}>
+                      <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(212,184,106,0.24)'}} />
+                      <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.18)', border:'1px solid rgba(212,184,106,0.22)'}} />
+                      <div style={{display:'grid', gridTemplateRows:'1fr 1fr', gap:'4px'}}>
+                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.04)'}} />
+                        <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.78)'}} />
+                      </div>
+                    </div>
+                  ) : opt.id === 'observer' ? (
+                    <div style={{height:'100%', display:'grid', gridTemplateRows:'14px 1fr', gap:'4px', padding:'5px'}}>
+                      <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.18)', border:'1px solid rgba(212,184,106,0.2)'}} />
+                      <div style={{display:'grid', gridTemplateColumns:'8px 1fr 1fr 1fr', gap:'3px'}}>
+                        <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.08)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.08)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.08)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.08)'}} /></div>
+                        <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(212,184,106,0.14)'}} /></div>
+                        <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /></div>
+                        <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /></div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{height:'100%', display:'grid', gridTemplateRows:'14px 22px 1fr 12px', gap:'4px', padding:'5px'}}>
+                      <div style={{display:'grid', gridTemplateColumns:'1fr 18px', gap:'3px'}}>
+                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} />
+                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} />
+                      </div>
+                      <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.18)', border:'1px solid rgba(212,184,106,0.22)'}} />
+                      <div style={{display:'grid', gridTemplateRows:'1fr 1fr', gap:'4px'}}>
+                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.04)'}} />
+                        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.04)'}} /><div style={{borderRadius:'2px', background:'rgba(212,184,106,0.78)'}} /></div>
+                      </div>
+                      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px'}}>
+                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.06)'}} />
+                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.06)'}} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {selectedMode === opt.id ? <div className="ks-gold ks-mono text-[10px] text-right mt-1">AKTÍVNE</div> : <div className="h-[14px] mt-1" />}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ─── Nový turnaj (s voľbou cieľa) ─────────────────────────────────────────
 
