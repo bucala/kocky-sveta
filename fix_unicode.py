@@ -1,5 +1,0 @@
-﻿c = open('src/screens/SettingsMenu.jsx', encoding='utf-8').read()
-c = c.replace("'\\u2726 AKT\\u00CDVNY'", "'✦ AKTÍVNY'")
-c = c.replace("'N\\u00e1h\\u013ead'", "'Náhľad'")
-open('src/screens/SettingsMenu.jsx', 'w', encoding='utf-8').write(c)
-print('Fixed unicode')
