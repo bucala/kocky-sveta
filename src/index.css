@@ -1,4 +1,9 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Crimson+Pro:wght@300;400;500;600&family=Bebas+Neue&display=swap');
+/* ── Google Fonts ──────────────────────────────────────────────────────────
+   Presunuté zo STYLES JS reťazca — CSS @import je spájaný buildtoolom
+   a prehliadač ho cachuje samostatne. font-display:swap zabraňuje FOIT.
+   Preconnect hinty sú v index.html.
+   ──────────────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Crimson+Pro:wght@300;400;500;600&family=Bebas+Neue&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -37,8 +42,6 @@ input, textarea, [contenteditable] {
 
 html, body, #root { width: 100%; overflow-x: hidden; }
 .ks-live-table-wrap { width: 100%; }
-/* table-layout: fixed + width: 100% — roztiahne tabuľku na plnú šírku rodiča */
-/* min-width: max-content odstránené — nahradené fixed layoutom */
 .ks-live-table { table-layout: fixed; width: 100%; }
 .ks-live-table th, .ks-live-table td { min-width: 72px; }
 .ks-live-table thead th { min-height: 52px; }
@@ -46,7 +49,7 @@ html, body, #root { width: 100%; overflow-x: hidden; }
 .ks-live-row td { padding-top: 0.95rem; padding-bottom: 0.95rem; }
 @media (min-width: 768px) { .ks-live-row td { padding-top: 1.15rem; padding-bottom: 1.15rem; } }
 
-/* Black/White skin overrides — ks-gold becomes pure white */
+/* Black/White skin overrides */
 [data-skin="blackwhite"] .ks-gold { color: #ffffff !important; }
 [data-skin="blackwhite"] .ks-cream { color: #ffffff !important; }
 [data-skin="blackwhite"] .ks-muted { color: #999999 !important; }
