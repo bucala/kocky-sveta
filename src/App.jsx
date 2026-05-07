@@ -15,7 +15,7 @@ import { Share } from '@capacitor/share';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import ScoreTable from './components/ScoreTable.jsx';
 
-// ÔöÇÔöÇÔöÇ Konštanty ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── Konštanty ────────────────────────────────────────────────────────────
 
 const DICE_ICONS = { 1: Dice1, 2: Dice2, 3: Dice3, 4: Dice4, 5: Dice5, 6: Dice6 };
 const SKIN_PRESETS = {
@@ -163,7 +163,7 @@ function formatDuration(startIso, endIso) {
   return `${h} h ${m} min`;
 }
 
-// ÔöÇÔöÇÔöÇ Popup / notifikačný systém — globálna konfigurácia ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── Popup / notifikačný systém — globálna konfigurácia ───────────────────
 // Centralizované konštanty pre časovanie, vizuál a layout popupov.
 // Zmenou týchto hodnôt sa správanie popupov zmení v celej appke naraz.
 const POPUP_CONFIG = {
@@ -209,7 +209,7 @@ const DEFAULT_RULES = [
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Crimson+Pro:wght@300;400;500;600&family=Bebas+Neue&display=swap');
 
-  /* ÔöÇÔöÇÔöÇ Popup / notifikačný systém — globálne premenné ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+  /* ─── Popup / notifikačný systém — globálne premenné ─────────────────
      Tieto hodnoty driví aj POPUP_CONFIG v JS, ale CSS premenné umožňujú
      override z konkrétneho komponentu alebo skinu, ak by bolo treba.    */
   :root {
@@ -283,7 +283,7 @@ const STYLES = `
   }
   .ks-overlay-bg { animation: overlayFadeIn 0.3s ease-out forwards; }
 
-  /* ÔöÇÔöÇ FIX5 Responsive ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ */
+  /* ── FIX5 Responsive ────────────────────────── */
   html,body,#root{width:100%;max-width:100vw;overflow-x:hidden;}
   body{padding-top:0;padding-bottom:env(safe-area-inset-bottom,0);}
   @media(min-width:900px){.ks-game-container{max-width:860px;margin:0 auto}}
@@ -296,7 +296,7 @@ const STYLES = `
 
 `;
 
-// ÔöÇÔöÇÔöÇ Pomocné komponenty ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── Pomocné komponenty ───────────────────────────────────────────────────
 
 function DiceIcon({ value, size = 28 }) {
   const Icon = DICE_ICONS[value];
@@ -376,7 +376,7 @@ function Toast({ msg, kind, onClose }) {
   );
 }
 
-// ÔöÇÔöÇÔöÇ StrikethroughCrown ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── StrikethroughCrown ──────────────────────────────────────────────────
 // Vylepšená SVG verzia "prečiarknutej koruny" pre dočasného kráľa.
 // Nahrádza pôvodný emoji '­čĹĹ╠Ş' (combining strikethrough), ktorý sa na
 // Androide/Windowse vykresľoval rôzne — niekde vôbec.
@@ -406,7 +406,7 @@ function StrikethroughCrown({ size = 96, color = '#d4b86a', strikeColor = '#c448
   );
 }
 
-// ÔöÇÔöÇÔöÇ SimplifiedResult ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── SimplifiedResult ────────────────────────────────────────────────────
 // Minimalistický výsledok pre režim "Zjednodušený". Karta v strede s
 // jasnou ikonkou, krátkym popisom a (voliteľne) action tlačidlom.
 function SimplifiedResult({ kind, title, subtitle, onClose, actionLabel }) {
@@ -542,7 +542,7 @@ function StatusBanner({ kind, icon: Icon, children }) {
   );
 }
 
-// ÔöÇÔöÇÔöÇ App ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── App ──────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [view, setView] = useState('menu');
@@ -622,7 +622,7 @@ export default function App() {
   function finishTournament(winnerIdxOrArray) {
     if (!active) return;
 
-    // ÔöÇÔöÇÔöÇ Checksum validácia pred uzatvorením ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+    // ─── Checksum validácia pred uzatvorením ────────────────────────────
     // Overí konzistenciu: víťaz určený v hlavičke (winnerIdxOrArray) musí
     // byť skutočne hráč ktorý dosiahol cieľ podľa súčtov v kolách.
     // Ak je rozpor, nezatvoríme turnaj a zobrazíme chybu — používateľ uvidí
@@ -1143,7 +1143,7 @@ export default function App() {
   );
 }
 
-// ÔöÇÔöÇÔöÇ Hlavné menu ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── Hlavné menu ──────────────────────────────────────────────────────────
 
 function MainMenu({ onNew, onArchive, onrules, onSettings, onResume, active, tournamentCount }) {
   return (
@@ -1202,7 +1202,7 @@ function MenuButton({ icon: Icon, title, subtitle, onClick, primary, disabled })
   );
 }
 
-// ÔöÇÔöÇÔöÇ Nastavenia (podmenu hlavného menu) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── Nastavenia (podmenu hlavného menu) ───────────────────────────────────
 
 function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
   return <div className="min-h-screen flex items-center justify-center p-6 ks-cream"><div className="ks-card rounded-sm p-5 text-center max-w-md"><div className="ks-display text-2xl ks-gold mb-2">{title}</div><div className="ks-muted text-sm">Skús sa vrátiť späť alebo otvoriť turnaj znova.</div></div></div>;
@@ -1456,7 +1456,7 @@ function GameViewModesScreen({ onBack, selectedMode, onChangeMode, selectedSkin 
   );
 }
 
-// ÔöÇÔöÇÔöÇ Nový turnaj (s voľbou cieľa) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── Nový turnaj (s voľbou cieľa) ─────────────────────────────────────────
 
 function NewTournament({ onBack, onStart }) {
   const [count, setCount] = useState(3);
@@ -1530,7 +1530,7 @@ function NewTournament({ onBack, onStart }) {
   );
 }
 
-// ÔöÇÔöÇÔöÇ Aktívny turnaj ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── Aktívny turnaj ───────────────────────────────────────────────────────
 
 function PendingChips({ pending, removePending }) {
   return (
@@ -1544,7 +1544,7 @@ function PendingChips({ pending, removePending }) {
   );
 }
 
-// ÔöÇÔöÇÔöÇ isStrictMode — pravidlo r18 ako prepínač chovania ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── isStrictMode — pravidlo r18 ako prepínač chovania ───────────────────
 // Strict mode (r18 = "Nie", default):
 //   ÔÇó Akonáhle sa skončí kolo a aspoň jeden hráč má skóre >= target,
 //     turnaj OKAMŽITE skončí. Žiadne ďalšie kolo, žiadny win-pending dialog.
@@ -1559,7 +1559,7 @@ function isStrictMode(rules) {
   return !r18 || r18.selected !== '├üno';
 }
 
-// ÔöÇÔöÇÔöÇ computeTotals — single source of truth pre súčty ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── computeTotals — single source of truth pre súčty ────────────────────
 // Súčet bodov pre každého hráča naprieč všetkými kolami. Null/'dash'/string
 // hodnoty sa rátajú ako 0 (nie ako "neukončené kolo"). Penalizácie (záporné
 // čísla) sa odpočítavajú normálne.
@@ -1574,7 +1574,7 @@ function computeTotals(rounds, playersCount) {
   });
 }
 
-// ÔöÇÔöÇÔöÇ computeWinners — autoritatívne určenie víťazov ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── computeWinners — autoritatívne určenie víťazov ──────────────────────
 // Používa sa AKO single source of truth pre:
 //   ÔÇó hlavičku VÍŤAZI (winnerCelebration)
 //   ÔÇó finálnu tabuľku v archíve
@@ -1734,7 +1734,7 @@ function computeWinners(tournament) {
   };
 }
 
-// ÔöÇÔöÇÔöÇ useFunnyQueue ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── useFunnyQueue ────────────────────────────────────────────────────────
 // Queue pre funny popupy s nasledujúcou logikou:
 //   ÔÇó aktívny popup vidí používateľ aspoň POPUP_CONFIG.POPUP_DISPLAY_DURATION ms
 //     pred tým, než ho môže vystriedať ďalší — ochrana proti "preblikávaniu",
@@ -1988,7 +1988,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
       return;
     }
 
-    // ÔöÇÔöÇÔöÇ KONCOVKA: hráč už je nad target-minWO, musí trafiť presný zostatok ÔöÇÔöÇ
+    // ─── KONCOVKA: hráč už je nad target-minWO, musí trafiť presný zostatok ──
     // Toto je jediný prípad kedy je povolený zápis pod minWO (300) — keď
     // chýba do cieľa menej ako 300 bodov. Hráč musí trafiť presne `exactNeeded`.
     if (isEndgame) {
@@ -2232,7 +2232,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
       const roundEnded = nextPlayer === 0;
       const nextRound = prev.currentRound + (roundEnded ? 1 : 0);
 
-      // ÔöÇÔöÇÔöÇ Vyhodnotenie kandidátov na konci kola — cez computeWinners ÔöÇÔöÇÔöÇ
+      // ─── Vyhodnotenie kandidátov na konci kola — cez computeWinners ───
       if (roundEnded) {
         const provisional = {
           ...prev,
@@ -2317,7 +2317,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
     }
   }, [tournament.winner]);
 
-  // ÔöÇÔöÇÔöÇ Auto-popup pri nástupe hráča do koncovky ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+  // ─── Auto-popup pri nástupe hráča do koncovky ───────────────────────
   // Ak hráč príde na ťah a už je v zóne nad target-minWO (ale ešte nedosiahol cieľ),
   // a ešte mu túto správu túto hru neukázalo, zobraz veľkú hlášku.
   useEffect(() => {
@@ -2338,7 +2338,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
   }, [currentPlayer, currentRound, isEndgame, isWinPendingTurn, exactNeeded]);
 
 
-  // ÔöÇÔöÇÔöÇ Auto-popup pri nástupe na potvrdzovacie kolo (winPending) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+  // ─── Auto-popup pri nástupe na potvrdzovacie kolo (winPending) ─────────
   // Keď hráč nastúpi na ťah a je označený ako winPending (musel potvrdiť
   // výhru ničnehodením v ďalšom kole), automaticky zobraz WinPending popup.
   useEffect(() => {
@@ -2860,7 +2860,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
   );
 }
 
-// ÔöÇÔöÇÔöÇ Modal + tabuľka poradia ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── Modal + tabuľka poradia ──────────────────────────────────────────────
 
 function Modal({ children, onClose, title }) {
   return (
@@ -2911,9 +2911,9 @@ function Standings({ players, totals, target }) {
   );
 }
 
-// ÔöÇÔöÇÔöÇ Pravidlá ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── Pravidlá ─────────────────────────────────────────────────────────────
 
-// ÔöÇÔöÇÔöÇ Graf priebehu hry ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── Graf priebehu hry ────────────────────────────────────────────────────
 
 const PLAYER_COLORS = ['#d4b86a', '#e08854', '#7ba88a', '#c47880', '#80a8c4', '#b89580'];
 
@@ -3118,7 +3118,7 @@ function RulesContent({ rules, compact = false }) {
   );
 }
 
-// ÔöÇÔöÇÔöÇ Editor pravidiel ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── Editor pravidiel ─────────────────────────────────────────────────────
 
 function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
   const [draft, setDraft] = useState(rules);
@@ -3153,7 +3153,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
     return draft.filter(r => !knownIds.has(r.id));
   }, [draft]);
 
-  // ÔöÇÔöÇÔöÇ Detail: Nastavenia hry ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+  // ─── Detail: Nastavenia hry ──────────────────────────────────────────
   if (activeCategory === 'cat-settings') {
     return (
       <div className="min-h-screen ks-fade pb-32" style={{ background: (SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic).bg }}>
@@ -3184,7 +3184,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
     );
   }
 
-  // ÔöÇÔöÇÔöÇ Detail kategórie ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+  // ─── Detail kategórie ────────────────────────────────────────────────
   if (activeCategory) {
     const cat = activeCategory === 'cat-custom'
       ? { id: 'cat-custom', title: 'Vlastné pravidlá', subtitle: 'Tebou pridané pravidlá' }
@@ -3238,7 +3238,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
     );
   }
 
-  // ÔöÇÔöÇÔöÇ Hlavné menu kategórií ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+  // ─── Hlavné menu kategórií ──────────────────────────────────────────
   return (
     <div className="min-h-screen ks-fade pb-32" style={{ background: (SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic).bg }}>
       <Header title="Úprava pravidiel" onBack={onBack} />
@@ -3458,7 +3458,7 @@ function DicePicker({ dice, onChange }) {
   );
 }
 
-// ÔöÇÔöÇÔöÇ Archív ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── Archív ───────────────────────────────────────────────────────────────
 
 function ArchiveScreen({ tournaments, onBack, onView, onDelete, readOnly }) {
   return (
@@ -3627,7 +3627,7 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
   const target = display.targetScore || 10000;
   const duration = formatDuration(tournament.date, tournament.finishedAt);
 
-  // ÔöÇÔöÇÔöÇ Validácia konzistencie hlavičky a tabuľky ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+  // ─── Validácia konzistencie hlavičky a tabuľky ──────────────────────
   // Spočítame víťazov z dát turnaja (computeWinners) a porovnáme ich
   // s víťazmi uloženými v `winner` poli. Ak je rozpor (napr. starší turnaj
   // uložený s neúplným zoznamom víťazov), zobrazíme varovný banner.
