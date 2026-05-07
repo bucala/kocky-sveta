@@ -1310,20 +1310,6 @@ function VisualAndSkinScreen({ onBack, selectedSkin, onSkinChange, selectedFont,
       <Header title="Vizuál a Skiny" onBack={onBack} />
       <div className="p-4 max-w-2xl mx-auto space-y-5">
 
-        {/* Režim zobrazenia hry */}
-        <div className="ks-mono ks-gold text-xs px-1 pt-2">REŽIM ZOBRAZENIA HRY</div>
-        <button onClick={onViewModes}
-          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
-            <Monitor size={22} className="ks-gold" />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Režim zobrazenia hry</div>
-            <div className="ks-muted text-sm">{tournamentViewMode === 'observer' ? 'Pozorovateľ' : tournamentViewMode === 'recorder' ? 'Zapisovateľ' : 'Klasický'}</div>
-          </div>
-          <ChevronRight className="ks-muted" size={20} />
-        </button>
-
         {/* Skiny */}
         <div className="ks-mono ks-gold text-xs px-1 pt-2">SKINY</div>
         <SkinSelector selectedSkin={selectedSkin} onSkinChange={onSkinChange} />
