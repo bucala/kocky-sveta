@@ -14,6 +14,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import ScoreTable from './components/ScoreTable.jsx';
+import { MainMenu, MenuButton } from './screens/MainMenu.jsx';
 
 // ─── Konštanty ────────────────────────────────────────────────────────────
 
@@ -1175,65 +1176,6 @@ export default function App() {
 }
 
 // ─── Hlavné menu ──────────────────────────────────────────────────────────
-
-function MainMenu({ onNew, onArchive, onrules, onSettings, onResume, active, tournamentCount }) {
-  return (
-    <div className="min-h-screen flex flex-col">
-      <div className="px-6 pt-[max(14px,env(safe-area-inset-top))] pb-4 text-center ks-fade">
-        <div className="ks-gold text-xs ks-mono mb-2">★ ZALOŽENÉ 2026 by Marcel ★</div>
-        <h1 className="ks-display ks-gold text-5xl sm:text-6xl font-bold leading-none">
-          Kocky<br/><span className="italic font-medium">sveta</span>
-        </h1>
-        <Ornament />
-      </div>
-
-      <div className="flex-1 px-5 pb-8 max-w-md w-full mx-auto space-y-3 -mt-1">
-        {onResume && (
-          <button onClick={onResume}
-            className="ks-card ks-pulse w-full p-4 rounded-sm flex items-center gap-3 ks-press border-l-4"
-            style={{ borderLeftColor: '#d4b86a' }}>
-            <Play className="ks-gold" size={24} />
-            <div className="text-left flex-1">
-              <div className="ks-mono ks-gold text-sm">POKRAČOVAŤ V TURNAJI</div>
-              <div className="ks-body ks-cream text-sm opacity-80">
-                {active.players.length} hráčov · do {(active.targetScore || 10000).toLocaleString('sk-SK')} · kolo {active.currentRound + 1}
-              </div>
-            </div>
-            <ChevronRight className="ks-gold" size={20} />
-          </button>
-        )}
-
-        <MenuButton icon={Play}        title="Nový turnaj"     subtitle="Začať novú hru až pre šesť hráčov"   onClick={onNew} primary />
-        <MenuButton icon={ArchiveIcon} title="Archív turnajov" subtitle={`${tournamentCount || 0} uložených turnajov`} onClick={onArchive} />
-        <MenuButton icon={ScrollText}  title="Pravidlá hry"    subtitle="Bodovanie a kombinácie kociek"       onClick={onrules} />
-        <MenuButton icon={Settings}    title="Nastavenia"      subtitle="Pravidlá, export, editácia archívu"  onClick={onSettings} />
-      </div>
-
-      <div className="text-center ks-muted text-xs pb-6 ks-mono">
-        <Ornament />
-        KOCKY · SVETA · KOCKY
-      </div>
-    </div>
-  );
-}
-
-function MenuButton({ icon: Icon, title, subtitle, onClick, primary, disabled }) {
-  return (
-    <button onClick={onClick} disabled={disabled}
-      className={`ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left ${primary ? 'border-amber-700/40' : ''} ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}>
-      <div className={`w-12 h-12 rounded-sm flex items-center justify-center ${primary ? 'ks-gold-bg' : 'border ks-border-sub'}`}>
-        <Icon size={22} className={primary ? '' : 'ks-gold'} />
-      </div>
-      <div className="flex-1">
-        <div className="ks-display ks-cream text-xl font-semibold">{title}</div>
-        <div className="ks-muted text-sm">{subtitle}</div>
-      </div>
-      <ChevronRight className="ks-muted" size={20} />
-    </button>
-  );
-}
-
-// ─── Nastavenia (podmenu hlavného menu) ───────────────────────────────────
 
 function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
   return <div className="min-h-screen flex items-center justify-center p-6 ks-cream"><div className="ks-card rounded-sm p-5 text-center max-w-md"><div className="ks-display text-2xl ks-gold mb-2">{title}</div><div className="ks-muted text-sm">Skús sa vrátiť späť alebo otvoriť turnaj znova.</div></div></div>;
