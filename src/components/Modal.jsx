@@ -9,7 +9,6 @@ import {
   Sigma, Layers, Monitor, Bell
 } from 'lucide-react';
 import { X } from 'lucide-react';
-import { PLAYER_COLORS } from '../lib/constants.js';
 
 function Modal({ children, onClose, title }) {
   return (
