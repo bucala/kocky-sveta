@@ -1,7 +1,7 @@
 name: Fix Slovak Diacritics (run once)
 
 on:
-  workflow_dispatch:  # Manual trigger only
+  workflow_dispatch:
 
 jobs:
   fix-encoding:
@@ -9,44 +9,73 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Fix mojibake in all source files
+      - name: Fix mojibake with Python
         run: |
-          FILES=$(find src -name "*.jsx" -o -name "*.js" -o -name "*.ts" -o -name "*.tsx")
-          
-          sed -i 's/\xe2\x94\x9c\xc3\xad/á/g' $FILES
-          sed -i 's/\xe2\x94\x9c\xc3\x8d/Á/g' $FILES
-          sed -i 's/\xe2\x94\x9c\xc5\x9f/í/g' $FILES
-          sed -i 's/\xe2\x94\x9c\xc5\xb9/Í/g' $FILES
-          sed -i 's/\xe2\x94\x9c\xe2\x95\x97/ú/g' $FILES
-          sed -i 's/\xe2\x94\x9c\xc3\x96/Ú/g' $FILES
-          sed -i 's/\xe2\x94\x9c\xe2\x94\xa4/ó/g' $FILES
-          sed -i 's/\xe2\x94\x9c\xc4\x99/é/g' $FILES
-          sed -i 's/\xe2\x94\x9c\xc3\x8b/É/g' $FILES
-          sed -i 's/\xe2\x94\x80\xc5\xb9/č/g' $FILES
-          sed -i 's/\xe2\x94\x80\xc3\x8e/Č/g' $FILES
-          sed -i 's/\xe2\x95\xbc\xc3\xad/š/g' $FILES
-          sed -i 's/\xe2\x95\xbc\xc3\xa1/Š/g' $FILES
-          sed -i 's/\xe2\x95\xbc\xc5\xbc/ž/g' $FILES
-          sed -i 's/\xe2\x95\xbc\xc5\xbb/Ž/g' $FILES
-          sed -i 's/\xe2\x95\xbc\xc4\x85/ť/g' $FILES
-          sed -i 's/\xe2\x95\xbc\xc4\x84/Ť/g' $FILES
-          sed -i 's/\xe2\x94\x80\xc4\x87/ď/g' $FILES
-          sed -i 's/\xe2\x94\x80\xc4\x86/Ď/g' $FILES
-          sed -i 's/\xe2\x94\x80\xc5\xbc/ľ/g' $FILES
-          sed -i 's/\xe2\x94\x80\xc5\xbb/Ľ/g' $FILES
-          sed -i 's/\xe2\x95\xbc\xc5\x82/ň/g' $FILES
-          sed -i 's/\xe2\x95\xbc\xc5\x81/Ň/g' $FILES
-          sed -i 's/\xe2\x94\x9c\xc5\xbc/ý/g' $FILES
-          sed -i 's/\xe2\x94\x9c\xc5\x81/Ý/g' $FILES
-          sed -i 's/\xe2\x94\x80\xc4\xb9/ŕ/g' $FILES
-          sed -i 's/\xe2\x94\x9c\xc3\xb1/ä/g' $FILES
-          sed -i 's/\xe2\x94\x9c\xe2\x94\xb4/ô/g' $FILES
-          sed -i 's/\xe2\x94\x98\xc2\xbb/ů/g' $FILES
-          sed -i 's/\xe2\x94\x80\xc3\x96/—/g' $FILES
-          sed -i 's/\xe2\x94\x9c\xc4\x84/ä/g' $FILES
+          python3 - <<'PYEOF'
+          import os, glob
+
+          REPLACEMENTS = [
+              ('├Ą', 'ä'),
+              ('├í', 'á'),
+              ('├Í', 'Á'),
+              ('├', 'í'),
+              ('├Ź', 'Í'),
+              ('├╗', 'ú'),
+              ('├Ö', 'Ú'),
+              ('├┤', 'ó'),
+              ('├ę', 'é'),
+              ('├Ë', 'É'),
+              ('─Ź', 'č'),
+              ('─Î', 'Č'),
+              ('┼í', 'š'),
+              ('┼á', 'Š'),
+              ('┼ż', 'ž'),
+              ('┼Ż', 'Ž'),
+              ('┼ą', 'ť'),
+              ('┼Ą', 'Ť'),
+              ('─ć', 'ď'),
+              ('─Ć', 'Ď'),
+              ('─ż', 'ľ'),
+              ('─Ż', 'Ľ'),
+              ('┼', 'ň'),
+              ('┼', 'Ň'),
+              ('├ż', 'ý'),
+              ('├', 'Ý'),
+              ('─Ĺ', 'ŕ'),
+              ('├ñ', 'ä'),
+              ('├┴', 'ô'),
+              ('┘»', 'ů'),
+              ('─Ö', '—'),
+          ]
+
+          exts = ('*.jsx', '*.js', '*.ts', '*.tsx')
+          files = []
+          for ext in exts:
+              files += glob.glob(f'src/**/{ext}', recursive=True)
+              files += glob.glob(f'src/{ext}')
+          files = list(set(files))
+
+          changed = 0
+          for fpath in files:
+              try:
+                  with open(fpath, 'r', encoding='utf-8') as f:
+                      original = f.read()
+              except Exception as e:
+                  print(f'SKIP {fpath}: {e}')
+                  continue
+              fixed = original
+              for bad, good in REPLACEMENTS:
+                  fixed = fixed.replace(bad, good)
+              if fixed != original:
+                  with open(fpath, 'w', encoding='utf-8') as f:
+                      f.write(fixed)
+                  changed += 1
+                  print(f'FIXED: {fpath}')
+              else:
+                  print(f'ok:    {fpath}')
+          print(f'\nDone: {changed}/{len(files)} files changed.')
+          PYEOF
 
       - name: Commit and push
         run: |
@@ -55,3 +84,4 @@ jobs:
           git add src/
           git diff --staged --quiet || git commit -m "fix: oprava mojibake – slovenská diakritika vo všetkých zdrojových súboroch"
           git push
+          echo "Done!"
