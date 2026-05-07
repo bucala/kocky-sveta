@@ -1,0 +1,57 @@
+name: Fix Slovak Diacritics (run once)
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  fix-encoding:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fix mojibake in all source files
+        run: |
+          FILES=$(find src -name "*.jsx" -o -name "*.js" -o -name "*.ts" -o -name "*.tsx")
+          
+          sed -i 's/\xe2\x94\x9c\xc3\xad/á/g' $FILES
+          sed -i 's/\xe2\x94\x9c\xc3\x8d/Á/g' $FILES
+          sed -i 's/\xe2\x94\x9c\xc5\x9f/í/g' $FILES
+          sed -i 's/\xe2\x94\x9c\xc5\xb9/Í/g' $FILES
+          sed -i 's/\xe2\x94\x9c\xe2\x95\x97/ú/g' $FILES
+          sed -i 's/\xe2\x94\x9c\xc3\x96/Ú/g' $FILES
+          sed -i 's/\xe2\x94\x9c\xe2\x94\xa4/ó/g' $FILES
+          sed -i 's/\xe2\x94\x9c\xc4\x99/é/g' $FILES
+          sed -i 's/\xe2\x94\x9c\xc3\x8b/É/g' $FILES
+          sed -i 's/\xe2\x94\x80\xc5\xb9/č/g' $FILES
+          sed -i 's/\xe2\x94\x80\xc3\x8e/Č/g' $FILES
+          sed -i 's/\xe2\x95\xbc\xc3\xad/š/g' $FILES
+          sed -i 's/\xe2\x95\xbc\xc3\xa1/Š/g' $FILES
+          sed -i 's/\xe2\x95\xbc\xc5\xbc/ž/g' $FILES
+          sed -i 's/\xe2\x95\xbc\xc5\xbb/Ž/g' $FILES
+          sed -i 's/\xe2\x95\xbc\xc4\x85/ť/g' $FILES
+          sed -i 's/\xe2\x95\xbc\xc4\x84/Ť/g' $FILES
+          sed -i 's/\xe2\x94\x80\xc4\x87/ď/g' $FILES
+          sed -i 's/\xe2\x94\x80\xc4\x86/Ď/g' $FILES
+          sed -i 's/\xe2\x94\x80\xc5\xbc/ľ/g' $FILES
+          sed -i 's/\xe2\x94\x80\xc5\xbb/Ľ/g' $FILES
+          sed -i 's/\xe2\x95\xbc\xc5\x82/ň/g' $FILES
+          sed -i 's/\xe2\x95\xbc\xc5\x81/Ň/g' $FILES
+          sed -i 's/\xe2\x94\x9c\xc5\xbc/ý/g' $FILES
+          sed -i 's/\xe2\x94\x9c\xc5\x81/Ý/g' $FILES
+          sed -i 's/\xe2\x94\x80\xc4\xb9/ŕ/g' $FILES
+          sed -i 's/\xe2\x94\x9c\xc3\xb1/ä/g' $FILES
+          sed -i 's/\xe2\x94\x9c\xe2\x94\xb4/ô/g' $FILES
+          sed -i 's/\xe2\x94\x98\xc2\xbb/ů/g' $FILES
+          sed -i 's/\xe2\x94\x80\xc3\x96/—/g' $FILES
+          sed -i 's/\xe2\x94\x9c\xc4\x84/ä/g' $FILES
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/
+          git diff --staged --quiet || git commit -m "fix: oprava mojibake – slovenská diakritika vo všetkých zdrojových súboroch"
+          git push
