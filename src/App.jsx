@@ -1198,18 +1198,20 @@ function SkinSelector({ selectedSkin, onSkinChange }) {
           <button
             key={skin.id}
             onClick={() => onSkinChange(skin.id)}
-            className="ks-press rounded-sm border-2 transition-all flex flex-col pt-3 pb-3 px-3 gap-1 hover:brightness-110"
+            className="ks-press rounded-sm border-2 transition-all flex flex-col pt-3 pb-3 px-3 gap-1 hover:brightness-110 relative"
             style={{ minHeight: '120px', background: bgMain, borderColor: active ? accent : 'rgba(255,255,255,0.12)' }}
           >
+            {active && (
+              <div className="absolute top-3 right-3 ks-mono font-bold text-[13px] tracking-wider" style={{ color: accent }}>
+                ✦ AKTÍVNY
+              </div>
+            )}
             <div className="flex items-start w-full">
               <div className="ks-display text-base font-semibold leading-tight" style={{ color: text }}>
                 {skin.name}
               </div>
             </div>
             <div className="mt-auto w-full grid items-end" style={{ gridTemplateColumns: '1fr auto', columnGap: '12px', rowGap: '4px' }}>
-              <div className="ks-mono text-[10px] tracking-wider" style={{ color: accent2 }}>
-                {active ? '✦ AKTÍVNY' : 'Náhľad'}
-              </div>
               <div className="rounded-[4px] shrink-0" style={{ width: 38, height: 38, background: accent, gridColumn: '2', gridRow: '1 / 3' }} />
               <div className="flex items-center gap-1.5 w-full">
                 <div className="rounded-[3px] border border-white/10 flex-1" style={{ height: 15, background: bgSoft }} />
