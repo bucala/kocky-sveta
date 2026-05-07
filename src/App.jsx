@@ -67,14 +67,16 @@ const SKIN_PRESETS = {
 };
 
 const FONT_PRESETS = {
-  segoe:    { id: 'segoe',    name: 'Segoe (systém)',  stack: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif",  monoStack: "'Bebas Neue', sans-serif" },
-  cormorant:{ id: 'cormorant',name: 'Cormorant',       stack: "'Cormorant Garamond', Georgia, serif",             monoStack: "'Bebas Neue', sans-serif" },
-  crimson:  { id: 'crimson',  name: 'Crimson Pro',     stack: "'Crimson Pro', Georgia, serif",                    monoStack: "'Bebas Neue', sans-serif" },
-  inter:    { id: 'inter',    name: 'Inter (moderný)', stack: "'Inter', 'Helvetica Neue', Arial, sans-serif",     monoStack: "'Bebas Neue', sans-serif" },
+  default:   { id: 'default',   name: 'Default',        stack: "'Cormorant Garamond', 'Crimson Pro', Georgia, serif",   monoStack: "'Bebas Neue', sans-serif" },
+  calibri:   { id: 'calibri',   name: 'Calibri',         stack: "'Calibri', 'Segoe UI', sans-serif",                    monoStack: "'Bebas Neue', sans-serif" },
+  arial:     { id: 'arial',     name: 'Arial',           stack: "Arial, 'Helvetica Neue', sans-serif",                  monoStack: "'Bebas Neue', sans-serif" },
+  crimson:   { id: 'crimson',   name: 'Crimson Pro',     stack: "'Crimson Pro', Georgia, serif",                        monoStack: "'Bebas Neue', sans-serif" },
+  comicsans: { id: 'comicsans', name: 'Comic Sans MS',   stack: "'Comic Sans MS', 'Comic Sans', cursive",               monoStack: "'Bebas Neue', sans-serif" },
+  inkfree:   { id: 'inkfree',   name: 'Ink Free',        stack: "'Ink Free', 'Segoe Script', cursive",                  monoStack: "'Bebas Neue', sans-serif" },
 };
 
 function skinVarsCss(selectedSkin, selectedFont) {
-  const font = FONT_PRESETS[selectedFont] || FONT_PRESETS.segoe;
+  const font = FONT_PRESETS[selectedFont] || FONT_PRESETS.default;
   const skin = SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic;
   const vars = skin.vars;
   let css = ':root{' + Object.entries(vars).map(([k,v]) => `${k}:${v}`).join(';')
@@ -562,7 +564,7 @@ export default function App() {
   const [archiveReturnTo, setArchiveReturnTo] = useState('menu');
   const [loaded, setLoaded] = useState(false);
   const [selectedSkin, setSelectedSkin] = useState('classic');
-  const [selectedFont, setSelectedFont] = useState('segoe');
+  const [selectedFont, setSelectedFont] = useState('default');
 
   // Display mode pre tabuľky: 'delta' (prípis) alebo 'cumulative' (kumulatívne skóre)
   const [scoreDisplayMode, setScoreDisplayMode] = useState('delta');
@@ -575,7 +577,7 @@ export default function App() {
       try { const dm = await window.storage.get('scoreDisplayMode'); if (dm?.value) setScoreDisplayMode(JSON.parse(dm.value)); } catch {}
       try { const tvm = await window.storage.get('tournamentViewMode'); if (tvm?.value) setTournamentViewMode(JSON.parse(tvm.value)); } catch {}
       try { const fwdm = await window.storage.get('funnyWindowsDisplayMode'); if (fwdm?.value) setFunnyWindowsDisplayMode(JSON.parse(fwdm.value)); } catch {}
-      try { const f = await window.storage.get('selectedFont'); if (f?.value) { const fv = JSON.parse(f.value); setSelectedFont(FONT_PRESETS[fv] ? fv : 'segoe'); } } catch {}
+      try { const f = await window.storage.get('selectedFont'); if (f?.value) { const fv = JSON.parse(f.value); setSelectedFont(FONT_PRESETS[fv] ? fv : 'default'); } } catch {}
       try { const skin = await window.storage.get('selectedSkin'); if (skin?.value) { const s = JSON.parse(skin.value); setSelectedSkin(SKIN_PRESETS[s] ? s : 'classic'); } } catch {
         try { const legacySkin = localStorage.getItem('ks-skin'); if (legacySkin) setSelectedSkin(legacySkin); } catch {}
       }
@@ -1053,7 +1055,7 @@ export default function App() {
     setViewingTournament(null);
     setrules(DEFAULT_RULES);
     setSelectedSkin('classic');
-    setSelectedFont('segoe');
+    setSelectedFont('default');
 
     await window.storage.delete('tournaments').catch(() => {});
     await window.storage.delete('selectedFont').catch(() => {});
@@ -1097,6 +1099,7 @@ export default function App() {
           tournamentViewMode={tournamentViewMode}
           onTournamentViewModeChange={setTournamentViewMode}
           onViewModes={() => setView('viewModes')}
+          onVisualAndSkins={() => setView('visual')}
           funnyWindowsDisplayMode={funnyWindowsDisplayMode}
           onFunnyWindowsDisplayModeChange={setFunnyWindowsDisplayMode}
         />
@@ -1107,6 +1110,18 @@ export default function App() {
           selectedMode={tournamentViewMode}
           onChangeMode={setTournamentViewMode}
           selectedSkin={selectedSkin}
+        />
+      )}
+      {view === 'visual' && (
+        <VisualAndSkinScreen
+          onBack={() => setView('settings')}
+          selectedSkin={selectedSkin}
+          onSkinChange={setSelectedSkin}
+          selectedFont={selectedFont}
+          onFontChange={setSelectedFont}
+          tournamentViewMode={tournamentViewMode}
+          onTournamentViewModeChange={setTournamentViewMode}
+          onViewModes={() => setView('viewModes')}
         />
       )}
       {view === 'newTournament' && <NewTournament onBack={() => setView('menu')} onStart={startTournament} />}
@@ -1228,38 +1243,34 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
 function SkinSelector({ selectedSkin, onSkinChange }) {
   const skins = Object.values(SKIN_PRESETS);
   return (
-    <div className="ks-card rounded-sm p-4">
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div>
-          <div className="ks-display ks-cream text-xl font-semibold">Skiny</div>
-          <div className="ks-muted text-sm">Vyber si vizuál aplikácie</div>
-        </div>
-        <div className="ks-mono ks-gold text-xs">ONE-PROMPT SKINNING</div>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {skins.map((skin) => {
-          const active = skin.id === selectedSkin;
-          return (
-            <button
-              key={skin.id}
-              onClick={() => onSkinChange(skin.id)}
-              className={`ks-press text-left rounded-sm p-3 border-2 transition-all ${active ? 'ks-border-accent shadow-[0_0_0_1px_rgba(212,184,106,0.25)]' : 'ks-border-sub'} ks-card`}
-            >
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <div>
-                  <div className="ks-display ks-cream text-lg font-semibold leading-tight">{skin.name}</div>
-                  <div className="ks-muted text-[11px] mt-0.5 uppercase tracking-[0.2em]">{skin.id}</div>
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      {skins.map((skin) => {
+        const active = skin.id === selectedSkin;
+        return (
+          <button
+            key={skin.id}
+            onClick={() => onSkinChange(skin.id)}
+            className={`ks-press rounded-sm border-2 transition-all flex flex-col items-center pt-4 pb-3 px-2 ks-card ${active ? 'ks-card-prom ks-border-accent' : 'ks-border-sub hover:shadow-lg'}`}
+            style={{ minHeight: '140px' }}
+          >
+            {active && (
+              <div className="ks-mono ks-gold text-[9px] tracking-[0.22em] mb-1 opacity-80">✦ AKTÍVNY</div>
+            )}
+            <div className="ks-display ks-cream text-base font-semibold text-center leading-tight mb-1 px-1">
+              {skin.name}
+            </div>
+            <div className="w-full mt-auto pt-2 px-1">
+              <div className="w-full rounded-[3px] overflow-hidden border border-white/10" style={{ height: '52px', background: skin.bg }}>
+                <div className="h-full flex flex-col justify-end pb-1 px-1.5 gap-0.5">
+                  <div className="rounded-[2px] opacity-70" style={{ height: '7px', background: 'var(--ks-accent)', width: '55%' }} />
+                  <div className="rounded-[2px] opacity-40" style={{ height: '5px', background: 'var(--ks-text)', width: '80%' }} />
+                  <div className="rounded-[2px] opacity-30" style={{ height: '5px', background: 'var(--ks-text)', width: '60%' }} />
                 </div>
-                {active && <div className="ks-gold ks-mono text-[10px]">Aktívny</div>}
               </div>
-              <div className="h-12 rounded-sm overflow-hidden border border-amber-900/25 flex">
-                <div className="flex-1" style={{ background: skin.bg }} />
-                <div className="w-10" style={{ background: 'var(--ks-accent)' }} />
-              </div>
-            </button>
-          );
-        })}
-      </div>
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1267,38 +1278,66 @@ function SkinSelector({ selectedSkin, onSkinChange }) {
 function FontSelector({ selectedFont, onFontChange }) {
   const fonts = Object.values(FONT_PRESETS);
   return (
-    <div className="ks-card rounded-sm p-4">
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div>
-          <div className="ks-display ks-cream text-xl font-semibold">Písmo</div>
-          <div className="ks-muted text-sm">Vyber štýl textu aplikácie</div>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        {fonts.map((font) => {
-          const active = font.id === selectedFont;
-          return (
-            <button
-              key={font.id}
-              onClick={() => onFontChange(font.id)}
-              className={`ks-press text-left rounded-sm p-3 border-2 transition-all ${active ? 'ks-border-accent shadow-[0_0_0_1px_rgba(212,184,106,0.2)]' : 'ks-border-sub'} ks-card`}
-            >
-              <div className="ks-cream text-base font-semibold leading-tight" style={{ fontFamily: font.stack }}>
-                {font.name}
-              </div>
-              <div className="ks-muted text-xs mt-1" style={{ fontFamily: font.stack }}>
-                Ukážka · Abc 123
-              </div>
-              {active && <div className="ks-gold ks-mono text-[10px] mt-1.5">✦ AKTÍVNE</div>}
-            </button>
-          );
-        })}
+    <div className="grid grid-cols-2 gap-3">
+      {fonts.map((font) => {
+        const active = font.id === selectedFont;
+        return (
+          <button
+            key={font.id}
+            onClick={() => onFontChange(font.id)}
+            className={`ks-press rounded-sm p-3 border-2 transition-all flex flex-col items-center text-center ks-card ${active ? 'ks-card-prom ks-border-accent' : 'ks-border-sub hover:shadow-md'}`}
+          >
+            {active && <div className="ks-mono ks-gold text-[9px] tracking-[0.18em] mb-1">✦ AKTÍVNE</div>}
+            <div className="ks-cream text-base font-semibold leading-tight" style={{ fontFamily: font.stack }}>
+              {font.name}
+            </div>
+            <div className="ks-muted text-xs mt-1.5" style={{ fontFamily: font.stack }}>
+              Ukážka · Abc 123
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+
+// ─── Vizuál a Skiny submenu ───────────────────────────────────────────────
+
+function VisualAndSkinScreen({ onBack, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes }) {
+  return (
+    <div className="min-h-screen ks-fade pb-8">
+      <Header title="Vizuál a Skiny" onBack={onBack} />
+      <div className="p-4 max-w-2xl mx-auto space-y-5">
+
+        {/* Režim zobrazenia hry */}
+        <div className="ks-mono ks-gold text-xs px-1 pt-2">REŽIM ZOBRAZENIA HRY</div>
+        <button onClick={onViewModes}
+          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <Monitor size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">Režim zobrazenia hry</div>
+            <div className="ks-muted text-sm">{tournamentViewMode === 'observer' ? 'Pozorovateľ' : tournamentViewMode === 'recorder' ? 'Zapisovateľ' : 'Klasický'}</div>
+          </div>
+          <ChevronRight className="ks-muted" size={20} />
+        </button>
+
+        {/* Skiny */}
+        <div className="ks-mono ks-gold text-xs px-1 pt-2">SKINY</div>
+        <SkinSelector selectedSkin={selectedSkin} onSkinChange={onSkinChange} />
+
+        {/* Písma */}
+        <div className="ks-mono ks-gold text-xs px-1 pt-2">PÍSMO</div>
+        <FontSelector selectedFont={selectedFont} onFontChange={onFontChange} />
+
       </div>
     </div>
   );
 }
 
-function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange }) {
+function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange }) {
   const fileInputRef = useRef(null);
 
   function handleFilePick(e) {
@@ -1314,17 +1353,6 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
       <div className="p-4 max-w-2xl mx-auto space-y-3">
 
         <div className="ks-mono ks-gold text-xs px-1 pt-3">PRAVIDLÁ A HODNOTY HRY</div>
-        <button onClick={onViewModes}
-          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
-            <Monitor size={22} className="ks-gold" />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Režim zobrazenia hry</div>
-            <div className="ks-muted text-sm">{tournamentViewMode === 'observer' ? 'Pozorovateľ' : tournamentViewMode === 'recorder' ? 'Zapisovateľ' : 'Klasický'}</div>
-          </div>
-          <ChevronRight className="ks-muted" size={20} />
-        </button>
 
         <div className="ks-card w-full p-4 rounded-sm">
           <div className="flex items-center gap-4 mb-3">
@@ -1363,8 +1391,17 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
         </button>
 
         <div className="ks-mono ks-gold text-xs px-1 pt-3">VIZUÁL A SKINY</div>
-        <SkinSelector selectedSkin={selectedSkin} onSkinChange={onSkinChange} />
-        <FontSelector selectedFont={selectedFont} onFontChange={onFontChange} />
+        <button onClick={onVisualAndSkins}
+          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <Layers size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">Vizuál a Skiny</div>
+            <div className="ks-muted text-sm">Režim zobrazenia, farby, písmo</div>
+          </div>
+          <ChevronRight className="ks-muted" size={20} />
+        </button>
 
         <div className="ks-mono ks-gold text-xs px-1 pt-3">SPRÁVA TURNAJOV</div>
 
