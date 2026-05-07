@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Dice1, Dice2, Dice3, Dice4, Dice5, Dice6,
   Plus, Minus, Trash2, Save, X, ChevronLeft,
@@ -1814,7 +1814,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
 
   function advance(value, opts = {}) {
     onUpdate(prev => {
-      const newRounds = prev.rounds.map(r => [...r]);
+      const newRounds = prev.rounds.slice(); newRounds[prev.currentRound] = [...(prev.rounds[prev.currentRound] || [])];
       while (newRounds.length <= prev.currentRound) {
         newRounds.push(new Array(prev.players.length).fill(null));
       }
