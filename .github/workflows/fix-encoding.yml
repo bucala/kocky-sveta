@@ -9,72 +9,67 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fix mojibake with Python
         run: |
           python3 - <<'PYEOF'
           import os, glob
 
-          REPLACEMENTS = [
-              ('├Ą', 'ä'),
-              ('├í', 'á'),
-              ('├Í', 'Á'),
-              ('├', 'í'),
-              ('├Ź', 'Í'),
-              ('├╗', 'ú'),
-              ('├Ö', 'Ú'),
-              ('├┤', 'ó'),
-              ('├ę', 'é'),
-              ('├Ë', 'É'),
-              ('─Ź', 'č'),
-              ('─Î', 'Č'),
-              ('┼í', 'š'),
-              ('┼á', 'Š'),
-              ('┼ż', 'ž'),
-              ('┼Ż', 'Ž'),
-              ('┼ą', 'ť'),
-              ('┼Ą', 'Ť'),
-              ('─ć', 'ď'),
-              ('─Ć', 'Ď'),
-              ('─ż', 'ľ'),
-              ('─Ż', 'Ľ'),
-              ('┼', 'ň'),
-              ('┼', 'Ň'),
-              ('├ż', 'ý'),
-              ('├', 'Ý'),
-              ('─Ĺ', 'ŕ'),
-              ('├ñ', 'ä'),
-              ('├┴', 'ô'),
-              ('┘»', 'ů'),
-              ('─Ö', '—'),
+          replacements = [
+              ('\u251c\u00ed', '\u00e1'),
+              ('\u251c\u00cd', '\u00c1'),
+              ('\u251c\u015f', '\u00ed'),
+              ('\u251c\u017a', '\u00cd'),
+              ('\u251c\u2557', '\u00fa'),
+              ('\u251c\u00d6', '\u00da'),
+              ('\u251c\u2524', '\u00f3'),
+              ('\u251c\u0119', '\u00e9'),
+              ('\u251c\u00cb', '\u00c9'),
+              ('\u2500\u017a', '\u010d'),
+              ('\u2500\u00ce', '\u010c'),
+              ('\u253c\u00ed', '\u0161'),
+              ('\u253c\u00e1', '\u0160'),
+              ('\u253c\u017c', '\u017e'),
+              ('\u253c\u017b', '\u017d'),
+              ('\u253c\u0105', '\u0165'),
+              ('\u253c\u0104', '\u0164'),
+              ('\u2500\u0107', '\u010f'),
+              ('\u2500\u0106', '\u010e'),
+              ('\u2500\u017c', '\u013e'),
+              ('\u2500\u017b', '\u013d'),
+              ('\u253c\u0142', '\u0148'),
+              ('\u253c\u0141', '\u0147'),
+              ('\u251c\u017c', '\u00fd'),
+              ('\u251c\u0141', '\u00dd'),
+              ('\u2500\u0139', '\u0155'),
+              ('\u251c\u00f1', '\u00e4'),
+              ('\u251c\u2534', '\u00f4'),
+              ('\u2518\u00bb', '\u016f'),
+              ('\u2500\u00d6', '\u2014'),
+              ('\u251c\u0104', '\u00e4'),
           ]
 
-          exts = ('*.jsx', '*.js', '*.ts', '*.tsx')
           files = []
-          for ext in exts:
-              files += glob.glob(f'src/**/{ext}', recursive=True)
-              files += glob.glob(f'src/{ext}')
-          files = list(set(files))
+          for ext in ('*.jsx', '*.js', '*.ts', '*.tsx'):
+              files.extend(glob.glob(f'src/**/{ext}', recursive=True))
+              files.extend(glob.glob(f'src/{ext}'))
 
           changed = 0
-          for fpath in files:
-              try:
-                  with open(fpath, 'r', encoding='utf-8') as f:
-                      original = f.read()
-              except Exception as e:
-                  print(f'SKIP {fpath}: {e}')
-                  continue
-              fixed = original
-              for bad, good in REPLACEMENTS:
-                  fixed = fixed.replace(bad, good)
-              if fixed != original:
-                  with open(fpath, 'w', encoding='utf-8') as f:
-                      f.write(fixed)
+          for path in set(files):
+              with open(path, 'r', encoding='utf-8') as f:
+                  content = f.read()
+              original = content
+              for bad, good in replacements:
+                  content = content.replace(bad, good)
+              if content != original:
+                  with open(path, 'w', encoding='utf-8') as f:
+                      f.write(content)
+                  print(f'Fixed: {path}')
                   changed += 1
-                  print(f'FIXED: {fpath}')
-              else:
-                  print(f'ok:    {fpath}')
-          print(f'\nDone: {changed}/{len(files)} files changed.')
+
+          print(f'Total files fixed: {changed}')
           PYEOF
 
       - name: Commit and push
@@ -84,4 +79,3 @@ jobs:
           git add src/
           git diff --staged --quiet || git commit -m "fix: oprava mojibake – slovenská diakritika vo všetkých zdrojových súboroch"
           git push
-          echo "Done!"
