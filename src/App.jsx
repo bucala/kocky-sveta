@@ -1353,6 +1353,30 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
       <div className="p-4 max-w-2xl mx-auto space-y-3">
 
         <div className="ks-mono ks-gold text-xs px-1 pt-3">PRAVIDLÁ A HODNOTY HRY</div>
+        <button onClick={onRulesEditor}
+          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <Settings size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">Úprava pravidiel</div>
+            <div className="ks-muted text-sm">Bodové kombinácie · cieľ · prvý zápis · koncovka · potvrdenie výhry · penalizácia</div>
+          </div>
+          <ChevronRight className="ks-muted" size={20} />
+        </button>
+
+        <div className="ks-mono ks-gold text-xs px-1 pt-3">VIZUÁL A SKINY</div>
+        <button onClick={onViewModes}
+          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <Monitor size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">Režim zobrazenia hry</div>
+            <div className="ks-muted text-sm">{tournamentViewMode === 'observer' ? 'Pozorovateľ' : tournamentViewMode === 'recorder' ? 'Zapisovateľ' : 'Klasický'}</div>
+          </div>
+          <ChevronRight className="ks-muted" size={20} />
+        </button>
 
         <div className="ks-card w-full p-4 rounded-sm">
           <div className="flex items-center gap-4 mb-3">
@@ -1378,19 +1402,6 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
           </div>
         </div>
 
-        <button onClick={onRulesEditor}
-          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
-            <Settings size={22} className="ks-gold" />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Úprava pravidiel</div>
-            <div className="ks-muted text-sm">Bodové kombinácie · cieľ · prvý zápis · koncovka · potvrdenie výhry · penalizácia</div>
-          </div>
-          <ChevronRight className="ks-muted" size={20} />
-        </button>
-
-        <div className="ks-mono ks-gold text-xs px-1 pt-3">VIZUÁL A SKINY</div>
         <button onClick={onVisualAndSkins}
           className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
           <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
@@ -1398,7 +1409,7 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
           </div>
           <div className="flex-1">
             <div className="ks-display ks-cream text-xl font-semibold">Vizuál a Skiny</div>
-            <div className="ks-muted text-sm">Režim zobrazenia, farby, písmo</div>
+            <div className="ks-muted text-sm">Farby, písmo a vzhľad aplikácie</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
