@@ -223,3 +223,9 @@ npm test
 ## 📘 Poznámka
 
 Aplikácia bola pôvodne navrhnutá s Firebase online miestnosťami. Tie boli odstránené pre zjednodušenie — celý projekt je teraz čisto offline (žiadny `google-services.json`, žiadne Firestore rules, žiadne env premenné).
+
+## 1.5.1
+
+- Opravené zobrazenie nového kola pri dokončení kola; riadok v tabuľke sa zobrazí hneď v ďalšom kole.
+- Upravený export archívu do Excelu; stabilnejší browser fallback pri sťahovaní.
+- Firebase zafixovaný na stabilnú verziu `^12.12.1`.

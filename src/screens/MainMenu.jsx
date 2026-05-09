@@ -1,16 +1,34 @@
-﻿import React from 'react';
-import { Play, Archive as ArchiveIcon, ScrollText, Settings, ChevronRight } from 'lucide-react';
+// src/screens/MainMenu.jsx
+import React from 'react';
+import { Play, Archive as ArchiveIcon, ScrollText, Settings, ChevronRight, Wifi, WifiOff, AlertCircle } from 'lucide-react';
 import { Ornament } from '../atoms/GoldButton.jsx';
+import { useOnlineStore } from '../online/onlineStore.ts';
+
+function OnlineStatusBadge() {
+  const status = useOnlineStore((s) => s.status);
+  const map = {
+    connected: { Icon: Wifi,          color: 'text-green-400', label: 'Online' },
+    error:     { Icon: AlertCircle,   color: 'text-red-400',   label: 'Chyba'  },
+  };
+  const { Icon, color, label } = map[status] || { Icon: WifiOff, color: 'ks-muted', label: 'Offline' };
+  return (
+    <div className="inline-flex items-center gap-1.5 border ks-border-sub rounded-sm px-2 py-1 mt-2">
+      <Icon size={12} className={color} />
+      <span className={`ks-mono text-xs ${color}`}>{label}</span>
+    </div>
+  );
+}
 
 export function MainMenu({ onNew, onArchive, onrules, onSettings, onResume, active, tournamentCount }) {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="px-6 pt-[max(14px,env(safe-area-inset-top))] pb-4 text-center ks-fade">
-        <div className="ks-gold text-xs ks-mono mb-2">Ⅰ ZALOŽENÉ 2026 by Marcel Ⅰ</div>
+        <div className="ks-gold text-xs ks-mono mb-2">★ ZALOŽENÉ 2026 by Marcel ★</div>
         <h1 className="ks-display ks-gold text-5xl sm:text-6xl font-bold leading-none">
           Kocky<br/><span className="italic font-medium">sveta</span>
         </h1>
         <Ornament />
+        <OnlineStatusBadge />
       </div>
       <div className="flex-1 px-5 pb-8 max-w-md w-full mx-auto space-y-3 -mt-1">
         {onResume && (
@@ -27,7 +45,9 @@ export function MainMenu({ onNew, onArchive, onrules, onSettings, onResume, acti
             <ChevronRight className="ks-gold" size={20} />
           </button>
         )}
-        <MenuButton icon={Play}        title="Nový turnaj"     subtitle="Začať novú hru až pre šesť hráčov"   onClick={onNew} primary />
+        <MenuButton icon={Play}        title="Nový turnaj"
+          subtitle={active ? 'Najprv ukonči prebiehajúci turnaj' : 'Začať novú hru až pre šesť hráčov'}
+          onClick={onNew} primary disabled={!!active} />
         <MenuButton icon={ArchiveIcon} title="Archív turnajov" subtitle={`${tournamentCount || 0} uložených turnajov`} onClick={onArchive} />
         <MenuButton icon={ScrollText}  title="Pravidlá hry"    subtitle="Bodovanie a kombinácie kociek"       onClick={onrules} />
         <MenuButton icon={Settings}    title="Nastavenia"      subtitle="Pravidlá, export, editácia archívu"  onClick={onSettings} />
