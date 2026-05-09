@@ -1,7 +1,7 @@
 {
   "name": "kocky-sveta",
   "private": true,
-  "version": "1.2.3",
+  "version": "1.5.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -23,6 +23,7 @@
     "@capacitor/core": "^6.2.0",
     "@capacitor/filesystem": "^6.0.1",
     "@capacitor/share": "^6.0.1",
+    "firebase": "^12.12.1",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
