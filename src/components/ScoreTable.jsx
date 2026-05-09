@@ -18,7 +18,7 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
     if (tableRef.current) tableRef.current.scrollTop = tableRef.current.scrollHeight;
   }, [rounds.length]);
 
-  const numRounds = Math.max(rounds.length, 1);
+  const numRounds = Math.max(rounds.length, tournament.currentRound ?? 1);
 
   // Predpočítané kumulatívne stavy pre každého hráča v každom kole.
   // V kumul. móde zobrazíme tieto namiesto delta hodnôt.
