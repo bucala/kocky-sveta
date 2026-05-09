@@ -6,7 +6,7 @@ import {
   AlertCircle, AlertTriangle, Check, Play, RotateCcw, ScrollText, Crown,
   Calendar, ChevronRight, ListPlus, Pencil, Zap, Skull, Target,
   Download, Upload, Edit3, Clock, FileSpreadsheet, ChevronDown, TrendingUp,
-  Sigma, Layers, Monitor, Bell
+  Sigma, Layers, Monitor, Bell, Wifi, Info
 } from 'lucide-react';
 // XLSX sa načíta lazy pri prvom použití
 import { Capacitor } from '@capacitor/core';
@@ -18,6 +18,7 @@ import { MainMenu, MenuButton } from './screens/MainMenu.jsx';
 import { NewTournament } from './screens/NewTournament.jsx';
 import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
 import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
+import { OnlineScreen } from './screens/OnlineScreen.jsx';
 import './app.css';
 
 // ─── Konštanty ────────────────────────────────────────────────────────────
@@ -619,10 +620,10 @@ export default function App() {
 
   async function exportToExcel() {
     if (tournaments.length === 0) {
-  const XLSX = (await import('xlsx')).default || await import('xlsx');
       window.alert('Archív je prázdny — nie je čo exportovať.');
       return;
     }
+    const XLSX = (await import('xlsx')).default || await import('xlsx');
 
     function getWinnerNames(t) {
       if (t.winner === null || t.winner === undefined) return [];
@@ -737,6 +738,7 @@ export default function App() {
       document.body.appendChild(a);
       a.click();
       a.remove();
+      URL.revokeObjectURL(url);
       setTimeout(() => URL.revokeObjectURL(url), 4000);
     }
   }
@@ -1002,6 +1004,7 @@ export default function App() {
       {view === 'settings' && (
         <SettingsMenu
           onBack={() => setView('menu')}
+          onOnline={() => setView('online')}
           onRulesEditor={() => setView('rulesEditor')}
           onExport={exportToExcel}
           onImport={importFromExcel}
@@ -1080,6 +1083,8 @@ export default function App() {
         <SafeTournamentFallback title="Dáta turnaja sa nepodarilo načítať" />
       ))}
       {view === 'rules' && <RulesView rules={rules} onBack={() => setView('menu')} />}
+      {view === 'online' && <OnlineScreen onBack={() => setView('settings')} />
+      }
       {view === 'rulesEditor' && (
         <RulesEditor rules={rules} onSave={setrules} onBack={() => setView('settings')}
           onReset={() => { if (window.confirm('Obnoviť všetky pravidlá na pôvodné nastavenia?')) setrules(DEFAULT_RULES); }}
@@ -1100,7 +1105,7 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
 
 // ─── Vizuál a Skiny submenu ───────────────────────────────────────────────
 
-function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange }) {
+function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange }) {
   const fileInputRef = useRef(null);
 
   function handleFilePick(e) {
@@ -1114,6 +1119,19 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
     <div className="min-h-screen ks-fade pb-8">
       <Header title="Nastavenia" onBack={onBack} />
       <div className="p-4 max-w-2xl mx-auto space-y-3">
+
+        <div className="ks-mono ks-gold text-xs px-1 pt-3">ONLINE</div>
+        <button onClick={onOnline}
+          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <Wifi size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">Online miestnosť</div>
+            <div className="ks-muted text-sm">Synchronizácia hry, archívu a skinu cez Firebase</div>
+          </div>
+          <ChevronRight className="ks-muted" size={20} />
+        </button>
 
         <div className="ks-mono ks-gold text-xs px-1 pt-3">PRAVIDLÁ A HODNOTY HRY</div>
         <button onClick={onRulesEditor}
@@ -1243,6 +1261,25 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
           <div>
             Pred vymazaním dát si <strong className="ks-gold">vytvor zálohu</strong> cez Export do Excelu.
             Súbor neskôr môžeš obnoviť cez Import. Každý dohraný turnaj si pamätá dátum a čas začiatku aj konca.
+          </div>
+        </div>
+
+        <div className="ks-mono ks-gold text-xs px-1 pt-4">O APLIKÁCII</div>
+        <div className="ks-card w-full p-4 rounded-sm space-y-3">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+              <Info size={22} className="ks-gold" />
+            </div>
+            <div className="flex-1">
+              <div className="ks-display ks-cream text-xl font-semibold">Kocky sveta</div>
+              <div className="ks-muted text-sm">React + Vite + Firebase + Capacitor</div>
+            </div>
+          </div>
+          <div className="space-y-2 text-xs ks-muted leading-relaxed border-t ks-border-sub pt-3">
+            <p><span className="ks-cream font-semibold">Technológie:</span> React 18, Vite, Tailwind CSS, Firebase, Capacitor (Android/iOS)</p>
+            <p><span className="ks-cream font-semibold">Dáta:</span> Ukladané lokálne. Online sync cez Firebase Realtime DB.</p>
+            <p><span className="ks-cream font-semibold">Exporty:</span> XLSX (SheetJS) — každý turnaj ako list + súhrnný prehľad.</p>
+            <p><span className="ks-cream font-semibold">Vývoj:</span> Postavené s pomocou AI (Perplexity / Claude Sonnet). Dizajn, herná logika a pravidlá sú autorské.</p>
           </div>
         </div>
       </div>
@@ -1967,7 +2004,7 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
         // nepotvrdeného achievera, aby dostal šancu potvrdiť v ďalšom kole.
         if (!result.valid && result.achievers.length > 0) {
           const unconfirmedAchievers = result.achievers.filter(
-            a => !((autoConfirmedDetailed || []).some(c => c.player === a))
+            a => !((autoConfirmedDetailed || []).some(c => c.player === a && c.round === prev.currentRound))
           );
           if (unconfirmedAchievers.length > 0) {
             winPending = unconfirmedAchievers[0];
@@ -2009,10 +2046,10 @@ function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMe
       return {
         ...prev,
         rounds: newRounds,
-        currentPlayer: (roundEnded && winPending !== null) ? winPending : nextPlayer,
+        currentPlayer: nextPlayer,
         currentRound: nextRound,
         winner,
-        winPending,
+        winPending: roundEnded ? null : winPending,
         winCandidates,
         winRoundComplete,
         _confirmedDetailed: autoConfirmedDetailed,

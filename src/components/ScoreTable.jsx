@@ -18,7 +18,7 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
     if (tableRef.current) tableRef.current.scrollTop = tableRef.current.scrollHeight;
   }, [rounds.length]);
 
-  const numRounds = Math.max(rounds.length, tournament.currentRound ?? 1);
+  const numRounds = Math.max(rounds.length, (tournament.currentRound ?? 0) + 1);
 
   // Predpočítané kumulatívne stavy pre každého hráča v každom kole.
   // V kumul. móde zobrazíme tieto namiesto delta hodnôt.
@@ -34,8 +34,7 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
           everScored[p] = true;
           result[r][p] = running[p];
         } else if (v === 'dash') {
-          // Čiarka: ak hráč už predtým bodoval, kumulatívne ostáva (zobrazíme ako predošlú hodnotu — alebo radšej '—')
-          result[r][p] = 'dash';
+          result[r][p] = running[p];
         } else {
           result[r][p] = null;
         }
@@ -90,7 +89,7 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
                   return (
                     <td key={pIdx}
                         className={`text-center py-1.5 px-1 ks-display text-base align-middle ${isCurrent ? 'bg-amber-900/20' : ''}`}>
-                      {value === 'dash' && <span className="ks-muted">—</span>}
+                      {raw === 'dash' && displayMode !== 'cumulative' && <span className="ks-muted">—</span>}
                       {typeof value === 'number' && (
                         <span className={`font-medium ${value < 0 ? 'text-red-300' : 'ks-cream'}`}>
                           {value.toLocaleString('sk-SK')}
@@ -99,7 +98,7 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
                       {(value === null || value === undefined) && (
                         isCurrent && pendingPreview > 0
                           ? <span className="ks-gold italic opacity-70">+{pendingPreview}</span>
-                          : <span className="ks-muted">·</span>
+                          : null
                       )}
                     </td>
                   );
