@@ -558,6 +558,20 @@ export function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbor
             engineTotal,
           });
         }
+
+        // Kontrola engine eventu pre presný zásah mimo koncovky
+        const hitTarget = engineResult.events?.some(
+          (ev) => ev.type === "HIT_TARGET_OUTSIDE_ENDGAME"
+        );
+        if (hitTarget) {
+          // eslint-disable-next-line no-console
+          console.log("[engine-event] HIT_TARGET_OUTSIDE_ENDGAME detected", {
+            player: currentPlayer,
+            pendingSum,
+            newTotal,
+            target,
+          });
+        }
       } catch (e) {
         // eslint-disable-next-line no-console
         console.warn("[engine-check] applyScore failed", e);
