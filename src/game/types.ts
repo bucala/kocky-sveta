@@ -20,6 +20,7 @@ export type GameMode = "classic" | "strict";
 
 export interface GameSettings {
   targetScore: number; // napr. 10000
+  minWriteOut: number; // minimálny odpis (napr. 300)
   mode: GameMode;
 }
 
@@ -37,7 +38,8 @@ export type GameEventType =
   | "WIN_CONFIRMED"
   | "DRAW_CONFIRMED"
   | "ROUND_LOCKED"
-  | "FUNNY_TRIGGER";
+  | "FUNNY_TRIGGER"
+  | "MIN_WRITE_OUT_VIOLATION";
 
 export interface GameEvent {
   type: GameEventType;

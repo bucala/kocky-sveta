@@ -57,16 +57,46 @@ export function applyScore(
     currentRound.entries.push(entry);
   }
 
-  // 5. aplikuj value (zatiaľ bez pravidiel – len suma)
+  // 5. aplikuj value
   if (rawValue !== null) {
-    entry.value = rawValue;
-    player.totalScore += rawValue;
+    // Happy path: obyčajný plusový zápis
+    if (rawValue > 0) {
+      const minWO = settings.minWriteOut;
+      const target = settings.targetScore;
+      const currentTotal = player.totalScore;
+      const newTotal = currentTotal + rawValue;
+
+      // 5.1. minimálny odpis – zápis je príliš malý, engine ho neaplikuje
+      if (rawValue < minWO) {
+        return { state, events };
+      }
+
+      // 5.2. prekročenie cieľa – engine zápis neaplikuje
+      if (newTotal > target) {
+        return { state, events };
+      }
+
+      // 5.3. presný zásah cieľa – zatiaľ ponecháme na existujúci UI flow
+      if (newTotal === target) {
+        return { state, events };
+      }
+
+      // 5.4. skutočný happy path: rawValue >= minWO a newTotal < target
+      entry.value = rawValue;
+      player.totalScore = newTotal;
+
+      return { state: nextState, events };
+    } else {
+      // Ostatné prípady (penalizácia, záporné hodnoty, špeciálne kódy)
+      entry.value = rawValue;
+      player.totalScore += rawValue;
+    }
   } else {
-    // čiarka / žiadny zápis
+    // Čiarka / žiadny zápis
     entry.value = null;
   }
 
-  // 6. (Neskôr: tu pôjde kontrola cieľa, lock kola, eventy...)
+  // 6. (Neskôr: tu pôjde generovanie eventov – TEMPORARY_KING, WIN_PENDING_CONFIRM, ROUND_LOCKED, atď.)
   return { state: nextState, events };
 }
 

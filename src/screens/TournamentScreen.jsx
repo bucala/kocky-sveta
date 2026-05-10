@@ -539,6 +539,7 @@ export function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbor
 
         const settings = {
           targetScore: target,
+          minWriteOut: minWO,
           mode: strictMode ? "strict" : "classic",
         };
 
