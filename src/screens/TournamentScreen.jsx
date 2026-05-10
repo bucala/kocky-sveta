@@ -560,10 +560,10 @@ export function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbor
         }
 
         // Kontrola engine eventu pre presný zásah mimo koncovky
-        const hitTarget = engineResult.events?.some(
+        const hitTargetOutsideEndgame = engineResult.events?.some(
           (ev) => ev.type === "HIT_TARGET_OUTSIDE_ENDGAME"
         );
-        if (hitTarget) {
+        if (hitTargetOutsideEndgame) {
           // eslint-disable-next-line no-console
           console.log("[engine-event] HIT_TARGET_OUTSIDE_ENDGAME detected", {
             player: currentPlayer,
@@ -584,7 +584,7 @@ export function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbor
     }
 
     // Presný zásah cieľa mimo koncovky
-    if (newTotal === target) {
+    if (hitTargetOutsideEndgame) {
       maybeFunny();
       // Strict mode: žiadny "dočasný kráľ" popup, žiadne potvrdzovanie.
       // Pridá hráča do _confirmedDetailed cez autoConfirm flag.
