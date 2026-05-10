@@ -516,6 +516,58 @@ export function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbor
       return;
     }
 
+    // ─── Happy path: obyčajný plusový zápis mimo koncovky ───
+    if (!isEndgame && pendingSum > 0 && pendingSum >= minWO && newTotal < target) {
+      try {
+        const engineState = {
+          players: tournament.players.map((name, idx) => ({
+            id: String(idx),
+            name,
+            totalScore: totals[idx],
+          })),
+          rounds: tournament.rounds.map((round, roundIndex) => ({
+            index: roundIndex,
+            entries: round.map((val, playerIndex) => ({
+              playerId: String(playerIndex),
+              value: val,
+            })),
+          })),
+          currentRoundIndex: currentRound,
+          currentPlayerId: String(currentPlayer),
+          isRoundLocked: Boolean(tournament.winRoundComplete),
+        };
+
+        const settings = {
+          targetScore: target,
+          mode: strictMode ? "strict" : "classic",
+        };
+
+        const engineResult = applyScore(
+          engineState,
+          settings,
+          String(currentPlayer),
+          pendingSum
+        );
+
+        const engineTotal = engineResult.state.players[currentPlayer].totalScore;
+        if (engineTotal !== newTotal) {
+          // eslint-disable-next-line no-console
+          console.warn("[engine-check] mismatch happy-path total", {
+            uiNewTotal: newTotal,
+            engineTotal,
+          });
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn("[engine-check] applyScore failed", e);
+      }
+
+      // Pôvodné správanie: funny + advance(pendingSum)
+      maybeFunny();
+      advance(pendingSum);
+      return;
+    }
+
     // Presný zásah cieľa mimo koncovky
     if (newTotal === target) {
       maybeFunny();
