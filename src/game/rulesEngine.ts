@@ -76,8 +76,19 @@ export function applyScore(
         return { state, events };
       }
 
-      // 5.3. presný zásah cieľa – zatiaľ ponecháme na existujúci UI flow
+      // 5.3. presný zásah cieľa mimo koncovky – engine neaplikuje zápis,
+      // len signalizuje, že treba spustiť špeciálny flow (temporary king / popup)
       if (newTotal === target) {
+        events.push({
+          type: "HIT_TARGET_OUTSIDE_ENDGAME",
+          payload: {
+            playerId,
+            rawValue,
+            previousTotal: currentTotal,
+            newTotal,
+            target,
+          },
+        });
         return { state, events };
       }
 

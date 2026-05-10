@@ -39,7 +39,8 @@ export type GameEventType =
   | "DRAW_CONFIRMED"
   | "ROUND_LOCKED"
   | "FUNNY_TRIGGER"
-  | "MIN_WRITE_OUT_VIOLATION";
+  | "MIN_WRITE_OUT_VIOLATION"
+  | "HIT_TARGET_OUTSIDE_ENDGAME";
 
 export interface GameEvent {
   type: GameEventType;
