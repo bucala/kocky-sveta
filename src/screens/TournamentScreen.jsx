@@ -135,12 +135,12 @@ export function TournamentScreen({
   const endgameNoticedRef = useRef(new Set());
   const winPopupShownRef = useRef(new Set());
 
-   const onUpdate = (updater) => {
+  const onUpdate = useCallback((updater) => {
     setData(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
       return next;
     });
-  };
+  }, []);
 
   const totals = useMemo(
     () => computeTotals(rounds, players.length),
