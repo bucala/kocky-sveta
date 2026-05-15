@@ -261,7 +261,6 @@ export function TournamentScreen({
 
   // sem vlož tvoju existujúcu implementáciu advance – logika sa nemení
   function advance(value, opts = {}) {
-  function advance(value, opts = {}) {
     const val = value === 'dash' ? 'dash' : (typeof value === 'number' ? value : 0);
     
     onUpdate(t => {
