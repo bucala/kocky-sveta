@@ -253,8 +253,91 @@ export function TournamentScreen({
   }
 
   // sem vlož tvoju existujúcu implementáciu advance – logika sa nemení
+  function commitDash() {
+    advance('dash');
+  }
+
   function advance(value, opts = {}) {
-    // … originálny obsah z gameEngineu (posun hráča, increment kola, zápis bodov)
+    onUpdate(prev => {
+      const newRounds = prev.rounds.map(r => [...r]);
+      while (newRounds.length <= prev.currentRound) {
+        newRounds.push(new Array(prev.players.length).fill(null));
+      }
+      newRounds[prev.currentRound][prev.currentPlayer] = value;
+
+      let winner = prev.winner ?? null;
+      let winCandidates = Array.isArray(prev.winCandidates) ? [...prev.winCandidates] : [];
+      let winRoundComplete = prev.winRoundComplete ?? false;
+
+      // Pridanie kandidáta, ktorý práve dosiahol cieľ
+      if (opts.addCandidate !== undefined) {
+        if (!winCandidates.includes(opts.addCandidate)) {
+          winCandidates.push(opts.addCandidate);
+        }
+      }
+
+      // Bežný advance: prejdeme na ďalšieho hráča
+      const nextPlayer = (prev.currentPlayer + 1) % prev.players.length;
+      const roundEnded = nextPlayer === 0;
+      const nextRound = prev.currentRound + (roundEnded ? 1 : 0);
+
+      // ─── Vyhodnotenie kandidátov na konci kola — cez computeWinners ───
+      if (roundEnded) {
+        const provisional = {
+          ...prev,
+          rounds: newRounds,
+          winCandidates,
+          rules: prev.rules,
+        };
+
+        const result = computeWinners(provisional);
+
+        if (result.valid && result.winners && result.winners.length > 0) {
+          // Ak computeWinners našiel víťaza/víťazov, ukončíme turnaj po tomto kole
+          winner = result.winners.length === 1 ? result.winners[0] : result.winners;
+          winRoundComplete = true;
+
+          const nextState = {
+        ...prev,
+        rounds: newRounds,
+        currentPlayer: nextPlayer,
+        currentRound: nextRound,
+        winner,
+        winCandidates,
+        winRoundComplete,
+      };
+      // DEBUG: stav po advance
+      console.log('[advance-debug]', {
+        currentRound: nextState.currentRound,
+        status: nextState.status,
+        winner: nextState.winner,
+        winRoundComplete: nextState.winRoundComplete,
+      });
+      return {
+            ...prev,
+            rounds: newRounds,
+            currentPlayer: nextPlayer,
+            currentRound: prev.currentRound,
+            winner,
+            winCandidates,
+            winRoundComplete,
+            status: 'finished',
+          };
+        }
+      }
+
+      return {
+        ...prev,
+        rounds: newRounds,
+        currentPlayer: nextPlayer,
+        currentRound: prev.currentRound,
+        winner,
+        winCandidates,
+        winRoundComplete,
+      };
+    });
+    setPending([]);
+    setCustomInput('');
   }
 
   // komplet tvoja commitPoints z paste.txt – tu sme len upratali koncovku / winPending
