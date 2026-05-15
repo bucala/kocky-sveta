@@ -296,29 +296,6 @@ export function TournamentScreen({
     setPending([]);
     setCustomInput('');
   }
-      const player = players[currentPlayerIndex];
-      
-      // Zapíš body do rounds
-      if (!rounds[currentRoundIndex]) {
-        rounds[currentRoundIndex] = { scores: {} };
-      }
-      rounds[currentRoundIndex].scores[player.id] = value;
-      
-      // Posun na ďalšieho hráča
-      draft.currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-      
-      // Ak sme prešli všetkých hráčov, ukončíme kolo
-      if (draft.currentPlayerIndex === 0) {
-        draft.currentRoundIndex += 1;
-        // Vyhodnoť víťazov pomocou computeWinners
-        const winners = computeWinners(draft);
-        if (winners.length > 0) {
-          draft.winners = winners;
-        }
-      }
-    });
-    
-    setPending(null);
     setCustomInput('');
   }
 
