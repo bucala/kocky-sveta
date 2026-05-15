@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Dice1, Dice2, Dice3, Dice4, Dice5, Dice6,
   Plus, Minus, Trash2, Save, X, ChevronLeft,
@@ -491,7 +491,26 @@ export default function App() {
     return r ? Number(r.points) || 300 : 300;
   }, [rules]);
 
-  function startTournament(players, targetScore) {
+  
+  // === Stable callbacks (prevent infinite loops) ===
+  const handleMenuClick = useCallback(() => setView('menu'), []);
+  
+  const handleToggleScoreMode = useCallback(() => {
+    setScoreDisplayMode(m => m === 'delta' ? 'cumulative' : 'delta');
+  }, []);
+
+  const handleUpdateActive = useCallback((updater) => {
+    setActive(prev => typeof updater === 'function' ? updater(prev) : updater);
+  }, []);
+
+  const handleFinishTournament = useCallback((winner) => {
+    finishTournament(winner);
+  }, []);
+
+  const handleAbortTournament = useCallback(() => {
+    abortTournament();
+  }, []);
+function startTournament(players, targetScore) {
     console.log('[APP] startTournament called', { players, targetScore });
 
     setActive({
@@ -985,12 +1004,12 @@ export default function App() {
       {view === 'tournament' && (active ? (
          <TournamentScreen
             tournament={active} rules={rules}
-            onUpdate={updateActive}
-            onFinish={finishTournament}
-            onAbort={abortTournament}
-            onMenu={() => setView('menu')}
+            onUpdate={handleUpdateActive}
+            onFinish={handleFinishTournament}
+            onAbort={handleAbortTournament}
+            onMenu={handleMenuClick}
             scoreDisplayMode={scoreDisplayMode}
-            onToggleScoreMode={() => setScoreDisplayMode(m => m === 'delta' ? 'cumulative' : 'delta')}
+            onToggleScoreMode={handleToggleScoreMode}
             selectedSkin={selectedSkin}
             onSkinChange={setSelectedSkin}
             tournamentViewMode={tournamentViewMode}
@@ -1014,7 +1033,7 @@ export default function App() {
           onUpdate={(patch) => updateTournamentInArchive(viewingTournament.id, patch)}
           readOnly={archiveReturnTo === 'menu'}
           scoreDisplayMode={scoreDisplayMode}
-          onToggleScoreMode={() => setScoreDisplayMode(m => m === 'delta' ? 'cumulative' : 'delta')}
+          onToggleScoreMode={handleToggleScoreMode}
           selectedSkin={selectedSkin}
         />
       ) : (
