@@ -1,0 +1,157 @@
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Plus, Minus, Trash2, X, ChevronLeft, AlertCircle, AlertTriangle, Check, RotateCcw, Crown, ChevronRight, Zap, Skull } from 'lucide-react';
+import { SKIN_PRESETS, DICE_ICONS, skinVarsCss } from '../constants/skins.js';
+import { QUICK_VALUES, PENALTY_VALUE, FUNNY_MESSAGES, POPUP_CONFIG, SETTING_RULE_IDS } from '../constants/gameConfig.js';
+import { formatDateTime, formatDuration } from '../lib/gameEngine.js';
+import { GoldButton, Header, Toast, Ornament, FunnyOverlay, SimplifiedResult, StatusBanner, StrikethroughCrown } from '../atoms/index.js';
+import ScoreTable from '../components/ScoreTable.jsx';
+
+export function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
+  return <div className="min-h-screen flex items-center justify-center p-6 ks-cream"><div className="ks-card rounded-sm p-5 text-center max-w-md"><div className="ks-display text-2xl ks-gold mb-2">{title}</div><div className="ks-muted text-sm">Skús sa vrátiť späť alebo otvoriť turnaj znova.</div></div></div>;
+}
+
+
+export function PendingChips({ pending, removePending }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {pending.map((p, i) => (
+        <button key={i} onClick={() => removePending(i)} className={`px-3 py-2 rounded-sm border ks-press ${p === 'dash' ? 'ks-border-accent ks-gold' : p < 0 ? 'border-red-800/60 ks-text-accent' : 'ks-border-sub ks-cream'}`}>
+          {p === 'dash' ? '— Čiarka' : `${p > 0 ? '+' : ''}${Number(p).toLocaleString('sk-SK')}`}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── isStrictMode — pravidlo r18 ako prepínač chovania ───────────────────
+// Strict mode (r18 = "Nie", default):
+//   • Akonáhle sa skončí kolo a aspoň jeden hráč má skóre >= target,
+//     turnaj OKAMŽITE skončí. Žiadne ďalšie kolo, žiadny win-pending dialog.
+//   • Pri viacerých achievers v rovnakom kole = remíza so všetkými.
+// Klasický mode (r18 = "Áno"):
+//   • Hráč ktorý dosiahol cieľ musí svoju výhru POTVRDIŤ ničnehodením (čiarkou)
+//     v ďalšom ťahu. Ak nepotvrdí, môže ho niekto iný "zosadiť z trónu".
+//   • Toto je tradičná pravidlo Kocky.
+export function isStrictMode(rules) {
+  const r18 = (rules || []).find(r => r.id === 'r18');
+  // Default = Nie (strict). r18 = "Áno" znamená klasický flow s potvrdzovaním.
+  return !r18 || r18.selected !== 'Áno';
+}
+
+// ─── computeTotals — single source of truth pre súčty ────────────────────
+// Súčet bodov pre každého hráča naprieč všetkými kolami. Null/'dash'/string
+// hodnoty sa rátajú ako 0 (nie ako "neukončené kolo"). Penalizácie (záporné
+// čísla) sa odpočítavajú normálne.
+export function computeTotals(rounds, playersCount) {
+  return new Array(playersCount).fill(0).map((_, pIdx) => {
+    let sum = 0;
+    for (const round of (Array.isArray(rounds) ? rounds : [])) {
+      const v = round?.[pIdx];
+      if (typeof v === 'number' && Number.isFinite(v)) sum += v;
+    }
+    return sum;
+  });
+}
+
+// ─── computeWinners — autoritatívne určenie víťazov ──────────────────────
+// Používa sa AKO single source of truth pre:
+//   • hlavičku VÍŤAZI (winnerCelebration)
+//   • finálnu tabuľku v archíve
+//   • finishTournament checksum validáciu
+//
+// Logika (v poradí priority):
+//   1) Identifikuj všetkých hráčov ktorí dosiahli >= target (achievers).
+//   2) Ak r18 (Režim potvrdenia víťazstva) === 'Áno':
+//        → kandidáti na víťazstvo sú hráči, ktorí dosiahli cieľ v najskoršom kole
+//        → vyber tých s najskorším confirmedRound (kolom)
+//        → v rámci toho istého kola: VŠETCI sú víťazmi (= remíza)
+//          (timestamp confirmedAt sa NEpoužíva ako tiebreak — kolo je
+//           dostatočná granularita, hra nie je tak detailná aby
+//           ms-presné timestampy mali zmysel ako rozhodca)
+//        → ak ostali achievers ktorí ešte nepotvrdili → valid=false,
+//          turnaj sa nemá uzatvoriť (treba im dať šancu potvrdiť v ďalšom kole)
+//      Ak r18 === 'Nie':
+//        → víťazom je každý achiever ktorý dosiahol cieľ v najskoršom kole
+//   3) Validácia: každý víťaz musí mať totals[idx] >= target.
+//      Ak nie → vyhodí error so zoznamom diskrepancií.
+//
+// Vstup:
+//   tournament: { players, rounds, targetScore, winCandidates?, rules? }
+// Návrat:
+//   { winners: number[], totals: number[], achievers: number[],
+//     isDraw: boolean, valid: boolean, errors: string[], reason: string,
+//     pendingAchievers: number[] }
+export function computeWinners(tournament) {
+  const players = tournament?.players || [];
+  const rounds = tournament?.rounds || [];
+  const target = tournament?.targetScore || 10000;
+
+  const totals = computeTotals(rounds, players.length);
+  
+  console.log('[CW-debug]', {
+    target,
+    players,
+    rounds,
+    totals,
+  });
+
+  const achievers = totals
+    .map((t, idx) => ({ idx, total: t }))
+    .filter(x => x.total >= target)
+    .map(x => x.idx);
+
+  if (achievers.length === 0) {
+    return {
+      winners: [],
+      totals,
+      achievers: [],
+      pendingAchievers: [],
+      isDraw: false,
+      valid: true,
+      errors: [],
+      reason: 'Žiadny hráč ešte nedosiahol cieľ.',
+    };
+  }
+
+  const reachedAt = achievers.map(idx => {
+    let cum = 0;
+    for (let r = 0; r < rounds.length; r++) {
+      const v = rounds[r]?.[idx];
+      if (typeof v === 'number' && Number.isFinite(v)) cum += v;
+      if (cum >= target) return { idx, round: r };
+    }
+    return { idx, round: Infinity };
+  });
+
+  const minRound = Math.min(...reachedAt.map(x => x.round));
+  const winners = reachedAt
+    .filter(x => x.round === minRound)
+    .map(x => x.idx);
+
+  const errors = [];
+  for (const w of winners) {
+    if (typeof w !== 'number' || w < 0 || w >= players.length) {
+      errors.push(`Neplatný index víťaza: ${w}.`);
+      continue;
+    }
+    if (totals[w] < target) {
+      errors.push(`Víťaz ${players[w]} má skóre ${totals[w]}, čo je menej ako cieľ ${target}.`);
+    }
+  }
+
+  const valid = errors.length === 0;
+
+  return {
+    winners: valid ? winners : [],
+    totals,
+    achievers,
+    pendingAchievers: [],
+    isDraw: valid && winners.length > 1,
+    valid,
+    errors,
+    reason:
+      winners.length === 1
+        ? `Hráč dosiahol cieľ ako prvý v kole ${minRound + 1}.`
+        : `${winners.length} hráči dosiahli cieľ v rovnakom kole ${minRound + 1}. Remíza.`,
+  };
+}

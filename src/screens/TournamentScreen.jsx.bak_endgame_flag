@@ -1,67 +1,189 @@
-console.log('[TS] TournamentScreen mounted');
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import {
-  Dice1, Dice2, Dice3, Dice4, Dice5, Dice6,
-  Plus, Minus, Trash2, X, ChevronLeft,
-  AlertTriangle, Check, RotateCcw, Crown,
-  TrendingUp, ScrollText, Skull, Layers, Sigma, Target
-} from 'lucide-react';
-import { SKIN_PRESETS } from '../constants/skins.js';
-import { QUICK_VALUES, PENALTY_VALUE, FUNNY_MESSAGES, POPUP_CONFIG } from '../constants/gameConfig.js';
-import { GoldButton, Header, Toast, FunnyOverlay, SimplifiedResult, StatusBanner } from '../atoms/index.js';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, Plus, Minus, Trash2, X, ChevronLeft, AlertCircle, AlertTriangle, Check, RotateCcw, Crown, ChevronRight, Zap, Skull } from 'lucide-react';
+import { SKIN_PRESETS, DICE_ICONS, skinVarsCss } from '../constants/skins.js';
+import { QUICK_VALUES, PENALTY_VALUE, FUNNY_MESSAGES, POPUP_CONFIG, SETTING_RULE_IDS } from '../constants/gameConfig.js';
+import { formatDateTime, formatDuration } from '../lib/gameEngine.js';
+import { GoldButton, Header, Toast, Ornament, FunnyOverlay, SimplifiedResult, StatusBanner, StrikethroughCrown } from '../atoms/index.js';
 import ScoreTable from '../components/ScoreTable.jsx';
-import { ProgressChart } from '../components/ProgressChart.jsx';
-import { RulesContent } from '../components/RulesContent.jsx';
-import { Modal } from '../components/Modal.jsx';
-import { isStrictMode, computeTotals } from '../lib/gameEngine.js';
 
 export function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
+  return <div className="min-h-screen flex items-center justify-center p-6 ks-cream"><div className="ks-card rounded-sm p-5 text-center max-w-md"><div className="ks-display text-2xl ks-gold mb-2">{title}</div><div className="ks-muted text-sm">Skús sa vrátiť späť alebo otvoriť turnaj znova.</div></div></div>;
+}
+
+
+export function PendingChips({ pending, removePending }) {
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 ks-cream">
-      <div className="ks-card rounded-sm p-5 text-center max-w-md">
-        <div className="ks-display text-2xl ks-gold mb-2">{title}</div>
-        <div className="ks-muted text-sm">Skús sa vrátiť späť alebo otvoriť turnaj znova.</div>
-      </div>
+    <div className="flex flex-wrap gap-2">
+      {pending.map((p, i) => (
+        <button key={i} onClick={() => removePending(i)} className={`px-3 py-2 rounded-sm border ks-press ${p === 'dash' ? 'ks-border-accent ks-gold' : p < 0 ? 'border-red-800/60 ks-text-accent' : 'ks-border-sub ks-cream'}`}>
+          {p === 'dash' ? '— Čiarka' : `${p > 0 ? '+' : ''}${Number(p).toLocaleString('sk-SK')}`}
+        </button>
+      ))}
     </div>
   );
 }
 
-// jednoduchý queue hook – ostáva tak ako v tvojom kóde
-function useFunnyQueue(maxQueue = 3, minDuration = POPUP_CONFIG.POPUP_DISPLAY_DURATION) {
-  const [active, setActive] = useState(null);
-  const queueRef = useRef([]);
-  const lockUntilRef = useRef(0);
-  const timerRef = useRef(null);
+// ─── isStrictMode — pravidlo r18 ako prepínač chovania ───────────────────
+// Strict mode (r18 = "Nie", default):
+//   • Akonáhle sa skončí kolo a aspoň jeden hráč má skóre >= target,
+//     turnaj OKAMŽITE skončí. Žiadne ďalšie kolo, žiadny win-pending dialog.
+//   • Pri viacerých achievers v rovnakom kole = remíza so všetkými.
+// Klasický mode (r18 = "Áno"):
+//   • Hráč ktorý dosiahol cieľ musí svoju výhru POTVRDIŤ ničnehodením (čiarkou)
+//     v ďalšom ťahu. Ak nepotvrdí, môže ho niekto iný "zosadiť z trónu".
+//   • Toto je tradičná pravidlo Kocky.
+export function isStrictMode(rules) {
+  const r18 = (rules || []).find(r => r.id === 'r18');
+  // Default = Nie (strict). r18 = "Áno" znamená klasický flow s potvrdzovaním.
+  return !r18 || r18.selected !== 'Áno';
+}
 
-  const clearTimer = useCallback(() => {
+// ─── computeTotals — single source of truth pre súčty ────────────────────
+// Súčet bodov pre každého hráča naprieč všetkými kolami. Null/'dash'/string
+// hodnoty sa rátajú ako 0 (nie ako "neukončené kolo"). Penalizácie (záporné
+// čísla) sa odpočítavajú normálne.
+export function computeTotals(rounds, playersCount) {
+  return new Array(playersCount).fill(0).map((_, pIdx) => {
+    let sum = 0;
+    for (const round of (Array.isArray(rounds) ? rounds : [])) {
+      const v = round?.[pIdx];
+      if (typeof v === 'number' && Number.isFinite(v)) sum += v;
+    }
+    return sum;
+  });
+}
+
+// ─── computeWinners — autoritatívne určenie víťazov ──────────────────────
+// Používa sa AKO single source of truth pre:
+//   • hlavičku VÍŤAZI (winnerCelebration)
+//   • finálnu tabuľku v archíve
+//   • finishTournament checksum validáciu
+//
+// Logika (v poradí priority):
+//   1) Identifikuj všetkých hráčov ktorí dosiahli >= target (achievers).
+//   2) Ak r18 (Režim potvrdenia víťazstva) === 'Áno':
+//        → kandidáti na víťazstvo sú hráči, ktorí dosiahli cieľ v najskoršom kole
+//        → vyber tých s najskorším confirmedRound (kolom)
+//        → v rámci toho istého kola: VŠETCI sú víťazmi (= remíza)
+//          (timestamp confirmedAt sa NEpoužíva ako tiebreak — kolo je
+//           dostatočná granularita, hra nie je tak detailná aby
+//           ms-presné timestampy mali zmysel ako rozhodca)
+//        → ak ostali achievers ktorí ešte nepotvrdili → valid=false,
+//          turnaj sa nemá uzatvoriť (treba im dať šancu potvrdiť v ďalšom kole)
+//      Ak r18 === 'Nie':
+//        → víťazom je každý achiever ktorý dosiahol cieľ v najskoršom kole
+//   3) Validácia: každý víťaz musí mať totals[idx] >= target.
+//      Ak nie → vyhodí error so zoznamom diskrepancií.
+//
+// Vstup:
+//   tournament: { players, rounds, targetScore, winCandidates?, rules? }
+// Návrat:
+//   { winners: number[], totals: number[], achievers: number[],
+//     isDraw: boolean, valid: boolean, errors: string[], reason: string,
+//     pendingAchievers: number[] }
+export function computeWinners(tournament) {
+  const players = Array.isArray(tournament?.players) ? tournament.players : [];
+  const rounds = Array.isArray(tournament?.rounds) ? tournament.rounds : [];
+  const target = tournament?.targetScore ?? 10000;
+
+  const totals = computeTotals(rounds, players.length);
+
+  // Kedy ktorý hráč prvýkrát dosiahol alebo prekročil cieľ
+  const reachedAt = players
+    .map((_, idx) => {
+      let cum = 0;
+
+      for (let r = 0; r < rounds.length; r++) {
+        const v = rounds[r]?.[idx];
+        if (typeof v === "number" && Number.isFinite(v)) {
+          cum += v;
+        }
+        if (cum >= target) {
+          return { idx, round: r };
+        }
+      }
+
+      return null;
+    })
+    .filter(Boolean);
+
+  if (reachedAt.length === 0) {
+    return {
+      winners: [],
+      totals,
+      achievers: [],
+      isDraw: false,
+      valid: true,
+      errors: [],
+      reason: "Žiadny hráč ešte nedosiahol cieľ.",
+    };
+  }
+
+  const minRound = Math.min(...reachedAt.map((x) => x.round));
+  const winners = reachedAt.filter((x) => x.round === minRound).map((x) => x.idx);
+
+  return {
+    winners,
+    totals,
+    achievers: reachedAt.map((x) => x.idx),
+    isDraw: winners.length > 1,
+    valid: true,
+    errors: [],
+    reason:
+      winners.length === 1
+        ? `Hráč dosiahol cieľ ako prvý v kole ${minRound + 1}.`
+        : `${winners.length} hráči dosiahli cieľ v rovnakom kole ${minRound + 1}. Remíza.`,
+  };
+}
+}
+
+// ─── useFunnyQueue ────────────────────────────────────────────────────────
+// Queue pre funny popupy s nasledujúcou logikou:
+//   • aktívny popup vidí používateľ aspoň POPUP_CONFIG.POPUP_DISPLAY_DURATION ms
+//     pred tým, než ho môže vystriedať ďalší — ochrana proti "preblikávaniu",
+//     ktoré bolo pôvodný bug (každý nový setFunny() prepísal predchádzajúci).
+//   • čakajúca pozícia má kapacitu POPUP_CONFIG.QUEUE_SIZE (default 1).
+//     Newer-wins: ak príde ďalší kým niečo už čaká, nový prepíše čakajúceho.
+//   • dismiss() ukončí aktívny popup okamžite (klik kdekoľvek na overlay).
+//   • clear() zhodí všetko (volá sa pri odchode z turnaja, modal blokoch).
+export function useFunnyQueue() {
+  const [active, setActive] = useState(null);
+  const queueRef = useRef([]);             // čakajúce položky (max QUEUE_SIZE)
+  const lockUntilRef = useRef(0);          // timestamp kedy môže prísť ďalší
+  const timerRef = useRef(null);
+  const minDuration = POPUP_CONFIG.POPUP_DISPLAY_DURATION;
+  const maxQueue = POPUP_CONFIG.QUEUE_SIZE;
+
+  function clearTimer() {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-  }, []);
+  }
 
-  const popNext = useCallback(() => {
+  function popNext() {
     clearTimer();
     if (queueRef.current.length === 0) {
       setActive(null);
-      lockUntilRef.current = 0;
       return;
     }
     const next = queueRef.current.shift();
     lockUntilRef.current = Date.now() + minDuration;
     setActive(next);
     timerRef.current = setTimeout(popNext, next.duration ?? minDuration);
-  }, [clearTimer, minDuration]);
+  }
 
   function enqueue(data) {
     if (!data) return;
     if (!active) {
+      // Nikto nečaká — zobraz hneď.
       lockUntilRef.current = Date.now() + minDuration;
       setActive(data);
       clearTimer();
       timerRef.current = setTimeout(popNext, data.duration ?? minDuration);
       return;
     }
+    // Aktívny existuje — zaraď do queue (newer-wins ak je plná).
     if (queueRef.current.length >= maxQueue) {
       queueRef.current[queueRef.current.length - 1] = data;
     } else {
@@ -70,6 +192,10 @@ function useFunnyQueue(maxQueue = 3, minDuration = POPUP_CONFIG.POPUP_DISPLAY_DU
   }
 
   function dismiss() {
+    // Klik na popup — ukonči aktívny popup okamžite, ale rešpektuj minDuration
+    // tak, že ďalší v queue čaká kým neuplynie min čas. V praxi (>2s lock):
+    //   - ak používateľ klikol PO uplynutí 2s → ďalší sa zobrazí hneď
+    //   - ak klikol PRED 2s → aktívny zmizne, ale next čaká do uplynutia
     clearTimer();
     const now = Date.now();
     const remaining = Math.max(0, lockUntilRef.current - now);
@@ -86,30 +212,15 @@ function useFunnyQueue(maxQueue = 3, minDuration = POPUP_CONFIG.POPUP_DISPLAY_DU
     lockUntilRef.current = 0;
   }
 
-  useEffect(() => clearTimer, [clearTimer]);
+  // Cleanup pri unmounte
+  useEffect(() => clearTimer, []);
 
   return { active, enqueue, dismiss, clear };
 }
 
-export function TournamentScreen({
-  tournament,
-  rules,
-  onUpdate,
-  onFinish,
-  onAbort,
-  onMenu,
-  scoreDisplayMode,
-  onToggleScoreMode,
-  selectedSkin,
-  onSkinChange,
-  tournamentViewMode = 'basic',
-  funnyWindowsDisplayMode = 'standard',
-}) {
-  console.log('[TS] TournamentScreen mounted');
-  console.log('[TS] view mode', tournamentViewMode);
-
+export function TournamentScreen({ tournament, rules, onUpdate, onFinish, onAbort, onMenu, scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange, tournamentViewMode = 'basic', funnyWindowsDisplayMode = 'standard' }) {
+  // Early null guard — before destructuring to prevent crash
   if (!tournament) return <SafeTournamentFallback />;
-
   const target = tournament.targetScore || 10000;
   const minWO = tournament.minWriteOff || 300;
   const players = Array.isArray(tournament.players) ? tournament.players : [];
@@ -118,66 +229,39 @@ export function TournamentScreen({
 
   const [pending, setPending] = useState([]);
   const [customInput, setCustomInput] = useState('');
-  const [showRules, setShowRules] = useState(false);
+  const [showrules, setShowrules] = useState(false);
   const [showStandings, setShowStandings] = useState(false);
   const [toast, setToast] = useState(null);
   const funnyQueue = useFunnyQueue();
   const funny = funnyQueue.active;
-  const [showWinPendingPopup, setShowWinPendingPopup] = useState(false);
-  const [pendingWinScore, setPendingWinScore] = useState(null);
-  const [pendingWinMeta, setPendingWinMeta] = useState(null);
   const [showTemporaryKingPopup, setShowTemporaryKingPopup] = useState(false);
   const [temporaryKingToken, setTemporaryKingToken] = useState(null);
-  const [deferTemporaryKingUntilWinPopupCloses, setDeferTemporaryKingUntilWinPopupCloses] = useState(false);
   const [winnerCelebration, setWinnerCelebration] = useState(null);
-
+  // Počítadlo funny hlášok per hráč (max 3 za turnaj). Index = playerIdx, hodnota = count.
   const funnyCountRef = useRef(players.map(() => 0));
+  // Sledovanie ktorému hráčovi sa už pri nástupe do koncovky ukázalo "veľké" oznámenie
   const endgameNoticedRef = useRef(new Set());
-  const winPopupShownRef = useRef(new Set());
 
   const totals = useMemo(
     () => computeTotals(rounds, players.length),
-    [rounds, players.length]
-  );
+    [rounds, players.length]);
 
-  const hasFirstWrite = useMemo(
-    () =>
-      players.map((_, pIdx) =>
-        rounds.some(r => typeof r[pIdx] === 'number' && r[pIdx] >= 0)
-      ),
-    [players, rounds]
-  );
+  const hasFirstWrite = useMemo(() =>
+    players.map((_, pIdx) => rounds.some(r => typeof r[pIdx] === 'number' && r[pIdx] >= 0)),
+    [players, rounds]);
 
   const total = totals[currentPlayer];
   const isFirstWrite = !hasFirstWrite[currentPlayer];
   const isEndgame = total >= target - minWO && total < target;
+  // V strict režime sa winPending ignoruje aj keby ho mal turnaj z archívu nastavený
+  // (napr. z predchádzajúcej hry v klasickom režime). Tým sa zabráni „zaseknutiu"
+  // pri pokračovaní v starom rozohranom turnaji po prepnutí r18 na "Nie".
   const strictMode = isStrictMode(rules);
-  const winPendingPlayer = strictMode ? null : tournament.winPending;
-  const isWinPendingTurn = winPendingPlayer === currentPlayer && winPendingPlayer !== null;
   const exactNeeded = target - total;
   const isLastPlayerInRound = currentPlayer === players.length - 1;
 
-  const pendingSum = pending.reduce(
-    (a, b) => a + (typeof b === 'number' ? b : 0),
-    0
-  );
+  const pendingSum = pending.reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
   const newTotal = total + pendingSum;
-
-  // RENDER SNAPSHOT – teraz už po všetkých definíciách
-  console.log('[TS] render snapshot', {
-    currentPlayer,
-    currentRound,
-    total,
-    target,
-    exactNeeded,
-    isEndgame,
-    strictMode,
-    winPendingPlayer,
-    isWinPendingTurn,
-    showWinPendingPopup,
-    pendingSum,
-    newTotal,
-  });
 
   function showToast(msg, kind = 'info') {
     setToast({ msg, kind });
@@ -186,13 +270,16 @@ export function TournamentScreen({
 
   function showFunny(customMsg, opts = {}) {
     const data = customMsg
-      ? typeof customMsg === 'string'
-        ? { msg: customMsg, emoji: '🎭', variant: 'fight' }
-        : customMsg
+      ? (typeof customMsg === 'string' ? { msg: customMsg, emoji: '🎭', variant: 'fight' } : customMsg)
       : FUNNY_MESSAGES[Math.floor(Math.random() * FUNNY_MESSAGES.length)];
 
+    // Suppressed režim: žiadne funny windows. Iba ak je explicitne forceFullscreen
+    // (víťazstvo, win-pending) prejdeme ďalej.
     if (funnyWindowsDisplayMode === 'suppressed' && !opts.forceFullscreen) return;
 
+    // Simplified režim: namiesto fullscreen FunnyOverlay-ov ukážeme krátky toast.
+    // Stále rešpektujeme min 2s zobrazenie cez vlastný setTimeout — toast má
+    // jednoduchšiu logiku ako queue, ale aspoň nepreblikne pod ďalším.
     if (funnyWindowsDisplayMode === 'simplified' && !opts.forceFullscreen) {
       const dur = opts.duration ?? Math.max(POPUP_CONFIG.POPUP_DISPLAY_DURATION, 2600);
       setToast({ msg: data.msg, kind: 'info' });
@@ -200,15 +287,19 @@ export function TournamentScreen({
       return;
     }
 
+    // Standard režim: cez queue. Duration môže byť explicitne dlhší ako default;
+    // queue garantuje, že prvý zostane aspoň POPUP_DISPLAY_DURATION ms.
     funnyQueue.enqueue({ ...data, duration: opts.duration ?? 3500 });
   }
 
+  // Náhodné funny popupy (max 3 za turnaj na hráča)
   function maybeFunny() {
     if (pendingSum <= 0 || pendingSum >= 500) return;
-    if (funnyCountRef.current[currentPlayer] >= 3) return;
+    if (funnyCountRef.current[currentPlayer] >= 3) return; // limit dosiahnutý
 
     const max = Math.max(...totals);
     const min = Math.min(...totals);
+    // Hráč zaostáva o aspoň 1500 oproti najlepšiemu (alebo je posledný a aspoň jeden má 1000+)
     const isFarBehind = total < max - 1500;
     const isLastWithGap = total === min && totals.some(t => t > total + 800);
 
@@ -220,10 +311,7 @@ export function TournamentScreen({
 
   function addPoints(v) {
     if (!Number.isFinite(v) || v === 0) return;
-    if (isWinPendingTurn) {
-      showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
-      return;
-    }
+    // Ak je v pendingu čiarka alebo penalizácia, vymaž ich (špeciálne sa nedajú miešať)
     if (pending.some(p => p === 'dash' || p === PENALTY_VALUE)) {
       setPending([v]);
       return;
@@ -232,73 +320,29 @@ export function TournamentScreen({
   }
 
   function addDash() {
-    if (pending.length === 1 && pending[0] === 'dash') return;
+    // Čiarka vždy nahradí celý pending
+    if (pending.length === 1 && pending[0] === 'dash') return; // už tam je
     setPending(['dash']);
   }
 
   function addPenalty() {
-    if (isWinPendingTurn) {
-      showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
-      return;
-    }
-    if (pending.length === 1 && pending[0] === PENALTY_VALUE) return;
+    // Penalizácia vždy nahradí celý pending
+    if (pending.length === 1 && pending[0] === PENALTY_VALUE) return; // už tam je
     setPending([PENALTY_VALUE]);
   }
 
-  function removePending(idx) {
-    setPending(prev => prev.filter((_, i) => i !== idx));
-  }
-  function clearPending() {
-    setPending([]);
-  }
+  function removePending(idx) { setPending(prev => prev.filter((_, i) => i !== idx)); }
+  function clearPending() { setPending([]); }
 
-  // sem vlož tvoju existujúcu implementáciu advance – logika sa nemení
-  function advance(value, opts = {}) {
-    // … originálny obsah z gameEngineu (posun hráča, increment kola, zápis bodov)
-  }
-
-  // komplet tvoja commitPoints z paste.txt – tu sme len upratali koncovku / winPending
   function commitPoints() {
     if (pending.length === 0) return;
 
     if (pending[0] === 'dash') {
-      if (isWinPendingTurn) {
-        if (pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
-          advance(pendingWinScore, {
-            confirmWin: true,
-            confirmedRound: pendingWinMeta?.round ?? currentRound,
-            confirmedPlayer: currentPlayer,
-          });
-          setPendingWinScore(null);
-          setPendingWinMeta(null);
-          return;
-        }
-        advance('dash', {
-          confirmWin: true,
-          confirmedRound: currentRound,
-          confirmedPlayer: currentPlayer,
-        });
-        return;
-      }
       advance('dash');
       return;
     }
 
-    if (isWinPendingTurn) {
-      if (pendingSum === 0 && pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
-        advance(pendingWinScore, {
-          confirmWin: true,
-          confirmedRound: pendingWinMeta?.round ?? currentRound,
-          confirmedPlayer: currentPlayer,
-        });
-        setPendingWinScore(null);
-        setPendingWinMeta(null);
-        return;
-      }
-      showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
-      return;
-    }
-
+    // Penalizácia (-1000) sama, alebo s nulovým súčtom
     if (pending.some(p => p < 0)) {
       if (pending.length > 1 || pending[0] !== PENALTY_VALUE) {
         showToast('Penalizácia −1 000 sa nedá kombinovať s inými bodmi.', 'warn');
@@ -308,79 +352,78 @@ export function TournamentScreen({
       return;
     }
 
-    if (isEndgame) {
-      if (pendingSum === exactNeeded) {
-        if (strictMode) {
-          maybeFunny();
-          if (!isLastPlayerInRound) {
-            showToast(
-              `${players[currentPlayer]} dosiahol cieľ ${target.toLocaleString('sk-SK')}! Kolo sa dohrá a hra skončí.`,
-              'info'
-            );
-          }
-          advance(pendingSum, {
-            addCandidate: currentPlayer,
-            autoConfirm: true,
-            confirmedRound: currentRound,
-            confirmedPlayer: currentPlayer,
+    let hitTargetOutsideEndgame = false;
+    if (!isEndgame && pendingSum > 0 && pendingSum >= minWO && newTotal < target) {
+      try {
+        const engineState = {
+          players: tournament.players.map((name, idx) => ({
+            id: String(idx),
+            name,
+            totalScore: totals[idx],
+          })),
+          rounds: tournament.rounds.map((round, roundIndex) => ({
+            index: roundIndex,
+            entries: round.map((val, playerIndex) => ({
+              playerId: String(playerIndex),
+              value: val,
+            })),
+          })),
+          currentRoundIndex: currentRound,
+          currentPlayerId: String(currentPlayer),
+          isRoundLocked: Boolean(tournament.winRoundComplete),
+        };
+
+        const settings = {
+          targetScore: target,
+          minWriteOut: minWO,
+          mode: strictMode ? 'strict' : 'classic',
+        };
+
+        const engineResult = applyScore(
+          engineState,
+          settings,
+          String(currentPlayer),
+          pendingSum
+        );
+
+        const engineTotal = engineResult.state.players[currentPlayer].totalScore;
+        if (engineTotal !== newTotal) {
+          // eslint-disable-next-line no-console
+          console.warn('[engine-check] mismatch happy-path total', {
+            uiNewTotal: newTotal,
+            engineTotal,
           });
-          return;
         }
-        setPendingWinScore(pendingSum);
-        setPendingWinMeta({ player: currentPlayer, round: currentRound });
-        setShowWinPendingPopup(true);
-        if (!isLastPlayerInRound) {
-          setTemporaryKingToken(`${currentPlayer}-${currentRound}-${pendingSum}-endgame`);
-          setDeferTemporaryKingUntilWinPopupCloses(true);
+
+        hitTargetOutsideEndgame = engineResult.events?.some(
+          (ev) => ev.type === 'HIT_TARGET_OUTSIDE_ENDGAME'
+        );
+        if (hitTargetOutsideEndgame) {
+          // eslint-disable-next-line no-console
+          console.log('[engine-event] HIT_TARGET_OUTSIDE_ENDGAME detected', {
+            player: currentPlayer,
+            pendingSum,
+            newTotal,
+            target,
+          });
         }
-        return;
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('[engine-check] applyScore failed', e);
       }
-      showToast(`Koncovka — treba presne ${exactNeeded} bodov. Automatická čiarka!`, 'overshoot');
-      advance('dash');
-      return;
     }
 
-    if (pendingSum > 0 && pendingSum < minWO) {
-      showToast(`Každý zápis musí byť aspoň ${minWO} bodov, alebo daj čiarku.`, 'warn');
-      return;
-    }
-
-    if (newTotal > target) {
-      showToast(`Prekročenie ${target.toLocaleString('sk-SK')} – automatická čiarka!`, 'overshoot');
-      advance('dash');
-      return;
-    }
-
-    if (newTotal === target) {
+    if (hitTargetOutsideEndgame) {
       maybeFunny();
-      if (strictMode) {
-        if (!isLastPlayerInRound) {
-          showToast(
-            `${players[currentPlayer]} dosiahol cieľ ${target.toLocaleString('sk-SK')}! Kolo sa dohrá a hra skončí.`,
-            'info'
-          );
-        }
-        advance(pendingSum, {
-          addCandidate: currentPlayer,
-          autoConfirm: true,
-          confirmedRound: currentRound,
-          confirmedPlayer: currentPlayer,
-        });
-        return;
+
+      if (!isLastPlayerInRound) {
+        setTemporaryKingToken(`${currentPlayer}-${currentRound}-${pendingSum}-outside`);
+        setShowTemporaryKingPopup(true);
       }
-      if (isLastPlayerInRound) {
-        maybeFunny();
-        advance(pendingSum, {
-          addCandidate: currentPlayer,
-          autoConfirm: true,
-          confirmedRound: currentRound,
-          confirmedPlayer: currentPlayer,
-        });
-        return;
-      }
-      setTemporaryKingToken(`${currentPlayer}-${currentRound}-${pendingSum}`);
-      setShowTemporaryKingPopup(true);
-      advance(pendingSum, { addCandidate: currentPlayer });
+
+      advance(pendingSum, {
+        addCandidate: currentPlayer,
+      });
       return;
     }
 
@@ -388,14 +431,81 @@ export function TournamentScreen({
     advance(pendingSum);
   }
 
-  // WINNER efekt z tvojho kódu
+  function commitDash() {
+    advance('dash');
+  }
+
+  function advance(value, opts = {}) {
+    onUpdate(prev => {
+      const newRounds = prev.rounds.map(r => [...r]);
+      while (newRounds.length <= prev.currentRound) {
+        newRounds.push(new Array(prev.players.length).fill(null));
+      }
+      newRounds[prev.currentRound][prev.currentPlayer] = value;
+
+      let winner = prev.winner ?? null;
+      let winCandidates = Array.isArray(prev.winCandidates) ? [...prev.winCandidates] : [];
+      let winRoundComplete = prev.winRoundComplete ?? false;
+
+      // Pridanie kandidáta, ktorý práve dosiahol cieľ
+      if (opts.addCandidate !== undefined) {
+        if (!winCandidates.includes(opts.addCandidate)) {
+          winCandidates.push(opts.addCandidate);
+        }
+      }
+
+      // Bežný advance: prejdeme na ďalšieho hráča
+      const nextPlayer = (prev.currentPlayer + 1) % prev.players.length;
+      const roundEnded = nextPlayer === 0;
+      const nextRound = prev.currentRound + (roundEnded ? 1 : 0);
+
+      // ─── Vyhodnotenie kandidátov na konci kola — cez computeWinners ───
+      if (roundEnded) {
+        const provisional = {
+          ...prev,
+          rounds: newRounds,
+          winCandidates,
+          rules: prev.rules,
+        };
+
+        const result = computeWinners(provisional);
+
+        if (result.winners.length > 0) {
+          winner = result.winners.length === 1 ? result.winners[0] : result.winners;
+          winRoundComplete = true;
+
+          // Hra sa po zásahu cieľa nehrá ďalej – neotvárame nové kolo
+          return {
+            ...prev,
+            rounds: newRounds,
+            currentPlayer: nextPlayer,
+            currentRound: prev.currentRound,
+            winner,
+            winCandidates,
+            winRoundComplete,
+          };
+        }
+      }
+
+      return {
+        ...prev,
+        rounds: newRounds,
+        currentPlayer: nextPlayer,
+        currentRound: nextRound,
+        winner,
+        winCandidates,
+        winRoundComplete,
+      };
+    });
+    setPending([]);
+    setCustomInput('');
+  }
+
   useEffect(() => {
     if (tournament.winner !== null && tournament.winner !== undefined) {
       funnyQueue.clear();
       setToast(null);
-      const winnerArr = Array.isArray(tournament.winner)
-        ? tournament.winner
-        : [tournament.winner];
+      const winnerArr = Array.isArray(tournament.winner) ? tournament.winner : [tournament.winner];
       setWinnerCelebration({ winnerArr, isDraw: winnerArr.length > 1 });
       const id = setTimeout(() => {
         setWinnerCelebration(null);
@@ -403,52 +513,28 @@ export function TournamentScreen({
       }, 2200);
       return () => clearTimeout(id);
     }
-  }, [tournament.winner, funnyQueue, onFinish]);
+  }, [tournament.winner]);
 
-  // Auto-popup pri nástupe do koncovky
+  // ─── Auto-popup pri nástupe hráča do koncovky ───────────────────────
+  // Ak hráč príde na ťah a už je v zóne nad target-minWO (ale ešte nedosiahol cieľ),
+  // a ešte mu túto správu túto hru neukázalo, zobraz veľkú hlášku.
   useEffect(() => {
     if (!isEndgame) return;
     const key = `${currentPlayer}_${currentRound}`;
     if (endgameNoticedRef.current.has(key)) return;
     endgameNoticedRef.current.add(key);
 
+    // Krátka pauza aby sa najprv dokreslila obrazovka
     const t = setTimeout(() => {
-      showFunny(
-        {
-          msg: `Hoď presne ${exactNeeded}! V koncovke potom treba potvrdenie. 😤`,
-          emoji: '🤙',
-          variant: 'fight',
-        },
-        { duration: 4500 }
-      );
+      showFunny({
+        msg: `Hoď presne ${exactNeeded}! V koncovke potom treba potvrdenie. 😤`,
+        emoji: '🤙',
+        variant: 'fight',
+      }, { duration: 4500 });
     }, 400);
     return () => clearTimeout(t);
   }, [currentPlayer, currentRound, isEndgame, exactNeeded]);
-
-  // DEBUG efekt – sledujeme win‑pending závislosti
-  useEffect(() => {
-    console.log('[TS] winPending effect deps', {
-      isWinPendingTurn,
-      showWinPendingPopup,
-      currentPlayer,
-      currentRound,
-      winPopupShownKeys: Array.from(winPopupShownRef.current),
-    });
-  }, [isWinPendingTurn, showWinPendingPopup, currentPlayer, currentRound]);
-
-// Auto-popup pri winPending kole – iba v "basic" (live) režime
-useEffect(() => {
-  if (tournamentViewMode !== 'basic') return;
-  if (!isWinPendingTurn) return;
-  if (showWinPendingPopup) return;
-  const key = `winpending_${currentPlayer}_${currentRound}`;
-  if (winPopupShownRef.current.has(key)) return;
-  winPopupShownRef.current.add(key);
-  const t = setTimeout(() => {
-    setShowWinPendingPopup(true);
-  }, 300);
-  return () => clearTimeout(t);
-}, [tournamentViewMode, isWinPendingTurn, currentPlayer, currentRound, showWinPendingPopup]);
+// Popup sa spúšťa priamo z commitPoints keď hráč dosiahne cieľ — žiadny ďalší useEffect.
 
   const isObserverMode = tournamentViewMode === 'observer';
   const isRecorderMode = tournamentViewMode === 'recorder';
@@ -459,31 +545,24 @@ useEffect(() => {
     const t = setTimeout(() => {
       setShowTemporaryKingPopup(false);
       setTemporaryKingToken(null);
-      setDeferTemporaryKingUntilWinPopupCloses(false);
     }, 1700);
     return () => clearTimeout(t);
   }, [showTemporaryKingPopup, temporaryKingToken]);
 
-function addCustom() {
-  const n = parseInt(customInput, 10);
-  if (!Number.isFinite(n) || n === 0) return;
-  if (n % 50 !== 0) {
-    showToast('Hodnota musí byť násobok 50 (50, 100, 150…)', 'warn');
-    return;
+  function addCustom() {
+    const n = parseInt(customInput, 10);
+    if (!Number.isFinite(n) || n === 0) return;
+    if (n % 50 !== 0) {
+      showToast('Hodnota musí byť násobok 50 (50, 100, 150…)', 'warn');
+      return;
+    }
+    addPoints(n);
+    setCustomInput('');
   }
-  addPoints(n);
-  setCustomInput('');
-}
 
-if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) {
-  return <SafeTournamentFallback />;
-}
-
-return (
-  <div
-    className={`min-h-screen ks-fade ${isRecorderMode ? 'pb-6' : 'pb-32'}`}
-    style={{ background: (SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic).bg }}
-  >
+  if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback />;
+  return (
+    <div className={`min-h-screen ks-fade ${isRecorderMode ? 'pb-6' : 'pb-32'}`} style={{ background: (SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic).bg }}>
       {!isRecorderMode && (
         <Header
           title={`Turnaj · do ${target.toLocaleString('sk-SK')}`}
@@ -737,7 +816,7 @@ return (
       )}
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-      {!blockFollowupPopups && funny && !showWinPendingPopup && funnyWindowsDisplayMode === 'standard' && (
+      {!blockFollowupPopups && funny && funnyWindowsDisplayMode === 'standard' && (
         <FunnyOverlay data={funny} onClose={funnyQueue.dismiss} />
       )}
 
@@ -765,8 +844,7 @@ return (
           onClose={() => {
             setShowTemporaryKingPopup(false);
             setTemporaryKingToken(null);
-            setDeferTemporaryKingUntilWinPopupCloses(false);
-          }}
+                }}
         />
       )}
       {blockFollowupPopups && funnyWindowsDisplayMode === 'simplified' && (
@@ -778,8 +856,7 @@ return (
           onClose={() => {
             setShowTemporaryKingPopup(false);
             setTemporaryKingToken(null);
-            setDeferTemporaryKingUntilWinPopupCloses(false);
-          }}
+                }}
         />
       )}
       {blockFollowupPopups && funnyWindowsDisplayMode === 'suppressed' && (
@@ -791,8 +868,7 @@ return (
           onClose={() => {
             setShowTemporaryKingPopup(false);
             setTemporaryKingToken(null);
-            setDeferTemporaryKingUntilWinPopupCloses(false);
-          }}
+                }}
         />
       )}
 
@@ -842,123 +918,9 @@ return (
         />
       )}
 
-      {/* WIN-PENDING POPUP */}
-      {tournamentViewMode === "basic" && !blockFollowupPopups && showWinPendingPopup && funnyWindowsDisplayMode === 'standard' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg"
-             style={{ background: 'radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98))' }}>
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full ks-funny-orb"
-                 style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)' }} />
-            <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full ks-funny-orb"
-                 style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)', animationDelay: '1s' }} />
-          </div>
-          <div className="ks-funny relative z-10 text-center max-w-sm">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, transparent, #d4b86a)' }} />
-              <Crown size={16} className="ks-gold" />
-              <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, #d4b86a, transparent)' }} />
-            </div>
-            <div className="text-7xl mb-3 ks-funny-emoji" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.6))' }}>
-              😤
-            </div>
-            <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">­🏁 DOSIAHOL {target.toLocaleString('sk-SK')} — POTVRD VÝHRU</div>
-            <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2"
-                 style={{ textShadow: '0 4px 24px rgba(212,184,106,0.4), 0 0 40px rgba(212,184,106,0.4)' }}>
-              {players[currentPlayer]}
-            </div>
-            <div className="ks-body ks-cream text-base mb-5 leading-snug">
-              Hráč <em className="ks-gold">{players[currentPlayer]}</em> dosiahol cieľ!<br/>Skupina potvrdzuje výhru — bola hra čistá?
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => {
-                  const shouldShowDeferredKing = deferTemporaryKingUntilWinPopupCloses && temporaryKingToken !== null;
-                  setShowWinPendingPopup(false);
-                  if (shouldShowDeferredKing) setShowTemporaryKingPopup(true);
-                  if (pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
-                    advance(pendingWinScore, { confirmWin: true, confirmedRound: pendingWinMeta?.round ?? currentRound, confirmedPlayer: currentPlayer });
-                    setPendingWinScore(null);
-                    setPendingWinMeta(null);
-                  } else {
-                    advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
-                  }
-                }}
-                className="ks-press py-4 px-3 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
-                <Crown size={20} className="ks-gold mx-auto mb-1" />
-                <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
-                <div className="ks-muted text-[10px] ks-mono mt-0.5">VÝHRA POTVRDENÁ</div>
-              </button>
-              <button
-                onClick={() => {
-                  setPendingWinScore(null);
-                  setPendingWinMeta(null);
-                  setShowWinPendingPopup(false);
-                  setDeferTemporaryKingUntilWinPopupCloses(false);
-                  setTemporaryKingToken(null);
-                  advance('dash');
-                }}
-                className="ks-press py-4 px-3 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
-                <X size={20} className="ks-text-accent mx-auto mb-1" />
-                <div className="ks-display ks-text-accent text-base font-bold">Nepotvrdil</div>
-                <div className="ks-text-accent/60 text-[10px] ks-mono mt-0.5">VÝHRA NEPOTVRDENÁ</div>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* WIN-PENDING POPUP — zjednodušený / potlačený: karta bez click-outside */}
-      {tournamentViewMode === "basic" && !blockFollowupPopups && showWinPendingPopup && (funnyWindowsDisplayMode === 'simplified' || funnyWindowsDisplayMode === 'suppressed') && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
-             style={{ background: 'rgba(10,8,6,0.92)' }}>
-          {/* intentionally NO onClick on backdrop — user must click a button */}
-          <div className="ks-card max-w-sm w-full rounded-sm border-2 p-5 text-center shadow-2xl"
-               style={{ borderColor: '#d4b86a' }}>
-            <div className="flex justify-center mb-3">
-              <Crown size={48} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.5))' }} />
-            </div>
-            <div className="ks-mono ks-gold text-xs tracking-widest mb-2">POTVRD VÝHRU</div>
-            <div className="ks-display text-2xl font-bold ks-cream leading-tight px-2 mb-1">
-              {players[currentPlayer]}
-            </div>
-            <div className="ks-body ks-cream text-sm opacity-90 leading-snug mb-5">
-              Hráč <em className="ks-gold">{players[currentPlayer]}</em> dosiahol <strong>{target.toLocaleString('sk-SK')}</strong>.<br/>
-              Potvrďte, že v overovom hode nič nepadlo.
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => {
-                  const shouldShowDeferredKing = deferTemporaryKingUntilWinPopupCloses && temporaryKingToken !== null;
-                  setShowWinPendingPopup(false);
-                  if (shouldShowDeferredKing) setShowTemporaryKingPopup(true);
-                  if (pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
-                    advance(pendingWinScore, { confirmWin: true, confirmedRound: pendingWinMeta?.round ?? currentRound, confirmedPlayer: currentPlayer });
-                    setPendingWinScore(null);
-                    setPendingWinMeta(null);
-                  } else {
-                    advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
-                  }
-                }}
-                className="ks-press py-3 px-2 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
-                <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
-              </button>
-              <button
-                onClick={() => {
-                  setPendingWinScore(null);
-                  setPendingWinMeta(null);
-                  setShowWinPendingPopup(false);
-                  setDeferTemporaryKingUntilWinPopupCloses(false);
-          setTemporaryKingToken(null);
-          advance('dash');
-        }}
-        className="ks-press py-3 px-2 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
-        <div className="ks-display ks-text-accent text-base font-bold">✗ Nepotvrdil</div>
-      </button>
-    </div>
-  </div>
-</div>
-      )}
     </div>
   );
 }
+
 // ─── Modal + tabuľka poradia ──────────────────────────────────────────────
 
