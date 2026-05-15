@@ -13,7 +13,7 @@ import ScoreTable from '../components/ScoreTable.jsx';
 import { ProgressChart } from '../components/ProgressChart.jsx';
 import { RulesContent } from '../components/RulesContent.jsx';
 import { Modal } from '../components/Modal.jsx';
-import { isStrictMode, computeTotals } from '../lib/gameEngine.js';
+import { isStrictMode, computeTotals, computeWinners } from '../lib/gameEngine.js';
 
 export function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
   return (
@@ -135,6 +135,13 @@ export function TournamentScreen({
   const endgameNoticedRef = useRef(new Set());
   const winPopupShownRef = useRef(new Set());
 
+   const onUpdate = (updater) => {
+    setData(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      return next;
+    });
+  };
+
   const totals = useMemo(
     () => computeTotals(rounds, players.length),
     [rounds, players.length]
@@ -254,7 +261,66 @@ export function TournamentScreen({
 
   // sem vlož tvoju existujúcu implementáciu advance – logika sa nemení
   function advance(value, opts = {}) {
-    // … originálny obsah z gameEngineu (posun hráča, increment kola, zápis bodov)
+  function advance(value, opts = {}) {
+    const val = value === 'dash' ? 'dash' : (typeof value === 'number' ? value : 0);
+    
+    onUpdate(t => {
+      const newRounds = [...t.rounds];
+      while (newRounds.length <= t.currentRound) {
+        newRounds.push(Array(t.players.length).fill(null));
+      }
+      newRounds[t.currentRound][t.currentPlayer] = val;
+      
+      let nextPlayer = t.currentPlayer + 1;
+      let nextRound = t.currentRound;
+      
+      if (nextPlayer >= t.players.length) {
+        nextPlayer = 0;
+        nextRound++;
+      }
+      
+      const updatedT = {
+        ...t,
+        rounds: newRounds,
+        currentPlayer: nextPlayer,
+        currentRound: nextRound,
+      };
+      
+      const winners = computeWinners(updatedT.rounds, updatedT.players.length, updatedT.targetScore);
+      if (winners && winners.length > 0) {
+        updatedT.winner = winners.length === 1 ? winners[0] : winners;
+      }
+      
+      return updatedT;
+    });
+    
+    setPending([]);
+    setCustomInput('');
+  }
+      const player = players[currentPlayerIndex];
+      
+      // Zapíš body do rounds
+      if (!rounds[currentRoundIndex]) {
+        rounds[currentRoundIndex] = { scores: {} };
+      }
+      rounds[currentRoundIndex].scores[player.id] = value;
+      
+      // Posun na ďalšieho hráča
+      draft.currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+      
+      // Ak sme prešli všetkých hráčov, ukončíme kolo
+      if (draft.currentPlayerIndex === 0) {
+        draft.currentRoundIndex += 1;
+        // Vyhodnoť víťazov pomocou computeWinners
+        const winners = computeWinners(draft);
+        if (winners.length > 0) {
+          draft.winners = winners;
+        }
+      }
+    });
+    
+    setPending(null);
+    setCustomInput('');
   }
 
   // komplet tvoja commitPoints z paste.txt – tu sme len upratali koncovku / winPending
