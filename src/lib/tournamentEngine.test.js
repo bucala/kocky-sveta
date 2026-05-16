@@ -280,3 +280,100 @@ describe('evaluateTournamentState', () => {
     expect(evaluateTournamentState(t).finalizationEligibility.eligible).toBe(false);
   });
 });
+
+// ── pendingDecision scenarios (fáza-8) ────────────────────────────────────
+describe('computeWinners — pendingDecision blokuje výsledok', () => {
+  it('open pendingDecision → no winner, valid=false', () => {
+    // Alice has 9800, is about to score 200 — group decision pending
+    const t = {
+      ...BASE, rules: STRICT_RULES,
+      rounds: [[9800, 5000, 3000]],
+      pendingDecision: {
+        id: '0-1-200',
+        type: 'exact-hit-verification',
+        player: 0,
+        round: 1,
+        score: 200,
+        baseTotal: 9800,
+        target: 10000,
+        status: 'pending',
+      },
+    };
+    const r = computeWinners(t);
+    expect(r.winners).toEqual([]);
+    expect(r.valid).toBe(false);
+    expect(r.isSuddenWin).toBe(false);
+  });
+
+  it('closed pendingDecision (status≠pending) → normal evaluation continues', () => {
+    // After Potvrdil: score was written, pendingDecision cleared → Alice at 10000 wins
+    const t = {
+      ...BASE, rules: STRICT_RULES,
+      rounds: [[9800, 5000, 3000], [200, 0, 0]],
+      pendingDecision: null,
+    };
+    const r = computeWinners(t);
+    expect(r.winners).toEqual([0]);
+    expect(r.valid).toBe(true);
+  });
+
+  it('Potvrdil path: exact 200 written → Alice wins at 10000', () => {
+    const t = {
+      ...BASE, rules: STRICT_RULES,
+      rounds: [[9800, 5000, 3000], [200, 0, 0]],
+    };
+    const r = computeWinners(t);
+    expect(r.winners).toEqual([0]);
+    expect(r.playerTotals[0]).toBe(10000);
+  });
+
+  it('Nepotvrdil path: dash written → Alice stays at 9800, no winner', () => {
+    const t = {
+      ...BASE, rules: STRICT_RULES,
+      rounds: [[9800, 5000, 3000], ['dash', 0, 0]],
+    };
+    const r = computeWinners(t);
+    expect(r.winners).toEqual([]);
+    expect(r.playerTotals[0]).toBe(9800);
+  });
+
+  it('sudden win bypasses pendingDecision check', () => {
+    const t = {
+      ...BASE, rules: STRICT_RULES,
+      rounds: [[10000, 5000, 3000]],
+      _suddenWin: { playerIdx: 0, round: 0 },
+      pendingDecision: { id: 'x', status: 'pending' },
+    };
+    const r = computeWinners(t);
+    expect(r.isSuddenWin).toBe(true);
+    expect(r.winners).toEqual([0]);
+  });
+
+  it('evaluateTournamentState: open pendingDecision → status ACTIVE, not eligible', () => {
+    const t = {
+      ...BASE, status: 'active', rules: STRICT_RULES,
+      rounds: [[9800, 5000, 3000]],
+      pendingDecision: {
+        id: '0-1-200',
+        type: 'exact-hit-verification',
+        player: 0, round: 1, score: 200,
+        baseTotal: 9800, target: 10000,
+        status: 'pending',
+      },
+    };
+    const r = evaluateTournamentState(t);
+    expect(r.status).toBe('ACTIVE');
+    expect(r.finalizationEligibility.eligible).toBe(false);
+    expect(r.winners).toEqual([]);
+  });
+
+  it('regression: normal game unaffected — no pendingDecision field', () => {
+    const t = {
+      ...BASE, rules: STRICT_RULES,
+      rounds: [[3000, 2000, 1000], [3000, 2000, 1000], [4000, 2000, 1000]],
+    };
+    const r = computeWinners(t);
+    expect(r.winners).toEqual([0]);
+    expect(r.valid).toBe(true);
+  });
+});
