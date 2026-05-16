@@ -1,6 +1,6 @@
 // src/screens/AdminScreen.jsx
 import React, { useState, useCallback } from 'react';
-import { ChevronLeft, Shield, Bug, Wifi, Copy, Check, Zap, Terminal, Wrench, BarChart2, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Shield, Bug, Wifi, Copy, Check, Zap, Terminal, Wrench, BarChart2, RefreshCw, Plus } from 'lucide-react';
 import { Header } from '../atoms/Header.jsx';
 
 // ─── Sekcia ──────────────────────────────────────────────────────────────────
@@ -21,9 +21,15 @@ function ToggleRow({ icon: Icon, title, subtitle, value, onChange }) {
       </div>
       <button
         onClick={() => onChange(!value)}
-        className={`relative inline-flex w-11 h-6 rounded-full transition-colors flex-shrink-0 ks-press ${value ? 'ks-gold-bg' : 'bg-zinc-700'}`}
+        style={{ width: 44, height: 24, borderRadius: 12, flexShrink: 0, position: 'relative', transition: 'background 0.2s', background: value ? 'var(--ks-accent, #d4b86a)' : '#52525b' }}
+        aria-checked={value}
+        role="switch"
       >
-        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-5' : 'translate-x-0'}`} />
+        <span style={{
+          position: 'absolute', top: 2, left: value ? 22 : 2,
+          width: 20, height: 20, borderRadius: '50%', background: '#fff',
+          transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.4)'
+        }} />
       </button>
     </div>
   );
@@ -134,7 +140,7 @@ function DiagnosticsPanel({ adminSettings, tournaments, active, appVersion }) {
 }
 
 // ─── AdminScreen ──────────────────────────────────────────────────────────────
-export function AdminScreen({ onBack, adminSettings, onAdminChange, tournaments, active, appVersion, onSimulateTurn, onExportState }) {
+export function AdminScreen({ onBack, adminSettings, onAdminChange, tournaments, active, appVersion, onSimulateTurn, onExportState, onOpenOnline }) {
   const [copied, setCopied] = useState(false);
 
   const update = useCallback((key, val) => {
@@ -142,9 +148,7 @@ export function AdminScreen({ onBack, adminSettings, onAdminChange, tournaments,
   }, [adminSettings, onAdminChange]);
 
   const handleExport = () => {
-    if (onExportState) {
-      onExportState();
-    }
+    if (onExportState) onExportState();
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };
@@ -171,6 +175,13 @@ export function AdminScreen({ onBack, adminSettings, onAdminChange, tournaments,
           onChange={(v) => update('roomName', v)}
           placeholder="napr. Telefón Marcel, Tablet..."
           maxLength={24}
+        />
+        <ActionRow
+          icon={Plus}
+          title="Vytvoriť online miestnosť"
+          subtitle={adminSettings.roomName ? `Otvorí miestnosť ako „${adminSettings.roomName}"` : 'Najprv nastav vlastný názov miestnosti'}
+          label="Otvoriť"
+          onClick={onOpenOnline}
         />
 
         {/* DEBUG */}

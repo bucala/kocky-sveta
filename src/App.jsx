@@ -1033,6 +1033,7 @@ function startTournament(players, targetScore) {
           appVersion="1.5.4"
           onSimulateTurn={handleSimulateTurn}
           onExportState={handleExportState}
+          onOpenOnline={() => setView('online')}
         />
       )}
       {view === 'viewModes' && (
