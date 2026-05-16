@@ -83,8 +83,10 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
       setRoomId(rid);
       setUid(uid);
       setStatus('connected');
-    } catch {
-      setCreateErr('Chyba pri vytváraní miestnosti');
+    } catch (e) {
+      const msg = e?.message || String(e);
+      setCreateErr(`Chyba: ${msg}`);
+      console.error('[OnlineScreen] createRoom failed:', e);
     } finally {
       setBusy(false);
     }
