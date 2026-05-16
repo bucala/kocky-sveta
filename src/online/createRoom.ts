@@ -15,8 +15,11 @@ export async function createRoom(params: {
   pin: string;
   selectedSkin: string;
   rules: string[];
+  customRoomId?: string;
 }): Promise<string> {
-  const roomId = generateRoomId();
+  const roomId = params.customRoomId
+    ? params.customRoomId.toUpperCase().trim()
+    : generateRoomId();
   const ownerPinHash = await hashPin(params.pin);
 
   const uid = getAuth().currentUser?.uid;
