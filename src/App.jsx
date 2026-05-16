@@ -19,6 +19,7 @@ import { NewTournament } from './screens/NewTournament.jsx';
 import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
 import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
 import { OnlineScreen } from './screens/OnlineScreen.jsx';
+import { computeWinners, computePlayerTotals as computeTotals } from './lib/tournamentEngine.js';
 import './app.css';
 
 // ─── Konštanty ────────────────────────────────────────────────────────────
@@ -433,7 +434,6 @@ function StatusBanner({ kind, icon: Icon, children }) {
 // ─── App ──────────────────────────────────────────────────────────────────
 
 export default function App() {
-  console.log('[APP] App component mounted');
   const [view, setView] = useState('menu');
   const [tournaments, setTournaments] = useState([]);
   const [active, setActive] = useState(null);
@@ -449,7 +449,6 @@ export default function App() {
   const [funnyWindowsDisplayMode, setFunnyWindowsDisplayMode] = useState('standard');
 
   useEffect(() => {
-      console.log('[APP] view changed', view);
     (async () => {
       try { const r = await window.storage.get('rules');       if (r?.value) setrules(JSON.parse(r.value)); }        catch {}
       try { const dm = await window.storage.get('scoreDisplayMode'); if (dm?.value) setScoreDisplayMode(JSON.parse(dm.value)); } catch {}
@@ -503,16 +502,20 @@ export default function App() {
     setActive(prev => typeof updater === 'function' ? updater(prev) : updater);
   }, []);
 
+  // Refs hold the latest function so stable callbacks never go stale
+  const finishTournamentRef = useRef(null);
+  const abortTournamentRef = useRef(null);
+  finishTournamentRef.current = finishTournament;
+  abortTournamentRef.current = abortTournament;
+
   const handleFinishTournament = useCallback((winner) => {
-    finishTournament(winner);
+    finishTournamentRef.current(winner);
   }, []);
 
   const handleAbortTournament = useCallback(() => {
-    abortTournament();
+    abortTournamentRef.current();
   }, []);
 function startTournament(players, targetScore) {
-    console.log('[APP] startTournament called', { players, targetScore });
-
     setActive({
       id: Date.now(),
       date: new Date().toISOString(),
@@ -520,9 +523,10 @@ function startTournament(players, targetScore) {
       currentPlayer: 0, currentRound: 0,
       status: 'active',
       winner: null,
-      winPending: null,
-      winCandidates: [],
-      winRoundComplete: false,
+      confirmationPendingPlayer: null,
+      confirmationQueue: [],
+      confirmationRoundComplete: false,
+      pendingDecision: null,
       targetScore, minWriteOff,
     });
     setView('tournament');
@@ -884,7 +888,7 @@ function startTournament(players, targetScore) {
           currentRound: rounds.length,
           status: winner !== null ? 'finished' : 'aborted',
           winner,
-          winPending: null,
+          confirmationPendingPlayer: null,
           targetScore,
           minWriteOff: 300,
           imported: true,
@@ -1258,134 +1262,6 @@ function isStrictMode(rules) {
   return !r18 || r18.selected !== 'Áno';
 }
 
-function computeTotals(rounds, playersCount) {
-  return new Array(playersCount).fill(0).map((_, pIdx) => {
-    let sum = 0;
-    for (const round of (Array.isArray(rounds) ? rounds : [])) {
-      const v = round?.[pIdx];
-      if (typeof v === 'number' && Number.isFinite(v)) sum += v;
-    }
-    return sum;
-  });
-}
-
-function computeWinners(tournament) {
-  const players = tournament?.players || [];
-  const rounds = tournament?.rounds || [];
-  const target = tournament?.targetScore || 10000;
-  const totals = computeTotals(rounds, players.length);
-
-  const achievers = totals
-    .map((t, idx) => ({ idx, total: t }))
-    .filter(x => x.total >= target)
-    .map(x => x.idx);
-
-  const r18 = (tournament.rules || []).find(r => r.id === 'r18');
-  const requiresConfirmation = !r18 || r18.selected !== 'Nie'; 
-  const confirmed = Array.isArray(tournament._confirmedDetailed) ? tournament._confirmedDetailed : [];
-
-  const isFinishedWithoutConfirm =
-    tournament.status === 'finished' &&
-    requiresConfirmation &&
-    confirmed.length === 0 &&
-    achievers.length > 0;
-  const useStrictDetection = !requiresConfirmation || isFinishedWithoutConfirm;
-
-  if (achievers.length === 0) {
-    return {
-      winners: [],
-      totals,
-      achievers: [],
-      pendingAchievers: [],
-      isDraw: false,
-      valid: true,
-      errors: [],
-      reason: 'Žiadny hráč ešte nedosiahol cieľ.',
-    };
-  }
-
-  let winners = [];
-  let reason = '';
-  let pendingAchievers = [];
-
-  if (useStrictDetection) {
-    const reachedAt = achievers.map(idx => {
-      let cum = 0;
-      for (let r = 0; r < rounds.length; r++) {
-        const v = rounds[r]?.[idx];
-        if (typeof v === 'number' && Number.isFinite(v)) cum += v;
-        if (cum >= target) return { idx, round: r };
-      }
-      return { idx, round: Infinity };
-    });
-    const minRound = Math.min(...reachedAt.map(x => x.round));
-    winners = reachedAt.filter(x => x.round === minRound).map(x => x.idx);
-    reason = winners.length === 1
-      ? `Hráč dosiahol cieľ ako prvý v kole ${minRound + 1}.`
-      : `${winners.length} hráči dosiahli cieľ v rovnakom kole (${minRound + 1}). Remíza.`;
-  } else {
-    const confirmedAchievers = confirmed.filter(c => achievers.includes(c.player));
-    pendingAchievers = achievers.filter(a => !confirmedAchievers.some(c => c.player === a));
-
-    if (confirmedAchievers.length === 0) {
-      return {
-        winners: [],
-        totals,
-        achievers,
-        pendingAchievers,
-        isDraw: false,
-        valid: false,
-        errors: [`Turnaj sa nedá uzatvoriť — ${achievers.length} hráč(ov) dosiahlo cieľ, no žiadny ešte nepotvrdil výhru.`],
-        reason: `${achievers.length} hráč(ov) dosiahlo cieľ, ale ešte nepotvrdil(i) výhru.`,
-      };
-    }
-
-    const minRound = Math.min(...confirmedAchievers.map(c => c.round));
-    const earliest = confirmedAchievers.filter(c => c.round === minRound);
-    winners = earliest.map(c => c.player);
-
-    if (pendingAchievers.length > 0) {
-      return {
-        winners: [],  
-        totals,
-        achievers,
-        pendingAchievers,
-        isDraw: false,
-        valid: false,
-        errors: [`Turnaj sa nedá uzatvoriť — ${pendingAchievers.length} hráč(ov) ešte nepotvrdil(i) výhru.`],
-        reason: `${pendingAchievers.length} hráč(ov) má dosiahnutý cieľ ale ešte nepotvrdil(i) výhru.`,
-      };
-    }
-
-    reason = winners.length === 1
-      ? `Víťazstvo potvrdené najskôr v kole ${minRound + 1}.`
-      : `${winners.length} hráči potvrdili víťazstvo v rovnakom kole (${minRound + 1}). Remíza.`;
-  }
-
-  const errors = [];
-  for (const w of winners) {
-    if (typeof w !== 'number' || w < 0 || w >= players.length) {
-      errors.push(`Neplatný index víťaza: ${w}.`);
-      continue;
-    }
-    if (totals[w] < target) {
-      errors.push(`Víťaz "${players[w]}" má skóre ${totals[w]}, čo je menej ako cieľ ${target}.`);
-    }
-  }
-  const valid = errors.length === 0;
-
-  return {
-    winners: valid ? winners : [],
-    totals,
-    achievers,
-    pendingAchievers,
-    isDraw: valid && winners.length > 1,
-    valid,
-    errors,
-    reason,
-  };
-}
-
 function useFunnyQueue() {
   const [active, setActive] = useState(null);
   const queueRef = useRef([]);             
@@ -1456,8 +1332,6 @@ function TournamentScreen({
   scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange,
   tournamentViewMode, funnyWindowsDisplayMode
 }) {
-  console.log('[TS] TournamentScreen mounted');
-
   // Early null guard — before destructuring to prevent crash
   if (!tournament) return <SafeTournamentFallback />;
   const target = tournament.targetScore || 10000;
@@ -1473,16 +1347,12 @@ function TournamentScreen({
   const [toast, setToast] = useState(null);
   const funnyQueue = useFunnyQueue();
   const funny = funnyQueue.active;
-  const [showWinPendingPopup, setShowWinPendingPopup] = useState(false);
-  const [pendingWinScore, setPendingWinScore] = useState(null);
-  const [pendingWinMeta, setPendingWinMeta] = useState(null);
   const [showTemporaryKingPopup, setShowTemporaryKingPopup] = useState(false);
   const [temporaryKingToken, setTemporaryKingToken] = useState(null);
   const [deferTemporaryKingUntilWinPopupCloses, setDeferTemporaryKingUntilWinPopupCloses] = useState(false);
   const [winnerCelebration, setWinnerCelebration] = useState(null);
   const funnyCountRef = useRef(players.map(() => 0));
   const endgameNoticedRef = useRef(new Set());
-  const winPopupShownRef = useRef(new Set());
 
   const totals = useMemo(
     () => computeTotals(rounds, players.length),
@@ -1496,26 +1366,17 @@ function TournamentScreen({
   const isFirstWrite = !hasFirstWrite[currentPlayer];
   const isEndgame = total >= target - minWO && total < target;
   const strictMode = isStrictMode(rules);
-  const winPendingPlayer = strictMode ? null : tournament.winPending;
-  const isWinPendingTurn = winPendingPlayer === currentPlayer && winPendingPlayer !== null;
+  const confirmationPlayer = strictMode ? null : tournament.confirmationPendingPlayer;
+  const isConfirmationTurn = confirmationPlayer === currentPlayer && confirmationPlayer !== null;
   const exactNeeded = target - total;
   const isLastPlayerInRound = currentPlayer === players.length - 1;
+  // showDecisionPopup je odvodený z domain stavu – nie useState.
+  // Zobrazí sa keď: (a) prebieha exact-hit-verification alebo (b) je confirmation kolo.
+  const showDecisionPopup = (!!tournament.pendingDecision || isConfirmationTurn)
+    && tournamentViewMode === 'basic';
 
   const pendingSum = pending.reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
   const newTotal = total + pendingSum;
-
-console.log('[TS] render snapshot', {
-  currentPlayer,
-  currentRound,
-  isEndgame,
-  isWinPendingTurn,
-  winPendingPlayer,
-  total,
-  exactNeeded,
-  pendingSum,
-  newTotal,
-  showWinPendingPopup,
-});
 
   function showToast(msg, kind = 'info') {
     setToast({ msg, kind });
@@ -1556,7 +1417,7 @@ console.log('[TS] render snapshot', {
 
   function addPoints(v) {
     if (!Number.isFinite(v) || v === 0) return;
-    if (isWinPendingTurn) {
+    if (isConfirmationTurn) {
       showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
       return;
     }
@@ -1573,7 +1434,7 @@ console.log('[TS] render snapshot', {
   }
 
   function addPenalty() {
-    if (isWinPendingTurn) {
+    if (isConfirmationTurn) {
       showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
       return;
     }
@@ -1588,13 +1449,8 @@ console.log('[TS] render snapshot', {
     if (pending.length === 0) return;
 
     if (pending[0] === 'dash') {
-      if (isWinPendingTurn) {
-        if (pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
-          advance(pendingWinScore, { confirmWin: true, confirmedRound: pendingWinMeta?.round ?? currentRound, confirmedPlayer: currentPlayer });
-          setPendingWinScore(null);
-          setPendingWinMeta(null);
-          return;
-        }
+      if (isConfirmationTurn) {
+        // confirmation kolo: potvrdenie ničnehodením → zapisujeme čiarku s confirmWin
         advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
         return;
       }
@@ -1602,13 +1458,8 @@ console.log('[TS] render snapshot', {
       return;
     }
 
-    if (isWinPendingTurn) {
-      if (pendingSum === 0 && pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
-        advance(pendingWinScore, { confirmWin: true, confirmedRound: pendingWinMeta?.round ?? currentRound, confirmedPlayer: currentPlayer });
-        setPendingWinScore(null);
-        setPendingWinMeta(null);
-        return;
-      }
+    if (isConfirmationTurn) {
+      // V confirmation kole smie hráč len čiarkovať (ničnehodenie)
       showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
       return;
     }
@@ -1627,12 +1478,8 @@ console.log('[TS] render snapshot', {
         if (strictMode) {
           maybeFunny();
         if (!isLastPlayerInRound) {
-            console.log('[APP] HIT_TARGET toast branch', {
-  currentPlayer,
-  target,
-});
           showToast(`${players[currentPlayer]} dosiahol cieľ ${target.toLocaleString('sk-SK')}! Kolo sa dohrá a hra skončí.`, 'info');
-          }
+        }
           advance(pendingSum, {
             addCandidate: currentPlayer,
             autoConfirm: true,
@@ -1641,9 +1488,22 @@ console.log('[TS] render snapshot', {
           });
           return;
         }
-        setPendingWinScore(pendingSum);
-        setPendingWinMeta({ player: currentPlayer, round: currentRound });
-        setShowWinPendingPopup(true);
+        // Klasický mód: zakladáme pendingDecision namiesto priameho popup stavu.
+        // advance() sa volá až po resolvePendingDecision() – teraz NIČ nezapisujeme.
+        const baseTotal = totals[currentPlayer];
+        onUpdate(prev => ({
+          ...prev,
+          pendingDecision: {
+            id: `${prev.currentPlayer}-${prev.currentRound}-${pendingSum}`,
+            type: 'exact-hit-verification',
+            player: prev.currentPlayer,
+            round: prev.currentRound,
+            score: pendingSum,
+            baseTotal,
+            target: prev.targetScore,
+            status: 'pending',
+          },
+        }));
         if (!isLastPlayerInRound) {
           setTemporaryKingToken(`${currentPlayer}-${currentRound}-${pendingSum}-endgame`);
           setDeferTemporaryKingUntilWinPopupCloses(true);
@@ -1700,18 +1560,24 @@ console.log('[TS] render snapshot', {
     advance(pendingSum);
   }
 
-  function commitDash() {
-    if (isWinPendingTurn) {
-      if (pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
-        advance(pendingWinScore, { confirmWin: true, confirmedRound: pendingWinMeta?.round ?? currentRound, confirmedPlayer: currentPlayer });
-        setPendingWinScore(null);
-        setPendingWinMeta(null);
-        return;
-      }
-      advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
-      return;
+  // ─── resolvePendingDecision ───────────────────────────────────────────────
+  // Jediný autoritatívny vstup pre rozhodnutie skupiny o presnom zásahu.
+  // outcome: 'confirm' → zapíše presné skóre a potvrdí výhru
+  //          'reject'  → zapíše čiarku, hráč zostáva na pôvodnom skóre
+  function resolvePendingDecision(decisionId, outcome) {
+    const decision = tournament.pendingDecision;
+    if (!decision || decision.id !== decisionId) return;
+
+    if (outcome === 'confirm') {
+      advance(decision.score, {
+        confirmWin: true,
+        confirmedRound: decision.round,
+        confirmedPlayer: decision.player,
+      });
+    } else {
+      // reject: zapisujeme čiarku (advance vymaže pendingDecision cez pendingDecision: null)
+      advance('dash');
     }
-    advance('dash');
   }
 
   function advance(value, opts = {}) {
@@ -1723,20 +1589,13 @@ console.log('[TS] render snapshot', {
       newRounds[prev.currentRound][prev.currentPlayer] = value;
 
       let winner = prev.winner;
-      let winPending = prev.winPending;
-      let winCandidates = [...(prev.winCandidates || [])];
-      let winRoundComplete = prev.winRoundComplete;
-
-      if (opts.confirmCandidate !== undefined) {
-        if (!winCandidates.includes(opts.confirmCandidate)) {
-          winCandidates.push(opts.confirmCandidate);
-        }
-        winPending = opts.confirmCandidate;
-      }
+      let confirmationPendingPlayer = prev.confirmationPendingPlayer;
+      let confirmationQueue = [...(prev.confirmationQueue || [])];
+      let confirmationRoundComplete = prev.confirmationRoundComplete;
 
       if (opts.addCandidate !== undefined) {
-        if (!winCandidates.includes(opts.addCandidate)) {
-          winCandidates.push(opts.addCandidate);
+        if (!confirmationQueue.includes(opts.addCandidate)) {
+          confirmationQueue.push(opts.addCandidate);
         }
       }
 
@@ -1764,15 +1623,16 @@ console.log('[TS] render snapshot', {
         const nextPlayer = (prev.currentPlayer + 1) % prev.players.length;
         const roundEnded = nextPlayer === 0;
         const nextRound = prev.currentRound + (roundEnded ? 1 : 0);
-        winPending = null;
+        confirmationPendingPlayer = null;
 
         if (roundEnded) {
           const provisional = {
             ...prev,
             rounds: newRounds,
             _confirmedDetailed: confirmedSoFar,
-            winCandidates,
+            confirmationQueue,
             rules: prev.rules,
+            pendingDecision: null,
           };
           const result = computeWinners(provisional);
           winner = result.valid && result.winners.length > 0 ? (result.winners.length === 1 ? result.winners[0] : result.winners) : null;
@@ -1782,10 +1642,11 @@ console.log('[TS] render snapshot', {
             currentPlayer: nextPlayer,
             currentRound: nextRound,
             winner,
-            winPending,
-            winCandidates,
-            winRoundComplete: winner !== null,
+            confirmationPendingPlayer,
+            confirmationQueue,
+            confirmationRoundComplete: winner !== null,
             _confirmedDetailed: confirmedSoFar,
+            pendingDecision: null,
           };
         }
 
@@ -1795,38 +1656,11 @@ console.log('[TS] render snapshot', {
           currentPlayer: nextPlayer,
           currentRound: nextRound,
           winner,
-          winPending,
-          winCandidates,
-          winRoundComplete,
+          confirmationPendingPlayer,
+          confirmationQueue,
+          confirmationRoundComplete,
           _confirmedDetailed: confirmedSoFar,
-        };
-      }
-
-      if (opts.retryWin || opts.declineWin) {
-        const _np = (prev.currentPlayer + 1) % prev.players.length;
-        const _re = _np === 0;
-        winPending = prev.currentPlayer;
-        return {
-          ...prev,
-          rounds: newRounds,
-          currentPlayer: _re ? winPending : _np,
-          currentRound: prev.currentRound + (_re ? 1 : 0),
-          winner,
-          winPending,
-          winCandidates,
-          winRoundComplete,
-        };
-      }
-      if (opts.__declineWin_removed) {
-        winCandidates = winCandidates.filter(c => c !== prev.currentPlayer);
-        winPending = winCandidates.length > 0 ? winCandidates[0] : null;
-        return {
-          ...prev,
-          rounds: newRounds,
-          ...(winPending !== null ? { currentPlayer: winPending } : {}),
-          winner,
-          winPending,
-          winCandidates,
+          pendingDecision: null,
         };
       }
 
@@ -1839,8 +1673,9 @@ console.log('[TS] render snapshot', {
           ...prev,
           rounds: newRounds,
           _confirmedDetailed: autoConfirmedDetailed,
-          winCandidates,
+          confirmationQueue,
           rules: prev.rules,
+          pendingDecision: null,
         };
         const result = computeWinners(provisional);
 
@@ -1849,35 +1684,37 @@ console.log('[TS] render snapshot', {
             a => !((autoConfirmedDetailed || []).some(c => c.player === a && c.round === prev.currentRound))
           );
           if (unconfirmedAchievers.length > 0) {
-            winPending = unconfirmedAchievers[0];
-            winRoundComplete = true;
+            confirmationPendingPlayer = unconfirmedAchievers[0];
+            confirmationRoundComplete = true;
             return {
               ...prev,
               rounds: newRounds,
-              currentPlayer: winPending,
+              currentPlayer: confirmationPendingPlayer,
               currentRound: nextRound,
               winner: null,
-              winPending,
-              winCandidates,
-              winRoundComplete,
+              confirmationPendingPlayer,
+              confirmationQueue,
+              confirmationRoundComplete,
               _confirmedDetailed: autoConfirmedDetailed,
+              pendingDecision: null,
             };
           }
         }
 
         if (result.winners.length > 0) {
           winner = result.winners.length === 1 ? result.winners[0] : result.winners;
-          winRoundComplete = true;
+          confirmationRoundComplete = true;
           return {
             ...prev,
             rounds: newRounds,
             currentPlayer: nextPlayer,
             currentRound: prev.currentRound,
             winner,
-            winPending: null,
-            winCandidates,
-            winRoundComplete,
+            confirmationPendingPlayer: null,
+            confirmationQueue,
+            confirmationRoundComplete,
             _confirmedDetailed: autoConfirmedDetailed,
+            pendingDecision: null,
           };
         }
       }
@@ -1888,10 +1725,11 @@ console.log('[TS] render snapshot', {
         currentPlayer: nextPlayer,
         currentRound: nextRound,
         winner,
-        winPending: roundEnded ? null : winPending,
-        winCandidates,
-        winRoundComplete,
+        confirmationPendingPlayer: roundEnded ? null : confirmationPendingPlayer,
+        confirmationQueue,
+        confirmationRoundComplete,
         _confirmedDetailed: autoConfirmedDetailed,
+        pendingDecision: null,
       };
     });
     setPending([]);
@@ -1926,33 +1764,14 @@ console.log('[TS] render snapshot', {
       }, { duration: 4500 });
     }, 400);
     return () => clearTimeout(t);
-  }, [currentPlayer, currentRound, isEndgame, isWinPendingTurn, exactNeeded]);
+  }, [currentPlayer, currentRound, isEndgame, isConfirmationTurn, exactNeeded]);
 
 const isObserverMode = tournamentViewMode === 'observer';
 const isRecorderMode = tournamentViewMode === 'recorder';
 const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== null;
 
-useEffect(() => {
-  // v replayeri / observer móde vôbec neotváraj potvrdzovaciu modálku
-  if (isObserverMode || isRecorderMode) return;
-
-  if (!isWinPendingTurn) return;
-  if (showWinPendingPopup) return;
-  const key = `winpending_${currentPlayer}_${currentRound}`;
-  if (winPopupShownRef.current.has(key)) return;
-  winPopupShownRef.current.add(key);
-  const t = setTimeout(() => {
-    setShowWinPendingPopup(true);
-  }, 300);
-  return () => clearTimeout(t);
-}, [
-  isWinPendingTurn,
-  currentPlayer,
-  currentRound,
-  showWinPendingPopup,
-  isObserverMode,
-  isRecorderMode,
-]);
+// showDecisionPopup je teraz odvodený (derived) – useEffect na setShowWinPendingPopup
+// nie je potrebný. Popup sa zobrazí automaticky keď pendingDecision !== null alebo isConfirmationTurn.
 
   function addCustom() {
     const n = parseInt(customInput, 10);
@@ -2222,7 +2041,7 @@ useEffect(() => {
       )}
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-      {!blockFollowupPopups && funny && !showWinPendingPopup && funnyWindowsDisplayMode === 'standard' && (
+      {!blockFollowupPopups && funny && !showDecisionPopup && funnyWindowsDisplayMode === 'standard' && (
         <FunnyOverlay data={funny} onClose={funnyQueue.dismiss} />
       )}
 
@@ -2325,121 +2144,110 @@ useEffect(() => {
         />
       )}
 
-      {/* WIN-PENDING POPUP */}
-      {!blockFollowupPopups && showWinPendingPopup && funnyWindowsDisplayMode === 'standard' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg"
-             style={{ background: 'radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98))' }}>
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full ks-funny-orb"
-                 style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)' }} />
-            <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full ks-funny-orb"
-                 style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)', animationDelay: '1s' }} />
+      {/* WIN-PENDING POPUP — všetky vizuálne varianty cez DecisionPresenter */}
+      {!blockFollowupPopups && showDecisionPopup && (
+        <DecisionPresenter
+          playerName={players[currentPlayer]}
+          target={target}
+          displayMode={funnyWindowsDisplayMode}
+          onConfirm={() => {
+            const shouldShowDeferredKing = deferTemporaryKingUntilWinPopupCloses && temporaryKingToken !== null;
+            if (shouldShowDeferredKing) setShowTemporaryKingPopup(true);
+            if (tournament.pendingDecision) {
+              resolvePendingDecision(tournament.pendingDecision.id, 'confirm');
+            } else {
+              advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
+            }
+          }}
+          onReject={() => {
+            setDeferTemporaryKingUntilWinPopupCloses(false);
+            setTemporaryKingToken(null);
+            if (tournament.pendingDecision) {
+              resolvePendingDecision(tournament.pendingDecision.id, 'reject');
+            } else {
+              advance('dash');
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── DecisionPresenter ────────────────────────────────────────────────────
+// Zobrazuje rozhodovací popup v troch vizuálnych variantoch podľa displayMode.
+// Volá tie isté callbacky onConfirm/onReject – herná logika sa nemení.
+function DecisionPresenter({ playerName, target, displayMode, onConfirm, onReject }) {
+  if (displayMode === 'standard') {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg"
+           style={{ background: 'radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98))' }}>
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full ks-funny-orb"
+               style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)' }} />
+          <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full ks-funny-orb"
+               style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)', animationDelay: '1s' }} />
+        </div>
+        <div className="ks-funny relative z-10 text-center max-w-sm">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, transparent, #d4b86a)' }} />
+            <Crown size={16} className="ks-gold" />
+            <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, #d4b86a, transparent)' }} />
           </div>
-          <div className="ks-funny relative z-10 text-center max-w-sm">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, transparent, #d4b86a)' }} />
-              <Crown size={16} className="ks-gold" />
-              <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, #d4b86a, transparent)' }} />
-            </div>
-            <div className="text-7xl mb-3 ks-funny-emoji" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.6))' }}>
-              😤
-            </div>
-            <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">­🏁 DOSIAHOL {target.toLocaleString('sk-SK')} — POTVRD VÝHRU</div>
-            <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2"
-                 style={{ textShadow: '0 4px 24px rgba(212,184,106,0.4), 0 0 40px rgba(212,184,106,0.4)' }}>
-              {players[currentPlayer]}
-            </div>
-            <div className="ks-body ks-cream text-base mb-5 leading-snug">
-              Hráč <em className="ks-gold">{players[currentPlayer]}</em> dosiahol cieľ!<br/>Skupina potvrdzuje výhru — bola hra čistá?
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => {
-                  const shouldShowDeferredKing = deferTemporaryKingUntilWinPopupCloses && temporaryKingToken !== null;
-                  setShowWinPendingPopup(false);
-                  if (shouldShowDeferredKing) setShowTemporaryKingPopup(true);
-                  if (pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
-                    advance(pendingWinScore, { confirmWin: true, confirmedRound: pendingWinMeta?.round ?? currentRound, confirmedPlayer: currentPlayer });
-                    setPendingWinScore(null);
-                    setPendingWinMeta(null);
-                  } else {
-                    advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
-                  }
-                }}
-                className="ks-press py-4 px-3 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
-                <Crown size={20} className="ks-gold mx-auto mb-1" />
-                <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
-                <div className="ks-muted text-[10px] ks-mono mt-0.5">VÝHRA POTVRDENÁ</div>
-              </button>
-              <button
-                onClick={() => {
-                  setPendingWinScore(null);
-                  setPendingWinMeta(null);
-                  setShowWinPendingPopup(false);
-                  setDeferTemporaryKingUntilWinPopupCloses(false);
-                  setTemporaryKingToken(null);
-                  advance('dash');
-                }}
-                className="ks-press py-4 px-3 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
-                <X size={20} className="ks-text-accent mx-auto mb-1" />
-                <div className="ks-display ks-text-accent text-base font-bold">Nepotvrdil</div>
-                <div className="ks-text-accent/60 text-[10px] ks-mono mt-0.5">VÝHRA NEPOTVRDENÁ</div>
-              </button>
-            </div>
+          <div className="text-7xl mb-3 ks-funny-emoji" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.6))' }}>😤</div>
+          <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">🏁 DOSIAHOL {target.toLocaleString('sk-SK')} — POTVRD VÝHRU</div>
+          <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2"
+               style={{ textShadow: '0 4px 24px rgba(212,184,106,0.4), 0 0 40px rgba(212,184,106,0.4)' }}>
+            {playerName}
+          </div>
+          <div className="ks-body ks-cream text-base mb-5 leading-snug">
+            Hráč <em className="ks-gold">{playerName}</em> dosiahol cieľ!<br/>Skupina potvrdzuje výhru — bola hra čistá?
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={onConfirm}
+              className="ks-press py-4 px-3 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
+              <Crown size={20} className="ks-gold mx-auto mb-1" />
+              <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
+              <div className="ks-muted text-[10px] ks-mono mt-0.5">VÝHRA POTVRDENÁ</div>
+            </button>
+            <button onClick={onReject}
+              className="ks-press py-4 px-3 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
+              <X size={20} className="ks-text-accent mx-auto mb-1" />
+              <div className="ks-display ks-text-accent text-base font-bold">Nepotvrdil</div>
+              <div className="ks-text-accent/60 text-[10px] ks-mono mt-0.5">VÝHRA NEPOTVRDENÁ</div>
+            </button>
           </div>
         </div>
-      )}
-      {/* WIN-PENDING POPUP — zjednodušený / potlačený: karta bez click-outside */}
-      {!blockFollowupPopups && showWinPendingPopup && (funnyWindowsDisplayMode === 'simplified' || funnyWindowsDisplayMode === 'suppressed') && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
-             style={{ background: 'rgba(10,8,6,0.92)' }}>
-          {/* intentionally NO onClick on backdrop — user must click a button */}
-          <div className="ks-card max-w-sm w-full rounded-sm border-2 p-5 text-center shadow-2xl"
-               style={{ borderColor: '#d4b86a' }}>
-            <div className="flex justify-center mb-3">
-              <Crown size={48} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.5))' }} />
-            </div>
-            <div className="ks-mono ks-gold text-xs tracking-widest mb-2">POTVRD VÝHRU</div>
-            <div className="ks-display text-2xl font-bold ks-cream leading-tight px-2 mb-1">
-              {players[currentPlayer]}
-            </div>
-            <div className="ks-body ks-cream text-sm opacity-90 leading-snug mb-5">
-              Hráč <em className="ks-gold">{players[currentPlayer]}</em> dosiahol <strong>{target.toLocaleString('sk-SK')}</strong>.<br/>
-              Potvrďte, že v overovom hode nič nepadlo.
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => {
-                  const shouldShowDeferredKing = deferTemporaryKingUntilWinPopupCloses && temporaryKingToken !== null;
-                  setShowWinPendingPopup(false);
-                  if (shouldShowDeferredKing) setShowTemporaryKingPopup(true);
-                  if (pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
-                    advance(pendingWinScore, { confirmWin: true, confirmedRound: pendingWinMeta?.round ?? currentRound, confirmedPlayer: currentPlayer });
-                    setPendingWinScore(null);
-                    setPendingWinMeta(null);
-                  } else {
-                    advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
-                  }
-                }}
-                className="ks-press py-3 px-2 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
-                <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
-              </button>
-              <button
-                onClick={() => {
-                  setPendingWinScore(null);
-                  setPendingWinMeta(null);
-                  setShowWinPendingPopup(false);
-                  setDeferTemporaryKingUntilWinPopupCloses(false);
-                  setTemporaryKingToken(null);
-                  advance('dash');
-                }}
-                className="ks-press py-3 px-2 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
-                <div className="ks-display ks-text-accent text-base font-bold">✗ Nepotvrdil</div>
-              </button>
-            </div>
-          </div>
+      </div>
+    );
+  }
+
+  // simplified & suppressed: kompaktná karta bez click-outside
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+         style={{ background: 'rgba(10,8,6,0.92)' }}>
+      <div className="ks-card max-w-sm w-full rounded-sm border-2 p-5 text-center shadow-2xl"
+           style={{ borderColor: '#d4b86a' }}>
+        <div className="flex justify-center mb-3">
+          <Crown size={48} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.5))' }} />
         </div>
-      )}
+        <div className="ks-mono ks-gold text-xs tracking-widest mb-2">POTVRD VÝHRU</div>
+        <div className="ks-display text-2xl font-bold ks-cream leading-tight px-2 mb-1">{playerName}</div>
+        <div className="ks-body ks-cream text-sm opacity-90 leading-snug mb-5">
+          Hráč <em className="ks-gold">{playerName}</em> dosiahol <strong>{target.toLocaleString('sk-SK')}</strong>.<br/>
+          Potvrďte, že v overovom hode nič nepadlo.
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={onConfirm}
+            className="ks-press py-3 px-2 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
+            <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
+          </button>
+          <button onClick={onReject}
+            className="ks-press py-3 px-2 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
+            <div className="ks-display ks-text-accent text-base font-bold">✗ Nepotvrdil</div>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -90,8 +90,9 @@ export function computeRanking(players, playerTotals) {
 //
 // Priority:
 //   1. Sudden Win → immediate single winner, no confirmation required.
-//   2. r18 = 'Nie' (strict mode) → first achiever(s) in earliest round win.
-//   3. r18 = 'Áno' (classic mode) → winners from _confirmedDetailed entries.
+//   2. pendingDecision present → game is still in progress, no winner yet.
+//   3. r18 = 'Nie' (strict mode) → first achiever(s) in earliest round win.
+//   4. r18 = 'Áno' (classic mode) → winners from _confirmedDetailed entries.
 export function computeWinners(tournament) {
   const players = tournament?.players || [];
   const rounds = tournament?.rounds || [];
@@ -116,7 +117,23 @@ export function computeWinners(tournament) {
     };
   }
 
-  // 2. Achievers: players at or above target
+  // 2. pendingDecision present → game awaiting group decision, no winner yet
+  if (tournament.pendingDecision && tournament.pendingDecision.status === 'pending') {
+    return {
+      winners: [],
+      totals: playerTotals,
+      playerTotals,
+      achievers: [],
+      pendingAchievers: [],
+      isDraw: false,
+      valid: false,
+      errors: ['Hra čaká na rozhodnutie skupiny (pendingDecision).'],
+      reason: 'Otvorené pendingDecision — hra ešte nemá finálny výsledok.',
+      isSuddenWin: false,
+    };
+  }
+
+  // 3. Achievers: players at or above target
   const achievers = playerTotals
     .map((t, idx) => ({ idx, total: t }))
     .filter(x => x.total >= target)
