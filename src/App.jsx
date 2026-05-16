@@ -6,7 +6,7 @@ import {
   AlertCircle, AlertTriangle, Check, Play, RotateCcw, ScrollText, Crown,
   Calendar, ChevronRight, ListPlus, Pencil, Zap, Skull, Target,
   Download, Upload, Edit3, Clock, FileSpreadsheet, ChevronDown, TrendingUp,
-  Sigma, Layers, Monitor, Bell, Wifi, Info
+  Sigma, Layers, Monitor, Bell, Wifi, Info, Shield
 } from 'lucide-react';
 // XLSX sa načíta lazy pri prvom použití
 import { Capacitor } from '@capacitor/core';
@@ -494,6 +494,12 @@ export default function App() {
     const r = rules.find(x => x.id === 'r14');
     return r ? Number(r.points) || 300 : 300;
   }, [rules]);
+
+  const effectiveMinWriteOff = adminSettings.minWriteOffOverride ?? minWriteOff;
+
+  useEffect(() => {
+    window.__ksVerboseFirebase = !!adminSettings.verboseFirebase;
+  }, [adminSettings.verboseFirebase]);
 
   
   // === Stable callbacks (prevent infinite loops) ===
@@ -1063,6 +1069,8 @@ function startTournament(players, targetScore) {
             onSkinChange={setSelectedSkin}
             tournamentViewMode={tournamentViewMode}
             funnyWindowsDisplayMode={funnyWindowsDisplayMode}
+            debugMode={adminSettings.debugMode}
+            minWriteOffOverride={adminSettings.minWriteOffOverride}
           />
         ) : (
           <SafeTournamentFallback title="Turnaj sa nepodarilo načítať" />
@@ -1089,7 +1097,7 @@ function startTournament(players, targetScore) {
         <SafeTournamentFallback title="Dáta turnaja sa nepodarilo načítať" />
       ))}
       {view === 'rules' && <RulesView rules={rules} onBack={() => setView('menu')} />}
-      {view === 'online' && <OnlineScreen onBack={() => setView('menu')} activeSkin={selectedSkin} activeRules={rules} />
+      {view === 'online' && <OnlineScreen onBack={() => setView('menu')} activeSkin={selectedSkin} activeRules={rules} defaultRoomName={adminSettings.roomName} />
       }
       {view === 'rulesEditor' && (
         <RulesEditor rules={rules} onSave={setrules} onBack={() => setView('settings')}
@@ -1117,19 +1125,6 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
 
 function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin }) {
   const fileInputRef = useRef(null);
-  const adminTapRef = useRef(0);
-  const adminTapTimerRef = useRef(null);
-
-  function handleVersionTap() {
-    adminTapRef.current += 1;
-    clearTimeout(adminTapTimerRef.current);
-    if (adminTapRef.current >= 5) {
-      adminTapRef.current = 0;
-      onAdmin?.();
-    } else {
-      adminTapTimerRef.current = setTimeout(() => { adminTapRef.current = 0; }, 3000);
-    }
-  }
 
   function handleFilePick(e) {
     const file = e.target.files?.[0];
@@ -1292,7 +1287,7 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
             <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
               <Info size={22} className="ks-gold" />
             </div>
-            <div className="flex-1" onClick={handleVersionTap} style={{ WebkitTapHighlightColor: 'transparent' }}>
+            <div className="flex-1">
               <div className="ks-display ks-cream text-xl font-semibold">Kocky sveta</div>
               <div className="ks-muted text-sm">React + Vite + Firebase + Capacitor</div>
             </div>
@@ -1304,6 +1299,19 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
             <p><span className="ks-cream font-semibold">Vývoj:</span> Postavené s pomocou AI (Perplexity / Claude Sonnet). Dizajn, herná logika a pravidlá sú autorské.</p>
           </div>
         </div>
+
+        <div className="ks-mono ks-gold text-xs px-1 pt-4">SYSTÉM</div>
+        <button onClick={onAdmin}
+          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <Shield size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">Admin nastavenia</div>
+            <div className="ks-muted text-sm">Interné nastavenia · debug · override · diagnostika</div>
+          </div>
+          <ChevronRight className="ks-muted" size={20} />
+        </button>
       </div>
     </div>
   );
@@ -1394,12 +1402,12 @@ function useFunnyQueue() {
 function TournamentScreen({
   tournament, rules, onUpdate, onFinish, onAbort, onMenu,
   scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange,
-  tournamentViewMode, funnyWindowsDisplayMode
+  tournamentViewMode, funnyWindowsDisplayMode, debugMode, minWriteOffOverride
 }) {
   // Early null guard — before destructuring to prevent crash
   if (!tournament) return <SafeTournamentFallback />;
   const target = tournament.targetScore || 10000;
-  const minWO = tournament.minWriteOff || 300;
+  const minWO = minWriteOffOverride ?? tournament.minWriteOff ?? 300;
   const players = Array.isArray(tournament.players) ? tournament.players : [];
   const rounds = Array.isArray(tournament.rounds) ? tournament.rounds : [];
   const { currentPlayer = 0, currentRound = 0 } = tournament;
@@ -2233,6 +2241,13 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
             }
           }}
         />
+      )}
+      {debugMode && (
+        <div className="fixed bottom-0 left-0 right-0 z-[9999] bg-black/85 text-green-400 font-mono text-[10px] px-3 py-2 space-y-0.5 pointer-events-none">
+          <div>🐛 DEBUG · currentPlayer: {currentPlayer} ({players[currentPlayer]}) · round: {currentRound}</div>
+          <div>minWO: {minWO}{minWriteOffOverride != null ? ' (override)' : ''} · winner: {JSON.stringify(tournament.winner)} · pendingDecision: {tournament.pendingDecision ? tournament.pendingDecision.type : 'null'}</div>
+          <div>confirmQueue: [{(tournament.confirmationQueue || []).join(', ')}] · pending: [{pending.join(', ')}]</div>
+        </div>
       )}
     </div>
   );

@@ -43,7 +43,7 @@ function ActivePlayersPanel({ roomState, myUid }) {
   );
 }
 
-export function OnlineScreen({ onBack, activeSkin, activeRules }) {
+export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName }) {
   const { roomId, uid: myUid, roomState, status, setRoomId, setUid, setRoomState, setStatus, reset } = useOnlineStore();
 
   const [joinCode, setJoinCode] = useState('');
@@ -52,8 +52,8 @@ export function OnlineScreen({ onBack, activeSkin, activeRules }) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const [useName, setUseName] = useState(false);
-  const [name, setName] = useState('');
+  const [useName, setUseName] = useState(!!defaultRoomName);
+  const [name, setName] = useState(defaultRoomName || '');
 
   useRoomSubscription(roomId, (data) => setRoomState(data), () => setStatus('error'));
 
