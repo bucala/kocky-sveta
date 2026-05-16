@@ -2332,117 +2332,110 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
         />
       )}
 
-      {/* WIN-PENDING POPUP */}
-      {!blockFollowupPopups && showWinPendingPopup && funnyWindowsDisplayMode === 'standard' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg"
-             style={{ background: 'radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98))' }}>
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full ks-funny-orb"
-                 style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)' }} />
-            <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full ks-funny-orb"
-                 style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)', animationDelay: '1s' }} />
+      {/* WIN-PENDING POPUP — všetky vizuálne varianty cez DecisionPresenter */}
+      {!blockFollowupPopups && showWinPendingPopup && (
+        <DecisionPresenter
+          playerName={players[currentPlayer]}
+          target={target}
+          displayMode={funnyWindowsDisplayMode}
+          onConfirm={() => {
+            const shouldShowDeferredKing = deferTemporaryKingUntilWinPopupCloses && temporaryKingToken !== null;
+            if (shouldShowDeferredKing) setShowTemporaryKingPopup(true);
+            if (tournament.pendingDecision) {
+              resolvePendingDecision(tournament.pendingDecision.id, 'confirm');
+            } else {
+              advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
+            }
+          }}
+          onReject={() => {
+            setDeferTemporaryKingUntilWinPopupCloses(false);
+            setTemporaryKingToken(null);
+            if (tournament.pendingDecision) {
+              resolvePendingDecision(tournament.pendingDecision.id, 'reject');
+            } else {
+              advance('dash');
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── DecisionPresenter ────────────────────────────────────────────────────
+// Zobrazuje rozhodovací popup v troch vizuálnych variantoch podľa displayMode.
+// Volá tie isté callbacky onConfirm/onReject – herná logika sa nemení.
+function DecisionPresenter({ playerName, target, displayMode, onConfirm, onReject }) {
+  if (displayMode === 'standard') {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg"
+           style={{ background: 'radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98))' }}>
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full ks-funny-orb"
+               style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)' }} />
+          <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full ks-funny-orb"
+               style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)', animationDelay: '1s' }} />
+        </div>
+        <div className="ks-funny relative z-10 text-center max-w-sm">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, transparent, #d4b86a)' }} />
+            <Crown size={16} className="ks-gold" />
+            <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, #d4b86a, transparent)' }} />
           </div>
-          <div className="ks-funny relative z-10 text-center max-w-sm">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, transparent, #d4b86a)' }} />
-              <Crown size={16} className="ks-gold" />
-              <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, #d4b86a, transparent)' }} />
-            </div>
-            <div className="text-7xl mb-3 ks-funny-emoji" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.6))' }}>
-              😤
-            </div>
-            <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">­🏁 DOSIAHOL {target.toLocaleString('sk-SK')} — POTVRD VÝHRU</div>
-            <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2"
-                 style={{ textShadow: '0 4px 24px rgba(212,184,106,0.4), 0 0 40px rgba(212,184,106,0.4)' }}>
-              {players[currentPlayer]}
-            </div>
-            <div className="ks-body ks-cream text-base mb-5 leading-snug">
-              Hráč <em className="ks-gold">{players[currentPlayer]}</em> dosiahol cieľ!<br/>Skupina potvrdzuje výhru — bola hra čistá?
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => {
-                  const shouldShowDeferredKing = deferTemporaryKingUntilWinPopupCloses && temporaryKingToken !== null;
-                  if (shouldShowDeferredKing) setShowTemporaryKingPopup(true);
-                  if (tournament.pendingDecision) {
-                    resolvePendingDecision(tournament.pendingDecision.id, 'confirm');
-                  } else {
-                    advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
-                  }
-                }}
-                className="ks-press py-4 px-3 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
-                <Crown size={20} className="ks-gold mx-auto mb-1" />
-                <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
-                <div className="ks-muted text-[10px] ks-mono mt-0.5">VÝHRA POTVRDENÁ</div>
-              </button>
-              <button
-                onClick={() => {
-                  setDeferTemporaryKingUntilWinPopupCloses(false);
-                  setTemporaryKingToken(null);
-                  if (tournament.pendingDecision) {
-                    resolvePendingDecision(tournament.pendingDecision.id, 'reject');
-                  } else {
-                    advance('dash');
-                  }
-                }}
-                className="ks-press py-4 px-3 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
-                <X size={20} className="ks-text-accent mx-auto mb-1" />
-                <div className="ks-display ks-text-accent text-base font-bold">Nepotvrdil</div>
-                <div className="ks-text-accent/60 text-[10px] ks-mono mt-0.5">VÝHRA NEPOTVRDENÁ</div>
-              </button>
-            </div>
+          <div className="text-7xl mb-3 ks-funny-emoji" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.6))' }}>😤</div>
+          <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">🏁 DOSIAHOL {target.toLocaleString('sk-SK')} — POTVRD VÝHRU</div>
+          <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2"
+               style={{ textShadow: '0 4px 24px rgba(212,184,106,0.4), 0 0 40px rgba(212,184,106,0.4)' }}>
+            {playerName}
+          </div>
+          <div className="ks-body ks-cream text-base mb-5 leading-snug">
+            Hráč <em className="ks-gold">{playerName}</em> dosiahol cieľ!<br/>Skupina potvrdzuje výhru — bola hra čistá?
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={onConfirm}
+              className="ks-press py-4 px-3 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
+              <Crown size={20} className="ks-gold mx-auto mb-1" />
+              <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
+              <div className="ks-muted text-[10px] ks-mono mt-0.5">VÝHRA POTVRDENÁ</div>
+            </button>
+            <button onClick={onReject}
+              className="ks-press py-4 px-3 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
+              <X size={20} className="ks-text-accent mx-auto mb-1" />
+              <div className="ks-display ks-text-accent text-base font-bold">Nepotvrdil</div>
+              <div className="ks-text-accent/60 text-[10px] ks-mono mt-0.5">VÝHRA NEPOTVRDENÁ</div>
+            </button>
           </div>
         </div>
-      )}
-      {/* WIN-PENDING POPUP — zjednodušený / potlačený: karta bez click-outside */}
-      {!blockFollowupPopups && showWinPendingPopup && (funnyWindowsDisplayMode === 'simplified' || funnyWindowsDisplayMode === 'suppressed') && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
-             style={{ background: 'rgba(10,8,6,0.92)' }}>
-          {/* intentionally NO onClick on backdrop — user must click a button */}
-          <div className="ks-card max-w-sm w-full rounded-sm border-2 p-5 text-center shadow-2xl"
-               style={{ borderColor: '#d4b86a' }}>
-            <div className="flex justify-center mb-3">
-              <Crown size={48} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.5))' }} />
-            </div>
-            <div className="ks-mono ks-gold text-xs tracking-widest mb-2">POTVRD VÝHRU</div>
-            <div className="ks-display text-2xl font-bold ks-cream leading-tight px-2 mb-1">
-              {players[currentPlayer]}
-            </div>
-            <div className="ks-body ks-cream text-sm opacity-90 leading-snug mb-5">
-              Hráč <em className="ks-gold">{players[currentPlayer]}</em> dosiahol <strong>{target.toLocaleString('sk-SK')}</strong>.<br/>
-              Potvrďte, že v overovom hode nič nepadlo.
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => {
-                  const shouldShowDeferredKing = deferTemporaryKingUntilWinPopupCloses && temporaryKingToken !== null;
-                  if (shouldShowDeferredKing) setShowTemporaryKingPopup(true);
-                  if (tournament.pendingDecision) {
-                    resolvePendingDecision(tournament.pendingDecision.id, 'confirm');
-                  } else {
-                    advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
-                  }
-                }}
-                className="ks-press py-3 px-2 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
-                <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
-              </button>
-              <button
-                onClick={() => {
-                  setDeferTemporaryKingUntilWinPopupCloses(false);
-                  setTemporaryKingToken(null);
-                  if (tournament.pendingDecision) {
-                    resolvePendingDecision(tournament.pendingDecision.id, 'reject');
-                  } else {
-                    advance('dash');
-                  }
-                }}
-                className="ks-press py-3 px-2 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
-                <div className="ks-display ks-text-accent text-base font-bold">✗ Nepotvrdil</div>
-              </button>
-            </div>
-          </div>
+      </div>
+    );
+  }
+
+  // simplified & suppressed: kompaktná karta bez click-outside
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+         style={{ background: 'rgba(10,8,6,0.92)' }}>
+      <div className="ks-card max-w-sm w-full rounded-sm border-2 p-5 text-center shadow-2xl"
+           style={{ borderColor: '#d4b86a' }}>
+        <div className="flex justify-center mb-3">
+          <Crown size={48} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.5))' }} />
         </div>
-      )}
+        <div className="ks-mono ks-gold text-xs tracking-widest mb-2">POTVRD VÝHRU</div>
+        <div className="ks-display text-2xl font-bold ks-cream leading-tight px-2 mb-1">{playerName}</div>
+        <div className="ks-body ks-cream text-sm opacity-90 leading-snug mb-5">
+          Hráč <em className="ks-gold">{playerName}</em> dosiahol <strong>{target.toLocaleString('sk-SK')}</strong>.<br/>
+          Potvrďte, že v overovom hode nič nepadlo.
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={onConfirm}
+            className="ks-press py-3 px-2 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
+            <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
+          </button>
+          <button onClick={onReject}
+            className="ks-press py-3 px-2 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
+            <div className="ks-display ks-text-accent text-base font-bold">✗ Nepotvrdil</div>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
