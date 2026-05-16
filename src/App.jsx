@@ -1714,6 +1714,26 @@ console.log('[TS] render snapshot', {
     advance(pendingSum);
   }
 
+  // ─── resolvePendingDecision ───────────────────────────────────────────────
+  // Jediný autoritatívny vstup pre rozhodnutie skupiny o presnom zásahu.
+  // outcome: 'confirm' → zapíše presné skóre a potvrdí výhru
+  //          'reject'  → zapíše čiarku, hráč zostáva na pôvodnom skóre
+  function resolvePendingDecision(decisionId, outcome) {
+    const decision = tournament.pendingDecision;
+    if (!decision || decision.id !== decisionId) return;
+
+    if (outcome === 'confirm') {
+      advance(decision.score, {
+        confirmWin: true,
+        confirmedRound: decision.round,
+        confirmedPlayer: decision.player,
+      });
+    } else {
+      // reject: zapisujeme čiarku (advance vymaže pendingDecision cez pendingDecision: null)
+      advance('dash');
+    }
+  }
+
   function commitDash() {
     if (isWinPendingTurn) {
       if (pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
