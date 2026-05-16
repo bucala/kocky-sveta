@@ -270,6 +270,18 @@ export function TournamentScreen({
       }
       newRounds[t.currentRound][t.currentPlayer] = val;
       
+      // Check for winner BEFORE advancing player
+      const winners = computeWinners(newRounds, t.players.length, t.targetScore);
+      if (winners && winners.length > 0) {
+        // Game over! Don't advance player/round
+        return {
+          ...t,
+          rounds: newRounds,
+          winner: winners.length === 1 ? winners[0] : winners,
+        };
+      }
+      
+      // No winner yet — advance to next player/round
       let nextPlayer = t.currentPlayer + 1;
       let nextRound = t.currentRound;
       
@@ -278,19 +290,12 @@ export function TournamentScreen({
         nextRound++;
       }
       
-      const updatedT = {
+      return {
         ...t,
         rounds: newRounds,
         currentPlayer: nextPlayer,
         currentRound: nextRound,
       };
-      
-      const winners = computeWinners(updatedT.rounds, updatedT.players.length, updatedT.targetScore);
-      if (winners && winners.length > 0) {
-        updatedT.winner = winners.length === 1 ? winners[0] : winners;
-      }
-      
-      return updatedT;
     });
     
     setPending([]);
