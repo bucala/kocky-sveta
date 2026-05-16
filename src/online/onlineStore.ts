@@ -1,5 +1,6 @@
 ﻿// src/online/onlineStore.ts
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { RoomDocument } from './types';
 
 type OnlineStatus = 'offline' | 'connected' | 'error';
@@ -17,15 +18,23 @@ type OnlineStore = {
   reset: () => void;
 };
 
-export const useOnlineStore = create<OnlineStore>((set) => ({
-  roomId: null,
-  uid: null,
-  roomState: null,
-  status: 'offline',
+export const useOnlineStore = create<OnlineStore>()(
+  persist(
+    (set) => ({
+      roomId: null,
+      uid: null,
+      roomState: null,
+      status: 'offline',
 
-  setRoomId: (roomId) => set({ roomId }),
-  setUid: (uid) => set({ uid }),
-  setRoomState: (roomState) => set({ roomState, status: 'connected' }),
-  setStatus: (status) => set({ status }),
-  reset: () => set({ roomId: null, uid: null, roomState: null, status: 'offline' }),
-}));
+      setRoomId: (roomId) => set({ roomId }),
+      setUid: (uid) => set({ uid }),
+      setRoomState: (roomState) => set({ roomState, status: 'connected' }),
+      setStatus: (status) => set({ status }),
+      reset: () => set({ roomId: null, uid: null, roomState: null, status: 'offline' }),
+    }),
+    {
+      name: 'ks-online',
+      partialize: (state) => ({ roomId: state.roomId, uid: state.uid }),
+    }
+  )
+);
