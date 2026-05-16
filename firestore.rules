@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Miestnosti — prístup len pre prihlásených hráčov
+    match /rooms/{roomId} {
+      // Čítanie: len prihlásený hráč v miestnosti
+      allow read: if request.auth != null;
+
+      // Vytvorenie: prihlásený user, validné polia
+      allow create: if request.auth != null
+        && request.resource.data.status == 'waiting'
+        && request.resource.data.players.size() == 1;
+
+      // Update: prihlásený hráč (join, score update, game state)
+      allow update: if request.auth != null;
+
+      // Mazanie: len owner (uid musí byť v players)
+      allow delete: if request.auth != null
+        && request.auth.uid in resource.data.players;
+    }
+
+  }
+}
