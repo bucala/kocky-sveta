@@ -19,6 +19,7 @@ import { NewTournament } from './screens/NewTournament.jsx';
 import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
 import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
 import { OnlineScreen } from './screens/OnlineScreen.jsx';
+import { AdminScreen, AdminPinDialog, DEFAULT_ADMIN_SETTINGS } from './screens/AdminScreen.jsx';
 import { computeWinners, computePlayerTotals as computeTotals } from './lib/tournamentEngine.js';
 import './app.css';
 
@@ -447,6 +448,8 @@ export default function App() {
   const [scoreDisplayMode, setScoreDisplayMode] = useState('delta');
   const [tournamentViewMode, setTournamentViewMode] = useState('basic');
   const [funnyWindowsDisplayMode, setFunnyWindowsDisplayMode] = useState('standard');
+  const [adminSettings, setAdminSettings] = useState(DEFAULT_ADMIN_SETTINGS);
+  const [showAdminPin, setShowAdminPin] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -460,6 +463,7 @@ export default function App() {
       }
       try { const t = await window.storage.get('tournaments'); if (t?.value) setTournaments(JSON.parse(t.value)); } catch {}
       try { const a = await window.storage.get('active');      if (a?.value) setActive(JSON.parse(a.value)); }       catch {}
+      try { const as = await window.storage.get('adminSettings'); if (as?.value) setAdminSettings(JSON.parse(as.value)); } catch {}
       setLoaded(true);
     })();
   }, []);
@@ -484,6 +488,7 @@ export default function App() {
     if (active) window.storage.set('active', JSON.stringify(active)).catch(() => {});
     else window.storage.delete('active').catch(() => {});
   }, [active, loaded]);
+  useEffect(() => { if (loaded) window.storage.set('adminSettings', JSON.stringify(adminSettings)).catch(() => {}); }, [adminSettings, loaded]);
 
   const minWriteOff = useMemo(() => {
     const r = rules.find(x => x.id === 'r14');
@@ -515,6 +520,32 @@ export default function App() {
   const handleAbortTournament = useCallback(() => {
     abortTournamentRef.current();
   }, []);
+
+  const handleSimulateTurn = useCallback(() => {
+    if (!active) { window.alert('Žiadna aktívna hra.'); return; }
+    const randomScore = (Math.floor(Math.random() * 20) + 1) * 50;
+    handleUpdateActive(prev => {
+      if (!prev) return prev;
+      const newRounds = prev.rounds.slice();
+      while (newRounds.length <= prev.currentRound) newRounds.push(new Array(prev.players.length).fill(null));
+      newRounds[prev.currentRound] = [...(newRounds[prev.currentRound] || new Array(prev.players.length).fill(null))];
+      newRounds[prev.currentRound][prev.currentPlayer] = randomScore;
+      const nextPlayer = (prev.currentPlayer + 1) % prev.players.length;
+      const roundEnded = nextPlayer === 0;
+      return {
+        ...prev,
+        rounds: newRounds,
+        currentPlayer: nextPlayer,
+        currentRound: prev.currentRound + (roundEnded ? 1 : 0),
+      };
+    });
+  }, [active, handleUpdateActive]);
+
+  const handleExportState = useCallback(() => {
+    const state = { tournaments, active, adminSettings };
+    navigator.clipboard.writeText(JSON.stringify(state, null, 2)).catch(() => {});
+  }, [tournaments, active, adminSettings]);
+
 function startTournament(players, targetScore) {
     setActive({
       id: Date.now(),
@@ -957,6 +988,7 @@ function startTournament(players, targetScore) {
           onArchive={() => { setArchiveReturnTo('menu'); setView('archive'); }}
           onrules={() => setView('rules')}
           onSettings={() => setView('settings')}
+          onOnline={() => setView('online')}
           onResume={active ? () => setView('tournament') : null}
           active={active}
           tournamentCount={tournaments.length}
@@ -982,6 +1014,19 @@ function startTournament(players, targetScore) {
           onVisualAndSkins={() => setView('visual')}
           funnyWindowsDisplayMode={funnyWindowsDisplayMode}
           onFunnyWindowsDisplayModeChange={setFunnyWindowsDisplayMode}
+          onAdmin={() => setShowAdminPin(true)}
+        />
+      )}
+      {view === 'admin' && (
+        <AdminScreen
+          onBack={() => setView('settings')}
+          adminSettings={adminSettings}
+          onAdminChange={setAdminSettings}
+          tournaments={tournaments}
+          active={active}
+          appVersion="1.5.4"
+          onSimulateTurn={handleSimulateTurn}
+          onExportState={handleExportState}
         />
       )}
       {view === 'viewModes' && (
@@ -1044,12 +1089,18 @@ function startTournament(players, targetScore) {
         <SafeTournamentFallback title="Dáta turnaja sa nepodarilo načítať" />
       ))}
       {view === 'rules' && <RulesView rules={rules} onBack={() => setView('menu')} />}
-      {view === 'online' && <OnlineScreen onBack={() => setView('settings')} />
+      {view === 'online' && <OnlineScreen onBack={() => setView('menu')} activeSkin={selectedSkin} activeRules={rules} />
       }
       {view === 'rulesEditor' && (
         <RulesEditor rules={rules} onSave={setrules} onBack={() => setView('settings')}
           onReset={() => { if (window.confirm('Obnoviť všetky pravidlá na pôvodné nastavenia?')) setrules(DEFAULT_RULES); }}
           selectedSkin={selectedSkin}
+        />
+      )}
+      {showAdminPin && (
+        <AdminPinDialog
+          onSuccess={() => { setShowAdminPin(false); setView('admin'); }}
+          onCancel={() => setShowAdminPin(false)}
         />
       )}
     </div>
@@ -1064,8 +1115,21 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
 
 // ─── Vizuál a Skiny submenu ───────────────────────────────────────────────
 
-function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange }) {
+function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin }) {
   const fileInputRef = useRef(null);
+  const adminTapRef = useRef(0);
+  const adminTapTimerRef = useRef(null);
+
+  function handleVersionTap() {
+    adminTapRef.current += 1;
+    clearTimeout(adminTapTimerRef.current);
+    if (adminTapRef.current >= 5) {
+      adminTapRef.current = 0;
+      onAdmin?.();
+    } else {
+      adminTapTimerRef.current = setTimeout(() => { adminTapRef.current = 0; }, 3000);
+    }
+  }
 
   function handleFilePick(e) {
     const file = e.target.files?.[0];
@@ -1228,7 +1292,7 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
             <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
               <Info size={22} className="ks-gold" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1" onClick={handleVersionTap} style={{ WebkitTapHighlightColor: 'transparent' }}>
               <div className="ks-display ks-cream text-xl font-semibold">Kocky sveta</div>
               <div className="ks-muted text-sm">React + Vite + Firebase + Capacitor</div>
             </div>

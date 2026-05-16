@@ -4,7 +4,7 @@ import { Play, Archive as ArchiveIcon, ScrollText, Settings, ChevronRight, Wifi,
 import { Ornament } from '../atoms/GoldButton.jsx';
 import { useOnlineStore } from '../online/onlineStore.ts';
 
-function OnlineStatusBadge() {
+function OnlineStatusBadge({ onClick }) {
   const status = useOnlineStore((s) => s.status);
   const map = {
     connected: { Icon: Wifi,          color: 'text-green-400', label: 'Online' },
@@ -12,14 +12,17 @@ function OnlineStatusBadge() {
   };
   const { Icon, color, label } = map[status] || { Icon: WifiOff, color: 'ks-muted', label: 'Offline' };
   return (
-    <div className="inline-flex items-center gap-1.5 border ks-border-sub rounded-sm px-2 py-1 mt-2">
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 border ks-border-sub rounded-sm px-2 py-1 mt-2 ks-press"
+    >
       <Icon size={12} className={color} />
       <span className={`ks-mono text-xs ${color}`}>{label}</span>
-    </div>
+    </button>
   );
 }
 
-export function MainMenu({ onNew, onArchive, onrules, onSettings, onResume, active, tournamentCount }) {
+export function MainMenu({ onNew, onArchive, onrules, onSettings, onResume, onOnline, active, tournamentCount }) {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="px-6 pt-[max(14px,env(safe-area-inset-top))] pb-4 text-center ks-fade">
@@ -28,7 +31,7 @@ export function MainMenu({ onNew, onArchive, onrules, onSettings, onResume, acti
           Kocky<br/><span className="italic font-medium">sveta</span>
         </h1>
         <Ornament />
-        <OnlineStatusBadge />
+        <OnlineStatusBadge onClick={onOnline} />
       </div>
       <div className="flex-1 px-5 pb-8 max-w-md w-full mx-auto space-y-3 -mt-1">
         {onResume && (
