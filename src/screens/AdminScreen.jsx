@@ -1,6 +1,6 @@
 // src/screens/AdminScreen.jsx
 import React, { useState, useCallback } from 'react';
-import { ChevronLeft, Shield, Bug, Wifi, Copy, Check, Zap, Terminal, Wrench, BarChart2, RefreshCw, Plus } from 'lucide-react';
+import { Shield, Bug, Wifi, Copy, Zap, Terminal, Wrench, BarChart2, RefreshCw } from 'lucide-react';
 import { Header } from '../atoms/Header.jsx';
 
 // ─── Sekcia ──────────────────────────────────────────────────────────────────
@@ -21,14 +21,19 @@ function ToggleRow({ icon: Icon, title, subtitle, value, onChange }) {
       </div>
       <button
         onClick={() => onChange(!value)}
-        style={{ width: 44, height: 24, borderRadius: 12, flexShrink: 0, position: 'relative', transition: 'background 0.2s', background: value ? 'var(--ks-accent, #d4b86a)' : '#52525b' }}
-        aria-checked={value}
         role="switch"
+        aria-checked={value}
+        style={{
+          flexShrink: 0, position: 'relative', cursor: 'pointer',
+          width: 36, height: 20, borderRadius: 10, border: 'none', padding: 0,
+          background: value ? 'var(--ks-accent, #d4b86a)' : 'rgba(82,82,91,0.8)',
+          transition: 'background 0.2s',
+        }}
       >
         <span style={{
-          position: 'absolute', top: 2, left: value ? 22 : 2,
-          width: 20, height: 20, borderRadius: '50%', background: '#fff',
-          transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.4)'
+          position: 'absolute', top: 2, left: value ? 18 : 2,
+          width: 16, height: 16, borderRadius: '50%', background: '#fff',
+          transition: 'left 0.18s', boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
         }} />
       </button>
     </div>
@@ -36,7 +41,7 @@ function ToggleRow({ icon: Icon, title, subtitle, value, onChange }) {
 }
 
 // ─── Input riadok ─────────────────────────────────────────────────────────────
-function InputRow({ icon: Icon, title, subtitle, value, onChange, placeholder, maxLength = 30 }) {
+function InputRow({ icon: Icon, title, subtitle, value, onChange, placeholder, maxLength = 30, actionLabel, onAction }) {
   return (
     <div className="ks-card w-full p-4 rounded-sm flex flex-col gap-3">
       <div className="flex items-center gap-4">
@@ -48,12 +53,22 @@ function InputRow({ icon: Icon, title, subtitle, value, onChange, placeholder, m
           <div className="ks-muted text-xs">{subtitle}</div>
         </div>
       </div>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value.slice(0, maxLength))}
-        placeholder={placeholder}
-        className="w-full ks-card px-3 py-2.5 rounded-sm ks-cream bg-transparent border ks-border-sub outline-none text-sm"
-      />
+      <div className="flex gap-2">
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value.slice(0, maxLength))}
+          placeholder={placeholder}
+          className="flex-1 ks-card px-3 py-2.5 rounded-sm ks-cream bg-transparent border ks-border-sub outline-none text-sm"
+        />
+        {actionLabel && (
+          <button
+            onClick={onAction}
+            className="ks-gold-bg ks-press px-3 py-2 rounded-sm ks-mono text-xs font-bold flex-shrink-0"
+          >
+            {actionLabel}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -175,13 +190,8 @@ export function AdminScreen({ onBack, adminSettings, onAdminChange, tournaments,
           onChange={(v) => update('roomName', v)}
           placeholder="napr. Telefón Marcel, Tablet..."
           maxLength={24}
-        />
-        <ActionRow
-          icon={Plus}
-          title="Vytvoriť online miestnosť"
-          subtitle={adminSettings.roomName ? `Otvorí miestnosť ako „${adminSettings.roomName}"` : 'Najprv nastav vlastný názov miestnosti'}
-          label="Otvoriť"
-          onClick={onOpenOnline}
+          actionLabel="VYTVORIŤ"
+          onAction={onOpenOnline}
         />
 
         {/* DEBUG */}
