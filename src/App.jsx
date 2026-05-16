@@ -523,6 +523,7 @@ function startTournament(players, targetScore) {
       winPending: null,
       winCandidates: [],
       winRoundComplete: false,
+      pendingDecision: null,
       targetScore, minWriteOff,
     });
     setView('tournament');
@@ -1786,6 +1787,7 @@ console.log('[TS] render snapshot', {
             winCandidates,
             winRoundComplete: winner !== null,
             _confirmedDetailed: confirmedSoFar,
+            pendingDecision: null,
           };
         }
 
@@ -1799,6 +1801,7 @@ console.log('[TS] render snapshot', {
           winCandidates,
           winRoundComplete,
           _confirmedDetailed: confirmedSoFar,
+          pendingDecision: null,
         };
       }
 
@@ -1815,6 +1818,7 @@ console.log('[TS] render snapshot', {
           winPending,
           winCandidates,
           winRoundComplete,
+          pendingDecision: null,
         };
       }
       if (opts.__declineWin_removed) {
@@ -1827,6 +1831,7 @@ console.log('[TS] render snapshot', {
           winner,
           winPending,
           winCandidates,
+          pendingDecision: null,
         };
       }
 
@@ -1861,6 +1866,7 @@ console.log('[TS] render snapshot', {
               winCandidates,
               winRoundComplete,
               _confirmedDetailed: autoConfirmedDetailed,
+              pendingDecision: null,
             };
           }
         }
@@ -1878,6 +1884,7 @@ console.log('[TS] render snapshot', {
             winCandidates,
             winRoundComplete,
             _confirmedDetailed: autoConfirmedDetailed,
+            pendingDecision: null,
           };
         }
       }
@@ -1892,6 +1899,7 @@ console.log('[TS] render snapshot', {
         winCandidates,
         winRoundComplete,
         _confirmedDetailed: autoConfirmedDetailed,
+        pendingDecision: null,
       };
     });
     setPending([]);
