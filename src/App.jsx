@@ -1642,9 +1642,22 @@ console.log('[TS] render snapshot', {
           });
           return;
         }
-        setPendingWinScore(pendingSum);
-        setPendingWinMeta({ player: currentPlayer, round: currentRound });
-        setShowWinPendingPopup(true);
+        // Klasický mód: zakladáme pendingDecision namiesto priameho popup stavu.
+        // advance() sa volá až po resolvePendingDecision() – teraz NIČ nezapisujeme.
+        const baseTotal = totals[currentPlayer];
+        onUpdate(prev => ({
+          ...prev,
+          pendingDecision: {
+            id: `${prev.currentPlayer}-${prev.currentRound}-${pendingSum}`,
+            type: 'exact-hit-verification',
+            player: prev.currentPlayer,
+            round: prev.currentRound,
+            score: pendingSum,
+            baseTotal,
+            target: prev.targetScore,
+            status: 'pending',
+          },
+        }));
         if (!isLastPlayerInRound) {
           setTemporaryKingToken(`${currentPlayer}-${currentRound}-${pendingSum}-endgame`);
           setDeferTemporaryKingUntilWinPopupCloses(true);
