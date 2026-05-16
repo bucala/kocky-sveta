@@ -452,7 +452,7 @@ export default function App() {
   const [adminSettings, setAdminSettings] = useState(DEFAULT_ADMIN_SETTINGS);
   const [showAdminPin, setShowAdminPin] = useState(false);
 
-  const { setRoomId: setOnlineRoomId, setUid: setOnlineUid, setStatus: setOnlineStatus } = useOnlineStore();
+  const { setRoomId: setOnlineRoomId, setUid: setOnlineUid, setStatus: setOnlineStatus, roomId: onlineRoomId, roomState: onlineRoomState } = useOnlineStore();
 
   useEffect(() => {
     (async () => {
@@ -492,6 +492,30 @@ export default function App() {
     else window.storage.delete('active').catch(() => {});
   }, [active, loaded]);
   useEffect(() => { if (loaded) window.storage.set('adminSettings', JSON.stringify(adminSettings)).catch(() => {}); }, [adminSettings, loaded]);
+
+  // ─── Online sync ──────────────────────────────────────────────────────────
+  // Tracks whether the last `active` update came from Firestore (to avoid echo writes).
+  const syncingFromRemote = useRef(false);
+
+  // Remote → local: apply activeTournament from Firestore to local state.
+  useEffect(() => {
+    const remoteActive = onlineRoomState?.activeTournament;
+    if (remoteActive === undefined) return;
+    syncingFromRemote.current = true;
+    setActive(remoteActive ?? null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(onlineRoomState?.activeTournament)]);
+
+  // Local → remote: push active tournament to Firestore when it changes locally.
+  useEffect(() => {
+    if (!loaded) return;
+    if (syncingFromRemote.current) { syncingFromRemote.current = false; return; }
+    if (!onlineRoomId) return;
+    import('./online/updateGameState.ts').then(({ updateGameState }) => {
+      updateGameState(onlineRoomId, { activeTournament: active ?? null }).catch(() => {});
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, onlineRoomId, loaded]);
 
   const minWriteOff = useMemo(() => {
     const r = rules.find(x => x.id === 'r14');
