@@ -5,23 +5,25 @@
 ![Vite](https://img.shields.io/badge/Vite-6.x-8b5cf6?style=for-the-badge&logo=vite&logoColor=white)
 ![React](https://img.shields.io/badge/React-18.x-0f172a?style=for-the-badge&logo=react)
 ![Capacitor](https://img.shields.io/badge/Capacitor-6.x-2563eb?style=for-the-badge&logo=capacitor&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-57%2F57%20✓-22c55e?style=for-the-badge)
 
-## 📦 Status: STABILNÝ — v1.5.0
+## 📦 Status: STABILNÝ — v1.5.3
 
-> **Tag:** `v1.5.0`
+> **Tag:** `v1.5.3`
 
 ---
 
 ## ✨ Funkcie
 
-- offline hra pre viac hráčov na jednom zariadeni (až 6 hráčov)
+- offline hra pre viac hráčov na jednom zariadení (až 6 hráčov)
 - vlastné pravidlá a nastaviteľné bodovanie
 - export a import turnajov cez Excel (lazy-loaded)
 - archív odohraných hier a prehľad výsledkov
-- niekoľko vizuálnych skinov (Klasik, Les, Royal, Pergamen…)
-- progress chart, štandings, history graf
+- niekoľko vizuálnych skinov (Klasik, Les, Royal, Pergamen, Orech…)
+- progress chart, standings, history graf
 - Android build cez Capacitor + Android Studio
-- **modulárna architektúra** — screens, components, constants, utils, hooks
+- **modulárna architektúra** — screens, components, constants, utils, hooks, lib
+- **tournamentEngine.js** — čistá doménová knižnica (pure functions, bez React), unit testovaná
 
 > Aplikácia je **plne offline**. Všetky dáta sa ukladajú lokálne na zariadenie cez `localStorage`.
 
@@ -29,58 +31,88 @@
 
 ## 📝 Changelog
 
+### v1.5.3 — 2026-05-16 — Endgame & Domain Refactor Release
+
+```
+🐛 fix: stale closure v handleFinishTournament / handleAbortTournament
+  • useCallback([]) zachytával finishTournament z prvého renderu → active=null →
+    if (!active) return → turnaj sa nikdy neuzavrel po víťazstve/draw
+  • Fix: finishTournamentRef / abortTournamentRef sa aktualizujú každý render;
+    stable callback vždy volá aktuálnu verziu funkcie
+  • Opravuje scenáre: víťaz, remíza, presný zásah (všetky 3 ✅ overené)
+
+♻️ refactor: unifikácia computeWinners + computeTotals (FÁZA 2)
+  • Lokálne kópie oboch funkcií odstránené z App.jsx (~130 riadkov)
+  • Jediný zdroj pravdy: src/lib/tournamentEngine.js
+  • finishTournament, TournamentScreen aj ArchiveScreen teraz zdieľajú
+    rovnakú implementáciu výpočtu víťaza
+
+🛡️ fix(fáza-1): pendingDecision:null v provisional pred computeWinners()
+  • confirmWin + roundEnded branch: provisional neobsahoval pendingDecision:null
+    → tournamentEngine.js pendingDecision guard blokoval detekciu víťaza
+  • normal roundEnded branch: rovnaká oprava
+  • Odstránený dead code: commitDash(), opts.confirmCandidate,
+    opts.retryWin, opts.declineWin, opts.__declineWin_removed
+
+🧹 chore: odstránené production console.log (6 miest)
+  • [APP] App component mounted, view changed, startTournament
+  • [APP] HIT_TARGET toast branch
+  • [TS] TournamentScreen mounted, render snapshot
+
+🏗️ feat(fázy 1–8): domain/UI decoupling refactor
+  • pendingDecision domain objekt pre endgame exact-hit flow
+  • resolvePendingDecision() — jediný autoritatívny vstup pre Potvrdil/Nepotvrdil
+  • showDecisionPopup ako derived UI state (nie useState)
+  • DecisionPresenter — jeden renderer pre všetky vizuálne varianty popupu
+  • computeWinners() rešpektuje otvorené pendingDecision (guard v tournamentEngine)
+  • Premenovanie technických názvov pre zrozumiteľnosť
+
+🧪 test: 57 unit testov (50 tournamentEngine + 7 useFunnyQueue) — všetky zelené
+```
+
+### v1.5.2 — 2026-05-10
+
+```
+🐛 fix: opravené zobrazenie nového kola pri dokončení kola
+🐛 fix: stabilnejší browser fallback pri sťahovaní Excel exportu
+📦 dep: Firebase zafixovaný na ^12.12.1
+```
+
+### v1.5.1 — 2026-05-09
+
+```
+🐛 fix: riadok tabuľky sa zobrazí hneď v ďalšom kole
+📤 fix: export archívu do Excelu — stabilnejší browser fallback
+```
+
 ### v1.5.0 — 2026-05-08 — Modularizácia & Performance Release
 
 ```
 ♻️ refactor: extrakcia obrazoviek z App.jsx do samostatných súborov
-• TournamentScreen → src/screens/TournamentScreen.jsx
-• ArchiveScreen    → src/screens/ArchiveScreen.jsx
-• RulesEditor      → src/screens/RulesEditor.jsx
-• GameWidgets, FunnyOverlay, ProgressChart, SkinSelector → src/components/
-• GameViewModesScreen, VisualAndSkinScreen → src/screens/
+  • TournamentScreen, ArchiveScreen, RulesEditor → src/screens/
+  • GameWidgets, FunnyOverlay, ProgressChart, SkinSelector → src/components/
 
-⚡ perf: lazy loading XLSX knižnice
-• xlsx chunk (~430 KB) sa načíta len pri prvom exporte/importe
-• xlsxLazy.js wrapper — modul sa cachuje po prvom načítaní
-• vite.config.js — manual chunks: vendor-xlsx, vendor-recharts, vendor-react, vendor-lucide
-
+⚡ perf: lazy loading XLSX knižnice (~430 KB chunk len pri exporte)
 🎨 style: STYLES konštanta → src/app.css
-• CSS presnuté z inline JS stringu do samostatného súboru
-• Google Fonts @import presunutý do src/index.css s font-display:swap
-• Preconnect hinty pre Google Fonts v index.html
-
 ♿ a11y: aria-label na icon-only tlačidlá
-• "Zatvoriť" na X tlačidlá (×2)
-• "Upraviť" na edit tlačidlo
-
-🐛 fix: mojibake v SimplifiedResult.jsx
-• VÍŤAZ, REMÍZA, DOČASNÝ KRÁĽ, POTVRD VÍŤAZU — opravená slovenská diakritika
-
-🧹 chore: vyčistenie repozitára
-• Odstránených 38 dočasných Python skriptov z root adresára
-• Opravený Vite index.html (omylom zmazaný)
-
-⚡ perf: advance() — optimalizácia shallow copy
-• prev.rounds.slice() namiesto prev.rounds.map(r => [...r])
-• Kopíruje len aktívny riadok, nie celú tabuľku
+🐛 fix: mojibake v SimplifiedResult.jsx (slovenská diakritika)
+🧹 chore: odstránených 38 dočasných Python skriptov
 ```
 
-### v1.4.1 — 2026-05-07 — Hook Quality Release
+### v1.4.1 — 2026-05-07
 
 ```
 🐞 fix: useFunnyQueue — cleanup, stale closure, memoization
 🧪 ci: Vitest test suite pre useFunnyQueue
 ```
 
-### v1.4.0 — 2026-05-06 — Hooks Refactor Release
+### v1.4.0 — 2026-05-06
 
 ```
-♻️ refactor: Migrácia komponentov na React Hooks
-• Extrakcia useFunnyQueue hooku
-• Modulizácia — rozdelenie App.jsx na menšie moduly
+♻️ refactor: Migrácia komponentov na React Hooks, extrakcia useFunnyQueue
 ```
 
-### v1.2.9 — 2026-05-05 — Performance Release
+### v1.2.9 — 2026-05-05
 
 ```
 ⚡ perf: React.memo ScoreTable — ~30–60% menej re-renderov
@@ -88,45 +120,18 @@
 
 ---
 
-## ✅ Manual Testing Checklist — v1.5.0
+## 🎮 Pravidlá hry (implementované)
 
-### 🏗️ Build
-- [ ] `npm run build` — build prebehne bez chýb
-- [ ] `npm test` — všetky Vitest testy zelené ✅
-- [ ] `npm run dev` — app štartuje bez chýb v konzole
-
-### 📦 Bundle (Vite manual chunks)
-- [ ] `dist/assets/vendor-xlsx-*.js` existuje ako samostatný chunk
-- [ ] `dist/assets/vendor-recharts-*.js` existuje ako samostatný chunk
-- [ ] Initial load — DevTools Network: xlsx chunk sa nenačíta pri štarte
-
-### 📤 Export / Import (Lazy XLSX)
-- [ ] Export do Excelu — prvý klik (~300ms load, súbor sa stiahne)
-- [ ] Export — druhý klik (okamžitý, modul cached)
-- [ ] Import z Excelu — vybrať `.xlsx`, turnaje sa importujú
-- [ ] Import prázdneho / neznámeho súboru — error message, nie crash
-
-### 🎮 Turnaj — Master Logika
-- [ ] Nový turnaj — 2/3/6 hráčov, do 5000 aj 10000
-- [ ] Penalizácia −1000 funguje
-- [ ] Víťazstvo (r18=Áno a Nie)
-- [ ] Remíza — 2 hráči v rovnakom kole
-- [ ] Archív → Detail → správne výsledky
-
-### ♿ Accessibility
-- [ ] X tlačidlá majú `aria-label="Zatvoriť"`
-- [ ] Edit tlačidlo má `aria-label="Upraviť"`
-- [ ] Tab navigácia funguje na všetkých interaktívnych prvkoch
-
-### 🎨 Skin & Fonts
-- [ ] Všetky skiny sa správne aplikujú
-- [ ] Fonty (Cormorant, Crimson Pro, Bebas Neue) sa načítajú
-- [ ] Žiadne FOIT (flash of invisible text)
-
-### 📱 Android Build
-- [ ] `npm run build-android`
-- [ ] `npx cap open android` → Clean + Rebuild
-- [ ] APK na zariadení — export, import, tournament flow
+| Kategória | Pravidlo |
+|-----------|----------|
+| **Cieľ** | Presne 10 000 bodov (konfigurovateľné) |
+| **Zápis** | Minimálny hod 50 bodov |
+| **Penalta** | −1 000 bodov iba ak hráč hodí 0 bodov (nič) |
+| **Endgame** | Od 9 700 bodov — treba presne X bodov na výhru |
+| **Presný zásah** | Popup: Potvrdil / Nepotvrdil |
+| **Bust** | Prekročenie cieľa = zostáva na pôvodnom skóre, žiadna penalta |
+| **Kolo musí dohrať** | Všetci hráči dokončia kolo pred vyhodnotením víťaza |
+| **Remíza** | Viacero hráčov dosiahne cieľ v rovnakom kole |
 
 ---
 
@@ -135,7 +140,7 @@
 ```bash
 npm install
 npm run dev          # web dev server
-npm test             # Vitest unit testy
+npm test             # Vitest unit testy (57/57)
 ```
 
 ## 📦 Buildy
@@ -164,7 +169,7 @@ V Android Studio: **Build → Clean Project**, potom **Build → Rebuild Project
 ```
 src/
 ├── App.jsx                    — orchestrátor (routing, state, persistence)
-├── app.css                    — aplikačné štýly (extrahované z STYLES konštanty)
+├── app.css                    — aplikačné štýly
 ├── index.css                  — global štýly + Google Fonts import
 ├── main.jsx                   — entry point + localStorage polyfill
 ├── atoms/
@@ -172,22 +177,30 @@ src/
 │   └── index.js
 ├── components/
 │   ├── FunnyOverlay.jsx       — funny message popup systém
-│   ├── GameWidgets.jsx        — DiceIcon, DiceRow, GoldButton, Ornament...
+│   ├── GameWidgets.jsx        — DiceIcon, DiceRow, GoldButton, Ornament…
 │   ├── ProgressChart.jsx      — Recharts graf vývoja skóre
+│   ├── ScoreTable.jsx         — tabuľka skóre (React.memo)
 │   ├── SkinSelector.jsx       — výber vizuálneho skinu
 │   └── ui.jsx                 — zdieľané UI komponenty
 ├── constants/
 │   ├── game.js                — herné konštanty
-│   ├── gameConfig.js          — QUICK_VALUES, TARGET_OPTIONS, POPUP_CONFIG...
+│   ├── gameConfig.js          — QUICK_VALUES, TARGET_OPTIONS, POPUP_CONFIG…
 │   ├── rules.js               — pravidlá r1–r18
 │   └── skins.js               — definície skinov
 ├── hooks/
 │   └── useFunnyQueue.js       — vlastný hook pre funny queue (memoizovaný)
+├── lib/
+│   ├── gameEngine.js          — herný engine (legacy wrapper)
+│   ├── firebase.js            — Firebase konfigurácia (offline stub)
+│   ├── storage.js             — localStorage abstrakcia
+│   ├── tournamentEngine.js    — čistá doménová knižnica (pure functions)
+│   └── tournamentEngine.test.js — 50 unit testov pre domain logiku
 ├── screens/
 │   ├── ArchiveScreen.jsx      — archív turnajov + detail
 │   ├── GameViewModesScreen.jsx
 │   ├── MainMenu.jsx
 │   ├── NewTournament.jsx
+│   ├── OnlineScreen.jsx
 │   ├── RulesEditor.jsx        — editor pravidiel
 │   ├── SettingsMenu.jsx
 │   ├── TournamentScreen.jsx   — herný flow (Master logika)
@@ -199,10 +212,61 @@ src/
 
 ---
 
+## 🔬 tournamentEngine.js — Domain API
+
+Čistá knižnica bez React závislostí. Importovaná vo všetkých spotrebiteľoch.
+
+| Funkcia | Popis |
+|---------|-------|
+| `normalizeRoundValue(value)` | Normalizuje bunku kola (number / 'dash' / null) |
+| `computePlayerTotals(rounds, n)` | Súčty skóre pre všetkých hráčov |
+| `validateTournamentChecksum(rounds, totals)` | Overuje konzistenciu uložených totálov |
+| `detectSuddenWin(tournament)` | Detekuje Náhlu výhru (6 kociek = cieľ) |
+| `computeRanking(players, totals)` | Zoradí hráčov, pridelí rank (zdieľaný pri remíze) |
+| `computeWinners(tournament)` | Určí víťazov — strict / classic / sudden win / pendingDecision |
+| `evaluateTournamentState(tournament)` | Komplexný derivovaný stav (status, ranking, eligibility…) |
+
+---
+
+## ✅ Manual Testing Checklist — v1.5.3
+
+### 🏗️ Build
+- [ ] `npm run build` — build prebehne bez chýb
+- [ ] `npm test` — 57/57 Vitest testov zelených ✅
+- [ ] `npm run dev` — app štartuje bez chýb v konzole
+
+### 🎮 Endgame scenáre (kritické)
+- [ ] **Scenár A:** Hráč 1 Nepotvrdil → Hráč 2 Potvrdil → Results screen, Hráč 2 = winner ✅
+- [ ] **Scenár B:** Alice Potvrdil (10000) → Bob normálny (9800) → Results screen, Alice = winner ✅
+- [ ] **Scenár C:** Alice Potvrdil (10000) → Bob Potvrdil (10000) → Results screen, DRAW ✅
+- [ ] **Scenár D:** Bust (prekročenie) → zostáva na pôvodnom skóre, žiadna penalta
+- [ ] **Scenár E:** Penalta (hod = 0 bodov) → −1000 sa odpočíta
+
+### 🏆 Základný herný flow
+- [ ] Nový turnaj — 2/3/6 hráčov, rôzne ciele
+- [ ] Penalizácia −1000 funguje
+- [ ] Archív → Detail → správne výsledky
+- [ ] Strict mode (r18=Nie) — prvý hráč čo dosiahne cieľ vyhráva
+
+### 📤 Export / Import
+- [ ] Export do Excelu — súbor sa stiahne
+- [ ] Import z Excelu — turnaje sa importujú
+- [ ] Import neznámeho súboru — error, nie crash
+
+### 🎨 Skin & Fonty
+- [ ] Všetky skiny sa správne aplikujú (Klasik, Les, Royal, Pergamen, Orech)
+- [ ] Fonty sa načítajú bez FOIT
+
+### 📱 Android Build
+- [ ] `npm run build-android`
+- [ ] APK na zariadení — endgame flow, archív, export
+
+---
+
 ## 🛠 Troubleshooting
 
 ### Po update appky na Androide vidím staré dáta / starú verziu
-Capacitor WebView agresívne kešuje. Po `cap sync` v Android Studio sprav **Build → Clean Project → Rebuild**, a na zariadení **Settings → Apps → Kocky sveta → Storage → Clear data**.
+Capacitor WebView agresívne kešuje. Po `cap sync` v Android Studio: **Build → Clean Project → Rebuild**. Na zariadení: **Nastavenia → Aplikácie → Kocky sveta → Úložisko → Vymazať dáta**.
 
 ### Chýba `capacitor.settings.gradle`
 ```bash
@@ -210,7 +274,7 @@ npx cap sync android
 ```
 
 ### Service worker drží starý web build
-V dev tools: **Application → Service Workers → Unregister**, potom hard-refresh (Ctrl+Shift+R).
+Dev tools: **Application → Service Workers → Unregister**, potom hard-refresh (Ctrl+Shift+R).
 
 ### Vitest testy nefungujú
 ```bash
@@ -222,10 +286,4 @@ npm test
 
 ## 📘 Poznámka
 
-Aplikácia bola pôvodne navrhnutá s Firebase online miestnosťami. Tie boli odstránené pre zjednodušenie — celý projekt je teraz čisto offline (žiadny `google-services.json`, žiadne Firestore rules, žiadne env premenné).
-
-## 1.5.1
-
-- Opravené zobrazenie nového kola pri dokončení kola; riadok v tabuľke sa zobrazí hneď v ďalšom kole.
-- Upravený export archívu do Excelu; stabilnejší browser fallback pri sťahovaní.
-- Firebase zafixovaný na stabilnú verziu `^12.12.1`.
+Aplikácia bola pôvodne navrhnutá s Firebase online miestnosťami. Tie boli odstránené pre zjednodušenie — projekt je teraz čisto offline (žiadny `google-services.json`, žiadne Firestore rules, žiadne env premenné).
