@@ -433,7 +433,6 @@ function StatusBanner({ kind, icon: Icon, children }) {
 // ─── App ──────────────────────────────────────────────────────────────────
 
 export default function App() {
-  console.log('[APP] App component mounted');
   const [view, setView] = useState('menu');
   const [tournaments, setTournaments] = useState([]);
   const [active, setActive] = useState(null);
@@ -449,7 +448,6 @@ export default function App() {
   const [funnyWindowsDisplayMode, setFunnyWindowsDisplayMode] = useState('standard');
 
   useEffect(() => {
-      console.log('[APP] view changed', view);
     (async () => {
       try { const r = await window.storage.get('rules');       if (r?.value) setrules(JSON.parse(r.value)); }        catch {}
       try { const dm = await window.storage.get('scoreDisplayMode'); if (dm?.value) setScoreDisplayMode(JSON.parse(dm.value)); } catch {}
@@ -511,8 +509,6 @@ export default function App() {
     abortTournament();
   }, []);
 function startTournament(players, targetScore) {
-    console.log('[APP] startTournament called', { players, targetScore });
-
     setActive({
       id: Date.now(),
       date: new Date().toISOString(),
@@ -1457,8 +1453,6 @@ function TournamentScreen({
   scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange,
   tournamentViewMode, funnyWindowsDisplayMode
 }) {
-  console.log('[TS] TournamentScreen mounted');
-
   // Early null guard — before destructuring to prevent crash
   if (!tournament) return <SafeTournamentFallback />;
   const target = tournament.targetScore || 10000;
@@ -1504,20 +1498,6 @@ function TournamentScreen({
 
   const pendingSum = pending.reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
   const newTotal = total + pendingSum;
-
-console.log('[TS] render snapshot', {
-  currentPlayer,
-  currentRound,
-  isEndgame,
-  isConfirmationTurn,
-  confirmationPlayer,
-  total,
-  exactNeeded,
-  pendingSum,
-  newTotal,
-  showDecisionPopup,
-  pendingDecision: tournament.pendingDecision,
-});
 
   function showToast(msg, kind = 'info') {
     setToast({ msg, kind });
@@ -1619,12 +1599,8 @@ console.log('[TS] render snapshot', {
         if (strictMode) {
           maybeFunny();
         if (!isLastPlayerInRound) {
-            console.log('[APP] HIT_TARGET toast branch', {
-  currentPlayer,
-  target,
-});
           showToast(`${players[currentPlayer]} dosiahol cieľ ${target.toLocaleString('sk-SK')}! Kolo sa dohrá a hra skončí.`, 'info');
-          }
+        }
           advance(pendingSum, {
             addCandidate: currentPlayer,
             autoConfirm: true,
@@ -1725,14 +1701,6 @@ console.log('[TS] render snapshot', {
     }
   }
 
-  function commitDash() {
-    if (isConfirmationTurn) {
-      advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
-      return;
-    }
-    advance('dash');
-  }
-
   function advance(value, opts = {}) {
     onUpdate(prev => {
       const newRounds = prev.rounds.slice(); newRounds[prev.currentRound] = [...(prev.rounds[prev.currentRound] || [])];
@@ -1745,13 +1713,6 @@ console.log('[TS] render snapshot', {
       let confirmationPendingPlayer = prev.confirmationPendingPlayer;
       let confirmationQueue = [...(prev.confirmationQueue || [])];
       let confirmationRoundComplete = prev.confirmationRoundComplete;
-
-      if (opts.confirmCandidate !== undefined) {
-        if (!confirmationQueue.includes(opts.confirmCandidate)) {
-          confirmationQueue.push(opts.confirmCandidate);
-        }
-        confirmationPendingPlayer = opts.confirmCandidate;
-      }
 
       if (opts.addCandidate !== undefined) {
         if (!confirmationQueue.includes(opts.addCandidate)) {
@@ -1792,6 +1753,7 @@ console.log('[TS] render snapshot', {
             _confirmedDetailed: confirmedSoFar,
             confirmationQueue,
             rules: prev.rules,
+            pendingDecision: null,
           };
           const result = computeWinners(provisional);
           winner = result.valid && result.winners.length > 0 ? (result.winners.length === 1 ? result.winners[0] : result.winners) : null;
@@ -1823,36 +1785,6 @@ console.log('[TS] render snapshot', {
         };
       }
 
-      if (opts.retryWin || opts.declineWin) {
-        const _np = (prev.currentPlayer + 1) % prev.players.length;
-        const _re = _np === 0;
-        confirmationPendingPlayer = prev.currentPlayer;
-        return {
-          ...prev,
-          rounds: newRounds,
-          currentPlayer: _re ? confirmationPendingPlayer : _np,
-          currentRound: prev.currentRound + (_re ? 1 : 0),
-          winner,
-          confirmationPendingPlayer,
-          confirmationQueue,
-          confirmationRoundComplete,
-          pendingDecision: null,
-        };
-      }
-      if (opts.__declineWin_removed) {
-        confirmationQueue = confirmationQueue.filter(c => c !== prev.currentPlayer);
-        confirmationPendingPlayer = confirmationQueue.length > 0 ? confirmationQueue[0] : null;
-        return {
-          ...prev,
-          rounds: newRounds,
-          ...(confirmationPendingPlayer !== null ? { currentPlayer: confirmationPendingPlayer } : {}),
-          winner,
-          confirmationPendingPlayer,
-          confirmationQueue,
-          pendingDecision: null,
-        };
-      }
-
       const nextPlayer = (prev.currentPlayer + 1) % prev.players.length;
       const roundEnded = nextPlayer === 0;
       const nextRound = prev.currentRound + (roundEnded ? 1 : 0);
@@ -1864,6 +1796,7 @@ console.log('[TS] render snapshot', {
           _confirmedDetailed: autoConfirmedDetailed,
           confirmationQueue,
           rules: prev.rules,
+          pendingDecision: null,
         };
         const result = computeWinners(provisional);
 
