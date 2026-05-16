@@ -1,7 +1,7 @@
 // src/screens/OnlineScreen.jsx
 import React, { useState } from 'react';
 import { getAuth, signInAnonymously } from 'firebase/auth';
-import { Wifi, WifiOff, AlertCircle, ChevronLeft, Copy, Check, LogOut, Info, User } from 'lucide-react';
+import { Wifi, WifiOff, AlertCircle, ChevronLeft, Copy, Check, LogOut, Info, User, Users } from 'lucide-react';
 import { useOnlineStore } from '../online/onlineStore.ts';
 import { createRoom } from '../online/createRoom.ts';
 import { joinRoom } from '../online/joinRoom.ts';
@@ -14,8 +14,37 @@ export function OnlineStatusIcon() {
   return <WifiOff size={18} className="ks-muted" />;
 }
 
+function ActivePlayersPanel({ roomState, myUid }) {
+  if (!roomState?.players) return null;
+  const players = Object.entries(roomState.players);
+  if (players.length === 0) return null;
+
+  return (
+    <div className="ks-card border ks-border-sub rounded-sm overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-2 border-b ks-border-sub ks-muted text-xs ks-mono">
+        <Users size={13} />
+        HRÁČI V MIESTNOSTI ({players.length})
+      </div>
+      <div className="divide-y ks-border-sub">
+        {players.map(([uid, player]) => (
+          <div key={uid} className="flex items-center gap-3 px-4 py-3">
+            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${player.online ? 'bg-green-400' : 'bg-zinc-600'}`} />
+            <div className="flex-1 min-w-0">
+              <div className="ks-cream text-sm font-medium truncate">
+                {player.name || 'hráč'}
+                {uid === myUid && <span className="ks-muted text-xs ml-1.5">(ty)</span>}
+              </div>
+              <div className="ks-muted text-xs">{player.online ? 'online' : 'offline'}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function OnlineScreen({ onBack, activeSkin, activeRules }) {
-  const { roomId, status, setRoomId, setUid, setRoomState, setStatus, reset } = useOnlineStore();
+  const { roomId, uid: myUid, roomState, status, setRoomId, setUid, setRoomState, setStatus, reset } = useOnlineStore();
 
   const [joinCode, setJoinCode] = useState('');
   const [joinErr, setJoinErr] = useState('');
@@ -28,8 +57,12 @@ export function OnlineScreen({ onBack, activeSkin, activeRules }) {
 
   useRoomSubscription(roomId, (data) => setRoomState(data), () => setStatus('error'));
 
+  // Wait for Firebase to restore persisted auth before signing in anonymously.
+  // auth.currentUser is null immediately after page load — authStateReady() waits
+  // for the initial restore so we don't accidentally create a new anonymous user.
   const ensureAuth = async () => {
     const auth = getAuth();
+    await auth.authStateReady();
     if (!auth.currentUser) await signInAnonymously(auth);
     return auth.currentUser.uid;
   };
@@ -191,46 +224,50 @@ export function OnlineScreen({ onBack, activeSkin, activeRules }) {
         )}
 
         {roomId && (
-          <div className="ks-card border ks-border-sub rounded-sm overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2 border-b ks-border-sub">
-              <div className="flex items-center gap-2 ks-muted text-xs ks-mono">
-                <Wifi size={13} />
-                AKTÍVNA MIESTNOSŤ
-              </div>
-              <div className={`flex items-center gap-1.5 text-xs ks-mono ${status === 'error' ? 'text-red-400' : 'text-green-400'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${status === 'error' ? 'bg-red-400' : 'bg-green-400'}`} />
-                {status === 'error' ? 'CHYBA' : 'ONLINE'}
-              </div>
-            </div>
-
-            <div className="px-4 py-6 text-center">
-              <div className="ks-gold ks-mono text-5xl font-bold tracking-widest mb-2">{roomId}</div>
-              <div className="ks-muted text-xs">Zdieľaj tento kód s druhým zariadením</div>
-              {useName && name.trim() && (
-                <div className="mt-3 flex items-center justify-center gap-1.5 ks-muted text-xs">
-                  <User size={12} />
-                  <span>Toto zariadenie: <span className="ks-cream font-semibold">{name.trim()}</span></span>
+          <>
+            <div className="ks-card border ks-border-sub rounded-sm overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2 border-b ks-border-sub">
+                <div className="flex items-center gap-2 ks-muted text-xs ks-mono">
+                  <Wifi size={13} />
+                  AKTÍVNA MIESTNOSŤ
                 </div>
-              )}
+                <div className={`flex items-center gap-1.5 text-xs ks-mono ${status === 'error' ? 'text-red-400' : 'text-green-400'}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${status === 'error' ? 'bg-red-400' : 'bg-green-400'}`} />
+                  {status === 'error' ? 'CHYBA' : 'ONLINE'}
+                </div>
+              </div>
+
+              <div className="px-4 py-6 text-center">
+                <div className="ks-gold ks-mono text-5xl font-bold tracking-widest mb-2">{roomId}</div>
+                <div className="ks-muted text-xs">Zdieľaj tento kód s druhým zariadením</div>
+                {useName && name.trim() && (
+                  <div className="mt-3 flex items-center justify-center gap-1.5 ks-muted text-xs">
+                    <User size={12} />
+                    <span>Toto zariadenie: <span className="ks-cream font-semibold">{name.trim()}</span></span>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t ks-border-sub">
+                <button
+                  onClick={copyCode}
+                  className="w-full flex items-center justify-center gap-2 py-3 ks-press ks-muted text-sm border-b ks-border-sub"
+                >
+                  {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+                  {copied ? 'Skopírované!' : 'Kopírovať kód'}
+                </button>
+                <button
+                  onClick={handleDisconnect}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 ks-press ks-muted text-xs"
+                >
+                  <LogOut size={14} />
+                  Odhlásiť sa
+                </button>
+              </div>
             </div>
 
-            <div className="border-t ks-border-sub">
-              <button
-                onClick={copyCode}
-                className="w-full flex items-center justify-center gap-2 py-3 ks-press ks-muted text-sm border-b ks-border-sub"
-              >
-                {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
-                {copied ? 'Skopírované!' : 'Kopírovať kód'}
-              </button>
-              <button
-                onClick={handleDisconnect}
-                className="w-full flex items-center justify-center gap-2 py-2.5 ks-press ks-muted text-xs"
-              >
-                <LogOut size={14} />
-                Odhlásiť sa
-              </button>
-            </div>
-          </div>
+            <ActivePlayersPanel roomState={roomState} myUid={myUid} />
+          </>
         )}
 
         <div className="mt-auto ks-card border ks-border-sub rounded-sm px-4 py-4 flex gap-3">
