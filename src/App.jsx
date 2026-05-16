@@ -520,9 +520,9 @@ function startTournament(players, targetScore) {
       currentPlayer: 0, currentRound: 0,
       status: 'active',
       winner: null,
-      winPending: null,
-      winCandidates: [],
-      winRoundComplete: false,
+      confirmationPendingPlayer: null,
+      confirmationQueue: [],
+      confirmationRoundComplete: false,
       pendingDecision: null,
       targetScore, minWriteOff,
     });
@@ -885,7 +885,7 @@ function startTournament(players, targetScore) {
           currentRound: rounds.length,
           status: winner !== null ? 'finished' : 'aborted',
           winner,
-          winPending: null,
+          confirmationPendingPlayer: null,
           targetScore,
           minWriteOff: 300,
           imported: true,
@@ -1493,13 +1493,13 @@ function TournamentScreen({
   const isFirstWrite = !hasFirstWrite[currentPlayer];
   const isEndgame = total >= target - minWO && total < target;
   const strictMode = isStrictMode(rules);
-  const winPendingPlayer = strictMode ? null : tournament.winPending;
-  const isWinPendingTurn = winPendingPlayer === currentPlayer && winPendingPlayer !== null;
+  const confirmationPlayer = strictMode ? null : tournament.confirmationPendingPlayer;
+  const isConfirmationTurn = confirmationPlayer === currentPlayer && confirmationPlayer !== null;
   const exactNeeded = target - total;
   const isLastPlayerInRound = currentPlayer === players.length - 1;
-  // showWinPendingPopup je odvodený z domain stavu – nie useState.
-  // Zobrazí sa keď: (a) prebieha exact-hit-verification alebo (b) je winPending kolo.
-  const showWinPendingPopup = (!!tournament.pendingDecision || isWinPendingTurn)
+  // showDecisionPopup je odvodený z domain stavu – nie useState.
+  // Zobrazí sa keď: (a) prebieha exact-hit-verification alebo (b) je confirmation kolo.
+  const showDecisionPopup = (!!tournament.pendingDecision || isConfirmationTurn)
     && tournamentViewMode === 'basic';
 
   const pendingSum = pending.reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
@@ -1509,13 +1509,13 @@ console.log('[TS] render snapshot', {
   currentPlayer,
   currentRound,
   isEndgame,
-  isWinPendingTurn,
-  winPendingPlayer,
+  isConfirmationTurn,
+  confirmationPlayer,
   total,
   exactNeeded,
   pendingSum,
   newTotal,
-  showWinPendingPopup,
+  showDecisionPopup,
   pendingDecision: tournament.pendingDecision,
 });
 
@@ -1558,7 +1558,7 @@ console.log('[TS] render snapshot', {
 
   function addPoints(v) {
     if (!Number.isFinite(v) || v === 0) return;
-    if (isWinPendingTurn) {
+    if (isConfirmationTurn) {
       showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
       return;
     }
@@ -1575,7 +1575,7 @@ console.log('[TS] render snapshot', {
   }
 
   function addPenalty() {
-    if (isWinPendingTurn) {
+    if (isConfirmationTurn) {
       showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
       return;
     }
@@ -1590,8 +1590,8 @@ console.log('[TS] render snapshot', {
     if (pending.length === 0) return;
 
     if (pending[0] === 'dash') {
-      if (isWinPendingTurn) {
-        // winPending kolo: potvrdenie ničnehodením → zapisujeme čiarku s confirmWin
+      if (isConfirmationTurn) {
+        // confirmation kolo: potvrdenie ničnehodením → zapisujeme čiarku s confirmWin
         advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
         return;
       }
@@ -1599,8 +1599,8 @@ console.log('[TS] render snapshot', {
       return;
     }
 
-    if (isWinPendingTurn) {
-      // V winPending kole smie hráč len čiarkovať (ničnehodenie)
+    if (isConfirmationTurn) {
+      // V confirmation kole smie hráč len čiarkovať (ničnehodenie)
       showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
       return;
     }
@@ -1726,7 +1726,7 @@ console.log('[TS] render snapshot', {
   }
 
   function commitDash() {
-    if (isWinPendingTurn) {
+    if (isConfirmationTurn) {
       advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
       return;
     }
@@ -1742,20 +1742,20 @@ console.log('[TS] render snapshot', {
       newRounds[prev.currentRound][prev.currentPlayer] = value;
 
       let winner = prev.winner;
-      let winPending = prev.winPending;
-      let winCandidates = [...(prev.winCandidates || [])];
-      let winRoundComplete = prev.winRoundComplete;
+      let confirmationPendingPlayer = prev.confirmationPendingPlayer;
+      let confirmationQueue = [...(prev.confirmationQueue || [])];
+      let confirmationRoundComplete = prev.confirmationRoundComplete;
 
       if (opts.confirmCandidate !== undefined) {
-        if (!winCandidates.includes(opts.confirmCandidate)) {
-          winCandidates.push(opts.confirmCandidate);
+        if (!confirmationQueue.includes(opts.confirmCandidate)) {
+          confirmationQueue.push(opts.confirmCandidate);
         }
-        winPending = opts.confirmCandidate;
+        confirmationPendingPlayer = opts.confirmCandidate;
       }
 
       if (opts.addCandidate !== undefined) {
-        if (!winCandidates.includes(opts.addCandidate)) {
-          winCandidates.push(opts.addCandidate);
+        if (!confirmationQueue.includes(opts.addCandidate)) {
+          confirmationQueue.push(opts.addCandidate);
         }
       }
 
@@ -1783,14 +1783,14 @@ console.log('[TS] render snapshot', {
         const nextPlayer = (prev.currentPlayer + 1) % prev.players.length;
         const roundEnded = nextPlayer === 0;
         const nextRound = prev.currentRound + (roundEnded ? 1 : 0);
-        winPending = null;
+        confirmationPendingPlayer = null;
 
         if (roundEnded) {
           const provisional = {
             ...prev,
             rounds: newRounds,
             _confirmedDetailed: confirmedSoFar,
-            winCandidates,
+            confirmationQueue,
             rules: prev.rules,
           };
           const result = computeWinners(provisional);
@@ -1801,9 +1801,9 @@ console.log('[TS] render snapshot', {
             currentPlayer: nextPlayer,
             currentRound: nextRound,
             winner,
-            winPending,
-            winCandidates,
-            winRoundComplete: winner !== null,
+            confirmationPendingPlayer,
+            confirmationQueue,
+            confirmationRoundComplete: winner !== null,
             _confirmedDetailed: confirmedSoFar,
             pendingDecision: null,
           };
@@ -1815,9 +1815,9 @@ console.log('[TS] render snapshot', {
           currentPlayer: nextPlayer,
           currentRound: nextRound,
           winner,
-          winPending,
-          winCandidates,
-          winRoundComplete,
+          confirmationPendingPlayer,
+          confirmationQueue,
+          confirmationRoundComplete,
           _confirmedDetailed: confirmedSoFar,
           pendingDecision: null,
         };
@@ -1826,29 +1826,29 @@ console.log('[TS] render snapshot', {
       if (opts.retryWin || opts.declineWin) {
         const _np = (prev.currentPlayer + 1) % prev.players.length;
         const _re = _np === 0;
-        winPending = prev.currentPlayer;
+        confirmationPendingPlayer = prev.currentPlayer;
         return {
           ...prev,
           rounds: newRounds,
-          currentPlayer: _re ? winPending : _np,
+          currentPlayer: _re ? confirmationPendingPlayer : _np,
           currentRound: prev.currentRound + (_re ? 1 : 0),
           winner,
-          winPending,
-          winCandidates,
-          winRoundComplete,
+          confirmationPendingPlayer,
+          confirmationQueue,
+          confirmationRoundComplete,
           pendingDecision: null,
         };
       }
       if (opts.__declineWin_removed) {
-        winCandidates = winCandidates.filter(c => c !== prev.currentPlayer);
-        winPending = winCandidates.length > 0 ? winCandidates[0] : null;
+        confirmationQueue = confirmationQueue.filter(c => c !== prev.currentPlayer);
+        confirmationPendingPlayer = confirmationQueue.length > 0 ? confirmationQueue[0] : null;
         return {
           ...prev,
           rounds: newRounds,
-          ...(winPending !== null ? { currentPlayer: winPending } : {}),
+          ...(confirmationPendingPlayer !== null ? { currentPlayer: confirmationPendingPlayer } : {}),
           winner,
-          winPending,
-          winCandidates,
+          confirmationPendingPlayer,
+          confirmationQueue,
           pendingDecision: null,
         };
       }
@@ -1862,7 +1862,7 @@ console.log('[TS] render snapshot', {
           ...prev,
           rounds: newRounds,
           _confirmedDetailed: autoConfirmedDetailed,
-          winCandidates,
+          confirmationQueue,
           rules: prev.rules,
         };
         const result = computeWinners(provisional);
@@ -1872,17 +1872,17 @@ console.log('[TS] render snapshot', {
             a => !((autoConfirmedDetailed || []).some(c => c.player === a && c.round === prev.currentRound))
           );
           if (unconfirmedAchievers.length > 0) {
-            winPending = unconfirmedAchievers[0];
-            winRoundComplete = true;
+            confirmationPendingPlayer = unconfirmedAchievers[0];
+            confirmationRoundComplete = true;
             return {
               ...prev,
               rounds: newRounds,
-              currentPlayer: winPending,
+              currentPlayer: confirmationPendingPlayer,
               currentRound: nextRound,
               winner: null,
-              winPending,
-              winCandidates,
-              winRoundComplete,
+              confirmationPendingPlayer,
+              confirmationQueue,
+              confirmationRoundComplete,
               _confirmedDetailed: autoConfirmedDetailed,
               pendingDecision: null,
             };
@@ -1891,16 +1891,16 @@ console.log('[TS] render snapshot', {
 
         if (result.winners.length > 0) {
           winner = result.winners.length === 1 ? result.winners[0] : result.winners;
-          winRoundComplete = true;
+          confirmationRoundComplete = true;
           return {
             ...prev,
             rounds: newRounds,
             currentPlayer: nextPlayer,
             currentRound: prev.currentRound,
             winner,
-            winPending: null,
-            winCandidates,
-            winRoundComplete,
+            confirmationPendingPlayer: null,
+            confirmationQueue,
+            confirmationRoundComplete,
             _confirmedDetailed: autoConfirmedDetailed,
             pendingDecision: null,
           };
@@ -1913,9 +1913,9 @@ console.log('[TS] render snapshot', {
         currentPlayer: nextPlayer,
         currentRound: nextRound,
         winner,
-        winPending: roundEnded ? null : winPending,
-        winCandidates,
-        winRoundComplete,
+        confirmationPendingPlayer: roundEnded ? null : confirmationPendingPlayer,
+        confirmationQueue,
+        confirmationRoundComplete,
         _confirmedDetailed: autoConfirmedDetailed,
         pendingDecision: null,
       };
@@ -1952,14 +1952,14 @@ console.log('[TS] render snapshot', {
       }, { duration: 4500 });
     }, 400);
     return () => clearTimeout(t);
-  }, [currentPlayer, currentRound, isEndgame, isWinPendingTurn, exactNeeded]);
+  }, [currentPlayer, currentRound, isEndgame, isConfirmationTurn, exactNeeded]);
 
 const isObserverMode = tournamentViewMode === 'observer';
 const isRecorderMode = tournamentViewMode === 'recorder';
 const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== null;
 
-// showWinPendingPopup je teraz odvodený (derived) – useEffect na setShowWinPendingPopup
-// nie je potrebný. Popup sa zobrazí automaticky keď pendingDecision !== null alebo isWinPendingTurn.
+// showDecisionPopup je teraz odvodený (derived) – useEffect na setShowWinPendingPopup
+// nie je potrebný. Popup sa zobrazí automaticky keď pendingDecision !== null alebo isConfirmationTurn.
 
   function addCustom() {
     const n = parseInt(customInput, 10);
@@ -2229,7 +2229,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
       )}
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-      {!blockFollowupPopups && funny && !showWinPendingPopup && funnyWindowsDisplayMode === 'standard' && (
+      {!blockFollowupPopups && funny && !showDecisionPopup && funnyWindowsDisplayMode === 'standard' && (
         <FunnyOverlay data={funny} onClose={funnyQueue.dismiss} />
       )}
 
@@ -2333,7 +2333,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
       )}
 
       {/* WIN-PENDING POPUP — všetky vizuálne varianty cez DecisionPresenter */}
-      {!blockFollowupPopups && showWinPendingPopup && (
+      {!blockFollowupPopups && showDecisionPopup && (
         <DecisionPresenter
           playerName={players[currentPlayer]}
           target={target}
