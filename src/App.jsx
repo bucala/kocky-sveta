@@ -19,6 +19,7 @@ import { NewTournament } from './screens/NewTournament.jsx';
 import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
 import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
 import { OnlineScreen } from './screens/OnlineScreen.jsx';
+import { computeWinners, computePlayerTotals as computeTotals } from './lib/tournamentEngine.js';
 import './app.css';
 
 // ─── Konštanty ────────────────────────────────────────────────────────────
@@ -501,12 +502,18 @@ export default function App() {
     setActive(prev => typeof updater === 'function' ? updater(prev) : updater);
   }, []);
 
+  // Refs hold the latest function so stable callbacks never go stale
+  const finishTournamentRef = useRef(null);
+  const abortTournamentRef = useRef(null);
+  finishTournamentRef.current = finishTournament;
+  abortTournamentRef.current = abortTournament;
+
   const handleFinishTournament = useCallback((winner) => {
-    finishTournament(winner);
+    finishTournamentRef.current(winner);
   }, []);
 
   const handleAbortTournament = useCallback(() => {
-    abortTournament();
+    abortTournamentRef.current();
   }, []);
 function startTournament(players, targetScore) {
     setActive({
@@ -1253,134 +1260,6 @@ function PendingChips({ pending, removePending }) {
 function isStrictMode(rules) {
   const r18 = (rules || []).find(r => r.id === 'r18');
   return !r18 || r18.selected !== 'Áno';
-}
-
-function computeTotals(rounds, playersCount) {
-  return new Array(playersCount).fill(0).map((_, pIdx) => {
-    let sum = 0;
-    for (const round of (Array.isArray(rounds) ? rounds : [])) {
-      const v = round?.[pIdx];
-      if (typeof v === 'number' && Number.isFinite(v)) sum += v;
-    }
-    return sum;
-  });
-}
-
-function computeWinners(tournament) {
-  const players = tournament?.players || [];
-  const rounds = tournament?.rounds || [];
-  const target = tournament?.targetScore || 10000;
-  const totals = computeTotals(rounds, players.length);
-
-  const achievers = totals
-    .map((t, idx) => ({ idx, total: t }))
-    .filter(x => x.total >= target)
-    .map(x => x.idx);
-
-  const r18 = (tournament.rules || []).find(r => r.id === 'r18');
-  const requiresConfirmation = !r18 || r18.selected !== 'Nie'; 
-  const confirmed = Array.isArray(tournament._confirmedDetailed) ? tournament._confirmedDetailed : [];
-
-  const isFinishedWithoutConfirm =
-    tournament.status === 'finished' &&
-    requiresConfirmation &&
-    confirmed.length === 0 &&
-    achievers.length > 0;
-  const useStrictDetection = !requiresConfirmation || isFinishedWithoutConfirm;
-
-  if (achievers.length === 0) {
-    return {
-      winners: [],
-      totals,
-      achievers: [],
-      pendingAchievers: [],
-      isDraw: false,
-      valid: true,
-      errors: [],
-      reason: 'Žiadny hráč ešte nedosiahol cieľ.',
-    };
-  }
-
-  let winners = [];
-  let reason = '';
-  let pendingAchievers = [];
-
-  if (useStrictDetection) {
-    const reachedAt = achievers.map(idx => {
-      let cum = 0;
-      for (let r = 0; r < rounds.length; r++) {
-        const v = rounds[r]?.[idx];
-        if (typeof v === 'number' && Number.isFinite(v)) cum += v;
-        if (cum >= target) return { idx, round: r };
-      }
-      return { idx, round: Infinity };
-    });
-    const minRound = Math.min(...reachedAt.map(x => x.round));
-    winners = reachedAt.filter(x => x.round === minRound).map(x => x.idx);
-    reason = winners.length === 1
-      ? `Hráč dosiahol cieľ ako prvý v kole ${minRound + 1}.`
-      : `${winners.length} hráči dosiahli cieľ v rovnakom kole (${minRound + 1}). Remíza.`;
-  } else {
-    const confirmedAchievers = confirmed.filter(c => achievers.includes(c.player));
-    pendingAchievers = achievers.filter(a => !confirmedAchievers.some(c => c.player === a));
-
-    if (confirmedAchievers.length === 0) {
-      return {
-        winners: [],
-        totals,
-        achievers,
-        pendingAchievers,
-        isDraw: false,
-        valid: false,
-        errors: [`Turnaj sa nedá uzatvoriť — ${achievers.length} hráč(ov) dosiahlo cieľ, no žiadny ešte nepotvrdil výhru.`],
-        reason: `${achievers.length} hráč(ov) dosiahlo cieľ, ale ešte nepotvrdil(i) výhru.`,
-      };
-    }
-
-    const minRound = Math.min(...confirmedAchievers.map(c => c.round));
-    const earliest = confirmedAchievers.filter(c => c.round === minRound);
-    winners = earliest.map(c => c.player);
-
-    if (pendingAchievers.length > 0) {
-      return {
-        winners: [],  
-        totals,
-        achievers,
-        pendingAchievers,
-        isDraw: false,
-        valid: false,
-        errors: [`Turnaj sa nedá uzatvoriť — ${pendingAchievers.length} hráč(ov) ešte nepotvrdil(i) výhru.`],
-        reason: `${pendingAchievers.length} hráč(ov) má dosiahnutý cieľ ale ešte nepotvrdil(i) výhru.`,
-      };
-    }
-
-    reason = winners.length === 1
-      ? `Víťazstvo potvrdené najskôr v kole ${minRound + 1}.`
-      : `${winners.length} hráči potvrdili víťazstvo v rovnakom kole (${minRound + 1}). Remíza.`;
-  }
-
-  const errors = [];
-  for (const w of winners) {
-    if (typeof w !== 'number' || w < 0 || w >= players.length) {
-      errors.push(`Neplatný index víťaza: ${w}.`);
-      continue;
-    }
-    if (totals[w] < target) {
-      errors.push(`Víťaz "${players[w]}" má skóre ${totals[w]}, čo je menej ako cieľ ${target}.`);
-    }
-  }
-  const valid = errors.length === 0;
-
-  return {
-    winners: valid ? winners : [],
-    totals,
-    achievers,
-    pendingAchievers,
-    isDraw: valid && winners.length > 1,
-    valid,
-    errors,
-    reason,
-  };
 }
 
 function useFunnyQueue() {
