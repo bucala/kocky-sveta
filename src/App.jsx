@@ -1474,16 +1474,12 @@ function TournamentScreen({
   const [toast, setToast] = useState(null);
   const funnyQueue = useFunnyQueue();
   const funny = funnyQueue.active;
-  const [showWinPendingPopup, setShowWinPendingPopup] = useState(false);
-  const [pendingWinScore, setPendingWinScore] = useState(null);
-  const [pendingWinMeta, setPendingWinMeta] = useState(null);
   const [showTemporaryKingPopup, setShowTemporaryKingPopup] = useState(false);
   const [temporaryKingToken, setTemporaryKingToken] = useState(null);
   const [deferTemporaryKingUntilWinPopupCloses, setDeferTemporaryKingUntilWinPopupCloses] = useState(false);
   const [winnerCelebration, setWinnerCelebration] = useState(null);
   const funnyCountRef = useRef(players.map(() => 0));
   const endgameNoticedRef = useRef(new Set());
-  const winPopupShownRef = useRef(new Set());
 
   const totals = useMemo(
     () => computeTotals(rounds, players.length),
@@ -1501,6 +1497,10 @@ function TournamentScreen({
   const isWinPendingTurn = winPendingPlayer === currentPlayer && winPendingPlayer !== null;
   const exactNeeded = target - total;
   const isLastPlayerInRound = currentPlayer === players.length - 1;
+  // showWinPendingPopup je odvodený z domain stavu – nie useState.
+  // Zobrazí sa keď: (a) prebieha exact-hit-verification alebo (b) je winPending kolo.
+  const showWinPendingPopup = (!!tournament.pendingDecision || isWinPendingTurn)
+    && tournamentViewMode === 'basic';
 
   const pendingSum = pending.reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
   const newTotal = total + pendingSum;
@@ -1516,6 +1516,7 @@ console.log('[TS] render snapshot', {
   pendingSum,
   newTotal,
   showWinPendingPopup,
+  pendingDecision: tournament.pendingDecision,
 });
 
   function showToast(msg, kind = 'info') {
@@ -1590,12 +1591,7 @@ console.log('[TS] render snapshot', {
 
     if (pending[0] === 'dash') {
       if (isWinPendingTurn) {
-        if (pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
-          advance(pendingWinScore, { confirmWin: true, confirmedRound: pendingWinMeta?.round ?? currentRound, confirmedPlayer: currentPlayer });
-          setPendingWinScore(null);
-          setPendingWinMeta(null);
-          return;
-        }
+        // winPending kolo: potvrdenie ničnehodením → zapisujeme čiarku s confirmWin
         advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
         return;
       }
@@ -1604,12 +1600,7 @@ console.log('[TS] render snapshot', {
     }
 
     if (isWinPendingTurn) {
-      if (pendingSum === 0 && pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
-        advance(pendingWinScore, { confirmWin: true, confirmedRound: pendingWinMeta?.round ?? currentRound, confirmedPlayer: currentPlayer });
-        setPendingWinScore(null);
-        setPendingWinMeta(null);
-        return;
-      }
+      // V winPending kole smie hráč len čiarkovať (ničnehodenie)
       showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
       return;
     }
@@ -1736,12 +1727,6 @@ console.log('[TS] render snapshot', {
 
   function commitDash() {
     if (isWinPendingTurn) {
-      if (pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
-        advance(pendingWinScore, { confirmWin: true, confirmedRound: pendingWinMeta?.round ?? currentRound, confirmedPlayer: currentPlayer });
-        setPendingWinScore(null);
-        setPendingWinMeta(null);
-        return;
-      }
       advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
       return;
     }
@@ -1973,27 +1958,8 @@ const isObserverMode = tournamentViewMode === 'observer';
 const isRecorderMode = tournamentViewMode === 'recorder';
 const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== null;
 
-useEffect(() => {
-  // v replayeri / observer móde vôbec neotváraj potvrdzovaciu modálku
-  if (isObserverMode || isRecorderMode) return;
-
-  if (!isWinPendingTurn) return;
-  if (showWinPendingPopup) return;
-  const key = `winpending_${currentPlayer}_${currentRound}`;
-  if (winPopupShownRef.current.has(key)) return;
-  winPopupShownRef.current.add(key);
-  const t = setTimeout(() => {
-    setShowWinPendingPopup(true);
-  }, 300);
-  return () => clearTimeout(t);
-}, [
-  isWinPendingTurn,
-  currentPlayer,
-  currentRound,
-  showWinPendingPopup,
-  isObserverMode,
-  isRecorderMode,
-]);
+// showWinPendingPopup je teraz odvodený (derived) – useEffect na setShowWinPendingPopup
+// nie je potrebný. Popup sa zobrazí automaticky keď pendingDecision !== null alebo isWinPendingTurn.
 
   function addCustom() {
     const n = parseInt(customInput, 10);
@@ -2397,12 +2363,9 @@ useEffect(() => {
               <button
                 onClick={() => {
                   const shouldShowDeferredKing = deferTemporaryKingUntilWinPopupCloses && temporaryKingToken !== null;
-                  setShowWinPendingPopup(false);
                   if (shouldShowDeferredKing) setShowTemporaryKingPopup(true);
-                  if (pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
-                    advance(pendingWinScore, { confirmWin: true, confirmedRound: pendingWinMeta?.round ?? currentRound, confirmedPlayer: currentPlayer });
-                    setPendingWinScore(null);
-                    setPendingWinMeta(null);
+                  if (tournament.pendingDecision) {
+                    resolvePendingDecision(tournament.pendingDecision.id, 'confirm');
                   } else {
                     advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
                   }
@@ -2414,12 +2377,13 @@ useEffect(() => {
               </button>
               <button
                 onClick={() => {
-                  setPendingWinScore(null);
-                  setPendingWinMeta(null);
-                  setShowWinPendingPopup(false);
                   setDeferTemporaryKingUntilWinPopupCloses(false);
                   setTemporaryKingToken(null);
-                  advance('dash');
+                  if (tournament.pendingDecision) {
+                    resolvePendingDecision(tournament.pendingDecision.id, 'reject');
+                  } else {
+                    advance('dash');
+                  }
                 }}
                 className="ks-press py-4 px-3 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
                 <X size={20} className="ks-text-accent mx-auto mb-1" />
@@ -2452,12 +2416,9 @@ useEffect(() => {
               <button
                 onClick={() => {
                   const shouldShowDeferredKing = deferTemporaryKingUntilWinPopupCloses && temporaryKingToken !== null;
-                  setShowWinPendingPopup(false);
                   if (shouldShowDeferredKing) setShowTemporaryKingPopup(true);
-                  if (pendingWinScore !== null && pendingWinMeta?.player === currentPlayer) {
-                    advance(pendingWinScore, { confirmWin: true, confirmedRound: pendingWinMeta?.round ?? currentRound, confirmedPlayer: currentPlayer });
-                    setPendingWinScore(null);
-                    setPendingWinMeta(null);
+                  if (tournament.pendingDecision) {
+                    resolvePendingDecision(tournament.pendingDecision.id, 'confirm');
                   } else {
                     advance('dash', { confirmWin: true, confirmedRound: currentRound, confirmedPlayer: currentPlayer });
                   }
@@ -2467,12 +2428,13 @@ useEffect(() => {
               </button>
               <button
                 onClick={() => {
-                  setPendingWinScore(null);
-                  setPendingWinMeta(null);
-                  setShowWinPendingPopup(false);
                   setDeferTemporaryKingUntilWinPopupCloses(false);
                   setTemporaryKingToken(null);
-                  advance('dash');
+                  if (tournament.pendingDecision) {
+                    resolvePendingDecision(tournament.pendingDecision.id, 'reject');
+                  } else {
+                    advance('dash');
+                  }
                 }}
                 className="ks-press py-3 px-2 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
                 <div className="ks-display ks-text-accent text-base font-bold">✗ Nepotvrdil</div>
