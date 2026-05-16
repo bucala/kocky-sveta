@@ -184,11 +184,11 @@ export function AdminScreen({ onBack, adminSettings, onAdminChange, tournaments,
         <Section label="ONLINE MIESTNOSŤ" />
         <InputRow
           icon={Wifi}
-          title="Vlastný názov miestnosti"
-          subtitle="Zobrazí sa ostatným hráčom ako meno zariadenia. Predvolené: 'hráč'."
+          title="Vytvoriť vlastnú miestnosť"
+          subtitle="Zadaj meno zariadenia a stlač VYTVORIŤ — otvorí sa Online miestnosť s týmto názvom, aktuálnym skinom a nastaveniami."
           value={adminSettings.roomName || ''}
           onChange={(v) => update('roomName', v)}
-          placeholder="napr. Telefón Marcel, Tablet..."
+          placeholder="napr. Obývačka, Tablet Marcel..."
           maxLength={24}
           actionLabel="VYTVORIŤ"
           onAction={onOpenOnline}

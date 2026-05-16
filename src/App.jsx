@@ -1258,6 +1258,18 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
           <ChevronRight className="ks-muted" size={20} />
         </button>
 
+        <button onClick={onAdmin}
+          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <Shield size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">Admin nastavenia</div>
+            <div className="ks-muted text-sm">Interné nastavenia · debug · override · diagnostika</div>
+          </div>
+          <ChevronRight className="ks-muted" size={20} />
+        </button>
+
         <div className="ks-mono ks-text-accent text-xs px-1 pt-4 flex items-center gap-1.5">
           <AlertTriangle size={11} /> NEBEZPEČNÁ ZÓNA
         </div>
@@ -1300,19 +1312,6 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
             <p><span className="ks-cream font-semibold">Vývoj:</span> Postavené s pomocou AI (Perplexity / Claude Sonnet). Dizajn, herná logika a pravidlá sú autorské.</p>
           </div>
         </div>
-
-        <div className="ks-mono ks-gold text-xs px-1 pt-4">SYSTÉM</div>
-        <button onClick={onAdmin}
-          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
-            <Shield size={22} className="ks-gold" />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Admin nastavenia</div>
-            <div className="ks-muted text-sm">Interné nastavenia · debug · override · diagnostika</div>
-          </div>
-          <ChevronRight className="ks-muted" size={20} />
-        </button>
       </div>
     </div>
   );
