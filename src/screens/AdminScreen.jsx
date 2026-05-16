@@ -184,8 +184,8 @@ export function AdminScreen({ onBack, adminSettings, onAdminChange, tournaments,
         <Section label="ONLINE MIESTNOSŤ" />
         <InputRow
           icon={Wifi}
-          title="Vlastná online miestnosť"
-          subtitle="Zadaj meno zariadenia a stlač VYTVORIŤ — miestnosť sa vytvorí okamžite s aktuálnym skinom, pravidlami a nastaveniami. Zdieľaj kód s druhým zariadením."
+          title="Vlastný kód miestnosti"
+          subtitle="Zadaj vlastný kód miestnosti (napr. RUBIKON) a stlač VYTVORIŤ — miestnosť sa vytvorí okamžite s týmto kódom, aktuálnym skinom a pravidlami."
           value={adminSettings.roomName || ''}
           onChange={(v) => update('roomName', v)}
           placeholder="napr. Obývačka, Tablet Marcel..."

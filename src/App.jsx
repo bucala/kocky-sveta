@@ -556,6 +556,8 @@ export default function App() {
   }, [tournaments, active, adminSettings]);
 
   const handleAdminCreateRoom = useCallback(async () => {
+    const customId = adminSettings.roomName?.toUpperCase().trim();
+    if (!customId) { window.alert('Zadaj názov miestnosti.'); return; }
     try {
       const { getAuth, signInAnonymously } = await import('firebase/auth');
       const { createRoom } = await import('./online/createRoom.ts');
@@ -564,10 +566,11 @@ export default function App() {
       if (!auth.currentUser) await signInAnonymously(auth);
       const uid = auth.currentUser.uid;
       const rid = await createRoom({
-        hostName: adminSettings.roomName?.trim() || 'hráč',
+        hostName: 'hráč',
         pin: '0000',
         selectedSkin: selectedSkin || 'classic',
         rules: rules || [],
+        customRoomId: customId,
       });
       setOnlineRoomId(rid);
       setOnlineUid(uid);
