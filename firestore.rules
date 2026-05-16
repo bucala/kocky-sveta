@@ -2,20 +2,30 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Miestnosti — prístup len pre prihlásených hráčov
     match /rooms/{roomId} {
-      // Čítanie: len prihlásený hráč v miestnosti
-      allow read: if request.auth != null;
+      // Čítanie: člen miestnosti ALEBO miestnosť čaká (potrebné pred joinovaním)
+      allow read: if request.auth != null
+        && (request.auth.uid in resource.data.players
+            || resource.data.status == 'waiting');
 
-      // Vytvorenie: prihlásený user, validné polia
+      // Vytvorenie: prihlásený user, status=waiting, 1 hráč = žiadateľ
       allow create: if request.auth != null
         && request.resource.data.status == 'waiting'
-        && request.resource.data.players.size() == 1;
+        && request.resource.data.players.size() == 1
+        && request.auth.uid in request.resource.data.players;
 
-      // Update: prihlásený hráč (join, score update, game state)
-      allow update: if request.auth != null;
+      // Update: existujúci člen ALEBO nový hráč sa pridáva do waiting miestnosti
+      allow update: if request.auth != null
+        && (
+          request.auth.uid in resource.data.players
+          || (
+            resource.data.status == 'waiting'
+            && request.auth.uid in request.resource.data.players
+            && request.resource.data.players.keys().hasAll(resource.data.players.keys())
+          )
+        );
 
-      // Mazanie: len owner (uid musí byť v players)
+      // Mazanie: len existujúci člen
       allow delete: if request.auth != null
         && request.auth.uid in resource.data.players;
     }
