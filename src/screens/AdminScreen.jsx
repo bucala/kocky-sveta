@@ -63,7 +63,7 @@ function InputRow({ icon: Icon, title, subtitle, value, onChange, placeholder, m
         {actionLabel && (
           <button
             onClick={onAction}
-            className="ks-gold-bg ks-press px-3 py-2 rounded-sm ks-mono text-xs font-bold flex-shrink-0"
+            className="ks-gold-bg ks-press px-2.5 py-1 rounded-sm ks-mono text-xs font-bold flex-shrink-0"
           >
             {actionLabel}
           </button>
@@ -107,7 +107,7 @@ function ActionRow({ icon: Icon, title, subtitle, label, onClick, danger }) {
         <div className="ks-muted text-xs">{subtitle}</div>
       </div>
       <button onClick={onClick}
-        className={`ks-press px-3 py-1.5 rounded-sm ks-mono text-xs flex-shrink-0 ${danger ? 'border border-red-700/50 text-red-400' : 'ks-gold-bg'}`}>
+        className={`ks-press px-2.5 py-1 rounded-sm ks-mono text-xs flex-shrink-0 ${danger ? 'border border-red-700/50 text-red-400' : 'ks-gold-bg'}`}>
         {label}
       </button>
     </div>
@@ -155,7 +155,7 @@ function DiagnosticsPanel({ adminSettings, tournaments, active, appVersion }) {
 }
 
 // ─── AdminScreen ──────────────────────────────────────────────────────────────
-export function AdminScreen({ onBack, adminSettings, onAdminChange, tournaments, active, appVersion, onSimulateTurn, onExportState, onOpenOnline }) {
+export function AdminScreen({ onBack, adminSettings, onAdminChange, tournaments, active, appVersion, onSimulateTurn, onExportState, onCreateRoom }) {
   const [copied, setCopied] = useState(false);
 
   const update = useCallback((key, val) => {
@@ -184,14 +184,14 @@ export function AdminScreen({ onBack, adminSettings, onAdminChange, tournaments,
         <Section label="ONLINE MIESTNOSŤ" />
         <InputRow
           icon={Wifi}
-          title="Vytvoriť vlastnú miestnosť"
-          subtitle="Zadaj meno zariadenia a stlač VYTVORIŤ — otvorí sa Online miestnosť s týmto názvom, aktuálnym skinom a nastaveniami."
+          title="Vlastná online miestnosť"
+          subtitle="Zadaj meno zariadenia a stlač VYTVORIŤ — miestnosť sa vytvorí okamžite s aktuálnym skinom, pravidlami a nastaveniami. Zdieľaj kód s druhým zariadením."
           value={adminSettings.roomName || ''}
           onChange={(v) => update('roomName', v)}
           placeholder="napr. Obývačka, Tablet Marcel..."
           maxLength={24}
           actionLabel="VYTVORIŤ"
-          onAction={onOpenOnline}
+          onAction={onCreateRoom}
         />
 
         {/* DEBUG */}

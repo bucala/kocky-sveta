@@ -20,6 +20,7 @@ import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
 import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
 import { OnlineScreen } from './screens/OnlineScreen.jsx';
 import { AdminScreen, AdminPinDialog, DEFAULT_ADMIN_SETTINGS } from './screens/AdminScreen.jsx';
+import { useOnlineStore } from './online/onlineStore.ts';
 import { computeWinners, computePlayerTotals as computeTotals } from './lib/tournamentEngine.js';
 import './app.css';
 
@@ -451,6 +452,8 @@ export default function App() {
   const [adminSettings, setAdminSettings] = useState(DEFAULT_ADMIN_SETTINGS);
   const [showAdminPin, setShowAdminPin] = useState(false);
 
+  const { setRoomId: setOnlineRoomId, setUid: setOnlineUid, setStatus: setOnlineStatus } = useOnlineStore();
+
   useEffect(() => {
     (async () => {
       try { const r = await window.storage.get('rules');       if (r?.value) setrules(JSON.parse(r.value)); }        catch {}
@@ -551,6 +554,29 @@ export default function App() {
     const state = { tournaments, active, adminSettings };
     navigator.clipboard.writeText(JSON.stringify(state, null, 2)).catch(() => {});
   }, [tournaments, active, adminSettings]);
+
+  const handleAdminCreateRoom = useCallback(async () => {
+    try {
+      const { getAuth, signInAnonymously } = await import('firebase/auth');
+      const { createRoom } = await import('./online/createRoom.ts');
+      const auth = getAuth();
+      await auth.authStateReady();
+      if (!auth.currentUser) await signInAnonymously(auth);
+      const uid = auth.currentUser.uid;
+      const rid = await createRoom({
+        hostName: adminSettings.roomName?.trim() || 'hráč',
+        pin: '0000',
+        selectedSkin: selectedSkin || 'classic',
+        rules: rules || [],
+      });
+      setOnlineRoomId(rid);
+      setOnlineUid(uid);
+      setOnlineStatus('connected');
+      setView('online');
+    } catch (e) {
+      window.alert(`Chyba: ${e?.message || e}`);
+    }
+  }, [adminSettings.roomName, rules, selectedSkin, setOnlineRoomId, setOnlineUid, setOnlineStatus]);
 
 function startTournament(players, targetScore) {
     setActive({
@@ -1033,7 +1059,7 @@ function startTournament(players, targetScore) {
           appVersion="1.5.4"
           onSimulateTurn={handleSimulateTurn}
           onExportState={handleExportState}
-          onOpenOnline={() => setView('online')}
+          onCreateRoom={handleAdminCreateRoom}
         />
       )}
       {view === 'viewModes' && (
