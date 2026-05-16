@@ -11,7 +11,7 @@ export async function joinRoom(params: {
   const snap = await getDoc(roomRef);
 
   if (!snap.exists()) {
-    console.error('[joinRoom] Miestnosť neexistuje:', params.roomId);
+    if ((window as any).__ksVerboseFirebase) console.error('[joinRoom] Miestnosť neexistuje:', params.roomId);
     throw new Error('Miestnosť neexistuje');
   }
 
@@ -27,6 +27,6 @@ export async function joinRoom(params: {
     },
   });
 
-  console.log('[joinRoom] roomId:', params.roomId, 'uid:', uid);
+  if ((window as any).__ksVerboseFirebase) console.log('[joinRoom] roomId:', params.roomId, 'uid:', uid);
   return { uid };
 }

@@ -495,6 +495,12 @@ export default function App() {
     return r ? Number(r.points) || 300 : 300;
   }, [rules]);
 
+  const effectiveMinWriteOff = adminSettings.minWriteOffOverride ?? minWriteOff;
+
+  useEffect(() => {
+    window.__ksVerboseFirebase = !!adminSettings.verboseFirebase;
+  }, [adminSettings.verboseFirebase]);
+
   
   // === Stable callbacks (prevent infinite loops) ===
   const handleMenuClick = useCallback(() => setView('menu'), []);
@@ -1063,6 +1069,8 @@ function startTournament(players, targetScore) {
             onSkinChange={setSelectedSkin}
             tournamentViewMode={tournamentViewMode}
             funnyWindowsDisplayMode={funnyWindowsDisplayMode}
+            debugMode={adminSettings.debugMode}
+            minWriteOffOverride={adminSettings.minWriteOffOverride}
           />
         ) : (
           <SafeTournamentFallback title="Turnaj sa nepodarilo načítať" />
@@ -1089,7 +1097,7 @@ function startTournament(players, targetScore) {
         <SafeTournamentFallback title="Dáta turnaja sa nepodarilo načítať" />
       ))}
       {view === 'rules' && <RulesView rules={rules} onBack={() => setView('menu')} />}
-      {view === 'online' && <OnlineScreen onBack={() => setView('menu')} activeSkin={selectedSkin} activeRules={rules} />
+      {view === 'online' && <OnlineScreen onBack={() => setView('menu')} activeSkin={selectedSkin} activeRules={rules} defaultRoomName={adminSettings.roomName} />
       }
       {view === 'rulesEditor' && (
         <RulesEditor rules={rules} onSave={setrules} onBack={() => setView('settings')}
@@ -1394,12 +1402,12 @@ function useFunnyQueue() {
 function TournamentScreen({
   tournament, rules, onUpdate, onFinish, onAbort, onMenu,
   scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange,
-  tournamentViewMode, funnyWindowsDisplayMode
+  tournamentViewMode, funnyWindowsDisplayMode, debugMode, minWriteOffOverride
 }) {
   // Early null guard — before destructuring to prevent crash
   if (!tournament) return <SafeTournamentFallback />;
   const target = tournament.targetScore || 10000;
-  const minWO = tournament.minWriteOff || 300;
+  const minWO = minWriteOffOverride ?? tournament.minWriteOff ?? 300;
   const players = Array.isArray(tournament.players) ? tournament.players : [];
   const rounds = Array.isArray(tournament.rounds) ? tournament.rounds : [];
   const { currentPlayer = 0, currentRound = 0 } = tournament;
@@ -2233,6 +2241,13 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
             }
           }}
         />
+      )}
+      {debugMode && (
+        <div className="fixed bottom-0 left-0 right-0 z-[9999] bg-black/85 text-green-400 font-mono text-[10px] px-3 py-2 space-y-0.5 pointer-events-none">
+          <div>🐛 DEBUG · currentPlayer: {currentPlayer} ({players[currentPlayer]}) · round: {currentRound}</div>
+          <div>minWO: {minWO}{minWriteOffOverride != null ? ' (override)' : ''} · winner: {JSON.stringify(tournament.winner)} · pendingDecision: {tournament.pendingDecision ? tournament.pendingDecision.type : 'null'}</div>
+          <div>confirmQueue: [{(tournament.confirmationQueue || []).join(', ')}] · pending: [{pending.join(', ')}]</div>
+        </div>
       )}
     </div>
   );

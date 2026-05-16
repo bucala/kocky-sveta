@@ -44,6 +44,6 @@ export async function createRoom(params: {
   };
 
   await setDoc(doc(db, 'rooms', roomId), roomData);
-  console.log('[createRoom] roomId:', roomId, 'uid:', uid);
+  if ((window as any).__ksVerboseFirebase) console.log('[createRoom] roomId:', roomId, 'uid:', uid, 'data:', roomData);
   return roomId;
 }
