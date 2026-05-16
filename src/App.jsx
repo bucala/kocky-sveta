@@ -957,6 +957,7 @@ function startTournament(players, targetScore) {
           onArchive={() => { setArchiveReturnTo('menu'); setView('archive'); }}
           onrules={() => setView('rules')}
           onSettings={() => setView('settings')}
+          onOnline={() => setView('online')}
           onResume={active ? () => setView('tournament') : null}
           active={active}
           tournamentCount={tournaments.length}
@@ -1044,7 +1045,7 @@ function startTournament(players, targetScore) {
         <SafeTournamentFallback title="Dáta turnaja sa nepodarilo načítať" />
       ))}
       {view === 'rules' && <RulesView rules={rules} onBack={() => setView('menu')} />}
-      {view === 'online' && <OnlineScreen onBack={() => setView('settings')} />
+      {view === 'online' && <OnlineScreen onBack={() => setView('menu')} activeSkin={selectedSkin} activeRules={rules} />
       }
       {view === 'rulesEditor' && (
         <RulesEditor rules={rules} onSave={setrules} onBack={() => setView('settings')}
