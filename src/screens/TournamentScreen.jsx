@@ -275,9 +275,8 @@ export function TournamentScreen({
       newRounds[t.currentRound][t.currentPlayer] = val;
       
       // Check for winner BEFORE advancing player
-      const winners = computeWinners(newRounds, t.players.length, t.targetScore);
+      const { winners } = computeWinners({ ...t, rounds: newRounds });
       if (winners && winners.length > 0) {
-        // Game over! Don't advance player/round
         return {
           ...t,
           rounds: newRounds,
