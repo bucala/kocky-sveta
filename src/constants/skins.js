@@ -1,5 +1,9 @@
 ﻿import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6 } from 'lucide-react';
 
+// SVG background patterns (URL-encoded for CSS data URIs)
+const _LIGHTNING = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cpath d='M36 4 L52 12 L62 28 L62 44 L52 60 L36 68 L20 60 L10 44 L10 28 L20 12Z' fill='rgba(190%2C130%2C255%2C0.18)'/%3E%3Cpath d='M40 20 L30 40 L39 40 L33 54 L48 34 L39 34Z' fill='rgba(230%2C180%2C255%2C0.26)'/%3E%3C/svg%3E\") repeat";
+const _SKULL    = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cpath d='M40 8C22 8 10 22 10 36c0 13 7 21 16 25v8c0 2 2 3 3 3h22c2 0 3-1 3-3v-8c9-4 16-12 16-25C70 22 58 8 40 8z' fill='rgba(200%2C230%2C255%2C0.19)'/%3E%3Crect x='22' y='30' width='14' height='16' rx='5' fill='rgba(20%2C70%2C160%2C0.42)'/%3E%3Crect x='44' y='30' width='14' height='16' rx='5' fill='rgba(20%2C70%2C160%2C0.42)'/%3E%3Crect x='28' y='63' width='8' height='10' rx='2' fill='rgba(200%2C230%2C255%2C0.16)'/%3E%3Crect x='42' y='63' width='8' height='10' rx='2' fill='rgba(200%2C230%2C255%2C0.16)'/%3E%3C/svg%3E\") repeat";
+
 // ─── Skin presets — vizuálne témy aplikácie ──────────────────────────────
 // Každý skin obsahuje:
 //   id:   unikátny kľúč (string)
@@ -73,22 +77,42 @@ export const SKIN_PRESETS = {
   },
   brawlstars: {
     id: 'brawlstars', name: 'Brawl Stars',
-    bg: 'radial-gradient(ellipse at 50% 0%, #2a0e5e 0%, #130628 45%, #060113 100%)',
+    bg: `${_LIGHTNING}, radial-gradient(ellipse at 50% 35%, #6030a0 0%, #38155a 48%, #1a0830 100%)`,
     vars: {
-      '--ks-bg-main': '#080218',
-      '--ks-bg-soft': 'rgba(28,10,72,0.92)',
-      '--ks-bg-soft-2': 'rgba(14,5,36,0.96)',
-      '--ks-card-sub': 'rgba(20,8,55,0.72)',
-      '--ks-border': 'rgba(150,80,255,0.30)',
-      '--ks-border-strong': 'rgba(190,130,255,0.65)',
-      '--ks-text': '#f0e8ff',
-      '--ks-text-muted': '#a090c8',
-      '--ks-accent': '#c8a0ff',
-      '--ks-accent-2': '#7040e0',
-      '--ks-button-text': '#1a0a3e',
+      '--ks-bg-main': `${_LIGHTNING}, #1a0830`,
+      '--ks-bg-soft': 'rgba(52,18,80,0.92)',
+      '--ks-bg-soft-2': 'rgba(28,10,45,0.96)',
+      '--ks-card-sub': 'rgba(40,14,62,0.74)',
+      '--ks-border': 'rgba(200,80,220,0.28)',
+      '--ks-border-strong': 'rgba(230,120,255,0.62)',
+      '--ks-text': '#f8e8ff',
+      '--ks-text-muted': '#c0a0d8',
+      '--ks-accent': '#e070d0',
+      '--ks-accent-2': '#8030b0',
+      '--ks-button-text': '#280a3a',
       '--ks-danger': '#ff6090',
-      '--ks-sticky-bg': 'rgba(8,2,24,0.97)',
-      '--ks-sticky-bg2': 'rgba(6,1,18,0.98)',
+      '--ks-sticky-bg': 'rgba(20,6,34,0.97)',
+      '--ks-sticky-bg2': 'rgba(14,4,24,0.98)',
+    },
+  },
+  brawlblue: {
+    id: 'brawlblue', name: 'Brawl Blue',
+    bg: `${_SKULL}, radial-gradient(ellipse at 50% 40%, #1a96d8 0%, #0e62ac 46%, #061e54 100%)`,
+    vars: {
+      '--ks-bg-main': `${_SKULL}, #061e54`,
+      '--ks-bg-soft': 'rgba(10,48,110,0.92)',
+      '--ks-bg-soft-2': 'rgba(6,26,65,0.96)',
+      '--ks-card-sub': 'rgba(8,36,88,0.74)',
+      '--ks-border': 'rgba(40,180,240,0.28)',
+      '--ks-border-strong': 'rgba(80,210,255,0.62)',
+      '--ks-text': '#e8f4ff',
+      '--ks-text-muted': '#90b8d8',
+      '--ks-accent': '#40d8f0',
+      '--ks-accent-2': '#2878c8',
+      '--ks-button-text': '#030e28',
+      '--ks-danger': '#ff6090',
+      '--ks-sticky-bg': 'rgba(4,14,44,0.97)',
+      '--ks-sticky-bg2': 'rgba(3,10,32,0.98)',
     },
   },
 };
@@ -141,10 +165,18 @@ export function skinVarsCss(selectedSkin, selectedFont) {
   }
   if (selectedSkin === 'brawlstars') {
     css += `
-.ks-gold{color:#c8a0ff!important}
-.ks-gold-bg{background:linear-gradient(135deg,#7040e0,#4020a0)!important;box-shadow:0 0 16px rgba(150,80,255,0.6)!important}
-.ks-card{background:rgba(20,8,55,0.88)!important;border-color:rgba(150,80,255,0.35)!important;box-shadow:0 0 10px rgba(120,60,220,0.35)!important}
-.ks-border-sub{border-color:rgba(150,80,255,0.25)!important}
+.ks-gold{color:#e070d0!important}
+.ks-gold-bg{background:linear-gradient(135deg,#b030b0,#6010a0)!important;box-shadow:0 0 18px rgba(200,80,230,0.65)!important}
+.ks-card{background:rgba(44,16,68,0.90)!important;border-color:rgba(200,80,220,0.32)!important;box-shadow:0 0 12px rgba(160,60,200,0.30)!important}
+.ks-border-sub{border-color:rgba(200,80,220,0.20)!important}
+`;
+  }
+  if (selectedSkin === 'brawlblue') {
+    css += `
+.ks-gold{color:#40d8f0!important}
+.ks-gold-bg{background:linear-gradient(135deg,#1a96d8,#0e5cac)!important;box-shadow:0 0 18px rgba(40,180,240,0.65)!important}
+.ks-card{background:rgba(8,38,90,0.90)!important;border-color:rgba(40,180,240,0.30)!important;box-shadow:0 0 12px rgba(30,140,200,0.28)!important}
+.ks-border-sub{border-color:rgba(40,180,240,0.18)!important}
 `;
   }
   return css;

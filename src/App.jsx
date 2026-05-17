@@ -1285,7 +1285,7 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
   return <div className="min-h-screen flex items-center justify-center p-6 ks-cream"><div className="ks-card rounded-sm p-5 text-center max-w-md"><div className="ks-display text-2xl ks-gold mb-2">{title}</div><div className="ks-muted text-sm">Skús sa vrátiť späť alebo otvoriť turnaj znova.</div></div></div>;
 }
 
-// ─── Vizuál a Skiny submenu ───────────────────────────────────────────────
+// ─── Vizuál, Zvuky a Skiny submenu ───────────────────────────────────────────────
 
 function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin, onShowEgg }) {
   const fileInputRef = useRef(null);
@@ -1334,7 +1334,7 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
           <ChevronRight className="ks-muted" size={20} />
         </button>
 
-        <div className="ks-mono ks-gold text-xs px-1 pt-3">VIZUÁL A SKINY</div>
+        <div className="ks-mono ks-gold text-xs px-1 pt-3">VIZUÁL, ZVUKY A SKINY</div>
         <button onClick={onViewModes}
           className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
           <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
@@ -1377,7 +1377,7 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
             <Layers size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Vizuál a Skiny</div>
+            <div className="ks-display ks-cream text-xl font-semibold">Vizuál, Zvuky a Skiny</div>
             <div className="ks-muted text-sm">Farby, písmo a vzhľad aplikácie</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />

@@ -70,12 +70,12 @@ function FontSelector({ selectedFont, onFontChange }) {
 }
 
 
-// ─── Vizuál a Skiny submenu ───────────────────────────────────────────────
+// ─── Vizuál, Zvuky a Skiny submenu ───────────────────────────────────────────────
 
 function VisualAndSkinScreen({ onBack, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes }) {
   return (
     <div className="min-h-screen ks-fade pb-8">
-      <Header title="Vizuál a Skiny" onBack={onBack} />
+      <Header title="Vizuál, Zvuky a Skiny" onBack={onBack} />
       <div className="p-4 max-w-2xl mx-auto space-y-5">
 
         {/* Skiny */}
@@ -119,7 +119,7 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
           <ChevronRight className="ks-muted" size={20} />
         </button>
 
-        <div className="ks-mono ks-gold text-xs px-1 pt-3">VIZUÁL A SKINY</div>
+        <div className="ks-mono ks-gold text-xs px-1 pt-3">VIZUÁL, ZVUKY A SKINY</div>
         <button onClick={onViewModes}
           className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
           <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
@@ -162,7 +162,7 @@ function SettingsMenu({ onBack, onRulesEditor, onExport, onImport, onClearAll, o
             <Layers size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Vizuál a Skiny</div>
+            <div className="ks-display ks-cream text-xl font-semibold">Vizuál, Zvuky a Skiny</div>
             <div className="ks-muted text-sm">Farby, písmo a vzhľad aplikácie</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
