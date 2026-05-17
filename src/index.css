@@ -71,7 +71,7 @@ html, body, #root { width: 100%; overflow-x: hidden; }
 /* ── Harry Potter skin background ────────────────────────────────────── */
 [data-skin="harrypotter"].ks-bg,
 [data-skin="harrypotter"] .ks-bg {
-  background: url('/hp-parchment.jpg') center/cover no-repeat !important;
+  background: url('/hp-hp-parchment.jpg') center/cover no-repeat !important;
 }
 
 /* ── Harry Potter floating elements ──────────────────────────────────── */
