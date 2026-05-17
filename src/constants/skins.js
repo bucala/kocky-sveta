@@ -5,6 +5,8 @@
 const _LIGHTNING = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cpath d='M80 20 L93 45 L120 38 L122 65 L148 74 L136 98 L152 118 L126 122 L122 148 L95 138 L80 158 L65 138 L38 148 L34 122 L8 118 L24 98 L12 74 L38 65 L40 38 L67 45 Z' fill='rgba(110%2C55%2C170%2C0.28)'/%3E%3Cpath d='M87 48 L65 87 L82 87 L72 113 L103 72 L86 72 Z' fill='rgba(185%2C135%2C255%2C0.48)'/%3E%3C/svg%3E\") repeat";
 // Brawl Blue: cartoon skull with angry eyes and teeth
 const _SKULL    = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Ccircle cx='80' cy='66' r='48' fill='rgba(205%2C232%2C255%2C0.30)'/%3E%3Ccircle cx='63' cy='64' r='13' fill='rgba(10%2C52%2C130%2C0.55)'/%3E%3Ccircle cx='97' cy='64' r='13' fill='rgba(10%2C52%2C130%2C0.55)'/%3E%3Cline x1='50' y1='48' x2='72' y2='54' stroke='rgba(10%2C52%2C130%2C0.60)' stroke-width='5' stroke-linecap='round'/%3E%3Cline x1='110' y1='48' x2='88' y2='54' stroke='rgba(10%2C52%2C130%2C0.60)' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M75 82 L80 74 L85 82Z' fill='rgba(10%2C52%2C130%2C0.45)'/%3E%3Crect x='52' y='102' width='56' height='20' rx='6' fill='rgba(205%2C232%2C255%2C0.22)'/%3E%3Crect x='59' y='108' width='10' height='16' rx='3' fill='rgba(10%2C52%2C130%2C0.50)'/%3E%3Crect x='75' y='108' width='10' height='16' rx='3' fill='rgba(10%2C52%2C130%2C0.50)'/%3E%3Crect x='91' y='108' width='10' height='16' rx='3' fill='rgba(10%2C52%2C130%2C0.50)'/%3E%3C/svg%3E\") repeat";
+// Harry Potter: Deathly Hallows symbol + lightning bolt + star
+const _HP       = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cg stroke='rgba(100%2C62%2C12%2C0.28)' fill='none' stroke-width='2.5'%3E%3Cpolygon points='100 18 145 95 55 95'/%3E%3Ccircle cx='100' cy='68' r='27'/%3E%3Cline x1='100' y1='18' x2='100' y2='95'/%3E%3C/g%3E%3Cpath d='M164 30 L153 54 L163 54 L150 80' stroke='rgba(100%2C62%2C12%2C0.22)' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M35 152 L38 141 L41 152 L52 155 L41 158 L38 169 L35 158 L24 155Z' fill='rgba(100%2C62%2C12%2C0.20)'/%3E%3Ccircle cx='172' cy='164' r='3.5' fill='rgba(100%2C62%2C12%2C0.16)'/%3E%3Ccircle cx='20' cy='128' r='2.5' fill='rgba(100%2C62%2C12%2C0.13)'/%3E%3C/svg%3E\") repeat";
 
 // ─── Skin presets — vizuálne témy aplikácie ──────────────────────────────
 // Každý skin obsahuje:
@@ -115,6 +117,26 @@ export const SKIN_PRESETS = {
       '--ks-danger': '#ff6090',
       '--ks-sticky-bg': 'rgba(4,14,44,0.97)',
       '--ks-sticky-bg2': 'rgba(3,10,32,0.98)',
+    },
+  },
+  harrypotter: {
+    id: 'harrypotter', name: 'Harry Potter',
+    bg: `${_HP}, radial-gradient(ellipse at 25% 45%, rgba(160,110,40,0.22), transparent 55%), linear-gradient(160deg, #f8ecd4 0%, #efe0b8 40%, #e8d6a4 70%, #f2e8c8 100%)`,
+    vars: {
+      '--ks-bg-main': '#f0e2c0',
+      '--ks-bg-soft': 'rgba(252,244,226,0.97)',
+      '--ks-bg-soft-2': 'rgba(248,238,215,1.0)',
+      '--ks-card-sub': 'rgba(244,232,206,0.98)',
+      '--ks-border': 'rgba(140,88,18,0.30)',
+      '--ks-border-strong': 'rgba(160,100,20,0.62)',
+      '--ks-text': '#271608',
+      '--ks-text-muted': '#7a5030',
+      '--ks-accent': '#8b5814',
+      '--ks-accent-2': '#740001',
+      '--ks-button-text': '#f8f0de',
+      '--ks-danger': '#aa2020',
+      '--ks-sticky-bg': 'rgba(244,232,202,0.97)',
+      '--ks-sticky-bg2': 'rgba(238,224,192,0.98)',
     },
   },
 };

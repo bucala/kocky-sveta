@@ -85,6 +85,11 @@ const SKIN_PRESETS = {
     bg:'radial-gradient(ellipse at 50% 40%, #1a96d8 0%, #0e62ac 46%, #061e54 100%)',
     vars: { '--ks-bg-main':'#061e54','--ks-bg-soft':'rgba(10,48,110,0.92)','--ks-bg-soft-2':'rgba(6,26,65,0.96)','--ks-card-sub':'rgba(8,36,88,0.74)','--ks-border':'rgba(40,180,240,0.28)','--ks-border-strong':'rgba(80,210,255,0.62)','--ks-text':'#e8f4ff','--ks-text-muted':'#90b8d8','--ks-accent':'#40d8f0','--ks-accent-2':'#2878c8','--ks-button-text':'#030e28','--ks-danger':'#ff6090','--ks-sticky-bg':'rgba(4,14,44,0.97)','--ks-sticky-bg2':'rgba(3,10,32,0.98)' }
   },
+  harrypotter: {
+    id:'harrypotter', name:'Harry Potter',
+    bg:'radial-gradient(ellipse at 25% 45%, rgba(160,110,40,0.22), transparent 55%), linear-gradient(160deg,#f8ecd4 0%,#efe0b8 40%,#e8d6a4 70%,#f2e8c8 100%)',
+    vars: { '--ks-bg-main':'#f0e2c0','--ks-bg-soft':'rgba(252,244,226,0.97)','--ks-bg-soft-2':'rgba(248,238,215,1.0)','--ks-card-sub':'rgba(244,232,206,0.98)','--ks-border':'rgba(140,88,18,0.30)','--ks-border-strong':'rgba(160,100,20,0.62)','--ks-text':'#271608','--ks-text-muted':'#7a5030','--ks-accent':'#8b5814','--ks-accent-2':'#740001','--ks-button-text':'#f8f0de','--ks-danger':'#aa2020','--ks-sticky-bg':'rgba(244,232,202,0.97)','--ks-sticky-bg2':'rgba(238,224,192,0.98)' }
+  },
 };
 
 const FONT_PRESETS = {
@@ -160,6 +165,24 @@ function skinVarsCss(selectedSkin, selectedFont) {
 .ks-border-sub{border-color:rgba(40,180,240,0.18)!important}
 .ks-live-row td,.ks-live-table th{border-color:rgba(40,180,240,0.14)!important}
 .ks-live-row:hover td{background:rgba(10,60,130,0.40)!important}
+`;
+  }
+  if (selectedSkin === 'harrypotter') {
+    css += `
+.ks-gold{color:#6b3e0c!important}
+.ks-cream{color:#271608!important}
+.ks-muted{color:#7a5030!important}
+.ks-gold-bg{background:linear-gradient(135deg,#8b5814,#740001)!important;color:#f8f0de!important}
+.ks-card{background:rgba(252,244,226,0.96)!important;border-color:rgba(150,95,22,0.30)!important}
+.ks-card:hover{border-color:rgba(150,95,22,0.55)!important}
+.ks-card-prom{background:rgba(248,238,210,0.97)!important;border-color:rgba(160,100,20,0.55)!important}
+.ks-border-sub{border-color:rgba(150,95,22,0.22)!important}
+.ks-live-row td,.ks-live-table th{border-color:rgba(150,95,22,0.20)!important}
+.ks-live-row:hover td{background:rgba(238,220,188,0.55)!important}
+.ks-live-pos-1{color:#6b3e0c!important;border-color:rgba(140,88,18,0.55)!important}
+.ks-live-pos-2{color:#7a5030!important}
+.ks-live-pos-3{color:#8a6040!important}
+.ks-divider{background:linear-gradient(90deg,transparent,rgba(140,88,18,0.38),transparent)!important}
 `;
   }
   return css;
@@ -1143,7 +1166,7 @@ function startTournament(players, targetScore) {
     <div className="ks-bg min-h-screen ks-cream ks-body" data-skin={selectedSkin} data-animations={animationsEnabled ? 'on' : 'off'} style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
       <style>{skinVarsCss(selectedSkin, selectedFont)}</style>
       <style>{`:root { --ks-popup-offset: ${POPUP_CONFIG.VERTICAL_OFFSET}; --ks-popup-opacity: ${POPUP_CONFIG.OPACITY}; }`}</style>
-      {(selectedSkin === 'brawlstars' || selectedSkin === 'brawlblue') && animationsEnabled && <BrawlBackground skin={selectedSkin} />}
+      {(selectedSkin === 'brawlstars' || selectedSkin === 'brawlblue' || selectedSkin === 'harrypotter') && animationsEnabled && <BrawlBackground skin={selectedSkin} />}
 
       {view === 'menu' && (
         <MainMenu
