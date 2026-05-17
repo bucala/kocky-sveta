@@ -13,10 +13,10 @@ import { X } from 'lucide-react';
 function Modal({ children, onClose, title }) {
   return (
     <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center p-0 sm:p-4"
-         style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
+         style={{ background: 'var(--ks-modal-overlay, rgba(0,0,0,0.7))' }} onClick={onClose}>
       <div className="ks-card w-full max-w-lg max-h-[85vh] flex flex-col rounded-t-lg sm:rounded-sm ks-fade"
            onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-4 border-b border-amber-900/30">
+        <div className="flex items-center justify-between p-4 border-b ks-border-sub">
           <h3 className="ks-display ks-gold text-xl font-semibold">{title}</h3>
           <button onClick={onClose} className="ks-press ks-cream p-1"><X size={22} /></button>
         </div>

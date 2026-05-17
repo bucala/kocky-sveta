@@ -4,15 +4,15 @@ import { StrikethroughCrown } from './StrikethroughCrown.jsx';
 
 export default function SimplifiedResult({ kind, title, subtitle, onClose, actionLabel }) {
   const palette = {
-    victory:          { accent: '#d4b86a', label: 'VÍŤAZ' },
-    draw:             { accent: '#d4b86a', label: 'REMÍZA' },
-    'temporary-king': { accent: '#c44848', label: 'DOČASNÝ KRÁĽ' },
-    'win-pending':    { accent: '#d4b86a', label: 'POTVRD VÍŤAZU' },
-  }[kind] || { accent: '#d4b86a', label: '' };
+    victory:          { accent: 'var(--ks-popup-accent, #d4b86a)', label: 'VÍŤAZ' },
+    draw:             { accent: 'var(--ks-popup-accent, #d4b86a)', label: 'REMÍZA' },
+    'temporary-king': { accent: 'var(--ks-popup-accent, #c44848)', label: 'DOČASNÝ KRÁĽ' },
+    'win-pending':    { accent: 'var(--ks-popup-accent, #d4b86a)', label: 'POTVRD VÍŤAZU' },
+  }[kind] || { accent: 'var(--ks-popup-accent, #d4b86a)', label: '' };
 
   const Icon = ({ size = 56 }) => {
     if (kind === 'temporary-king') return <StrikethroughCrown size={size} />;
-    return <Crown size={size} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.5))' }} />;
+    return <Crown size={size} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px var(--ks-glow-orb, rgba(212,184,106,0.5)))' }} />;
   };
 
   return (

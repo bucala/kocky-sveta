@@ -3,9 +3,9 @@ import { AlertTriangle, AlertCircle, Check, X } from 'lucide-react';
 
 export function Toast({ msg, kind, onClose }) {
   const colorMap = {
-    info:      'ks-border-accent bg-amber-950/90 ks-cream',
-    warn:      'border-amber-600/70 bg-amber-900/80 ks-text-accent',
-    overshoot: 'border-red-600/70 bg-gradient-to-b from-red-900 to-red-950 text-red-50',
+    info:      'ks-toast-info ks-cream border',
+    warn:      'ks-toast-warn ks-text-accent border',
+    overshoot: 'border-red-600/70 bg-gradient-to-b from-red-900 to-red-950 text-red-50 border',
   };
   const Icon = kind === 'overshoot' ? AlertTriangle : kind === 'warn' ? AlertCircle : Check;
   return (

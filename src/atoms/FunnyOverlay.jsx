@@ -4,22 +4,22 @@ import { StrikethroughCrown } from './StrikethroughCrown.jsx';
 
 const VARIANT_STYLES = {
   doubt: {
-    bg: 'radial-gradient(circle at center, rgba(80,30,30,0.95), rgba(0,0,0,0.95))',
+    bg: 'var(--ks-overlay-doubt, radial-gradient(circle at center, rgba(80,30,30,0.95), rgba(0,0,0,0.95)))',
     label: 'DOTAZ Z PUBLIKA',
-    glow: 'rgba(212,184,106,0.4)',
-    labelColor: '#d4b86a',
+    glow: 'var(--ks-glow-orb, rgba(212,184,106,0.4))',
+    labelColor: 'var(--ks-popup-accent, #d4b86a)',
   },
   fight: {
-    bg: 'radial-gradient(circle at center, rgba(120,40,30,0.95), rgba(20,10,5,0.97))',
+    bg: 'var(--ks-overlay-fight, radial-gradient(circle at center, rgba(120,40,30,0.95), rgba(20,10,5,0.97)))',
     label: 'POVZBUDENIE',
-    glow: 'rgba(231,128,82,0.5)',
-    labelColor: '#e08854',
+    glow: 'var(--ks-glow-orb, rgba(231,128,82,0.5))',
+    labelColor: 'var(--ks-popup-accent, #e08854)',
   },
   doom: {
-    bg: 'radial-gradient(circle at center, rgba(60,20,20,0.97), rgba(0,0,0,0.98))',
+    bg: 'var(--ks-overlay-doom, radial-gradient(circle at center, rgba(60,20,20,0.97), rgba(0,0,0,0.98)))',
     label: 'PROROCTVO',
-    glow: 'rgba(196,72,72,0.5)',
-    labelColor: '#c44848',
+    glow: 'var(--ks-glow-orb, rgba(196,72,72,0.5))',
+    labelColor: 'var(--ks-popup-accent, #c44848)',
   },
 };
 
@@ -53,7 +53,7 @@ export function FunnyOverlay({ data, onClose }) {
 
         <div className="mb-3 ks-funny-emoji flex justify-center" style={{ filter: `drop-shadow(0 4px 16px ${style.glow})` }}>
           {emoji === 'strikethrough-crown'
-            ? <StrikethroughCrown size={112} color="#d4b86a" strikeColor="#c44848" />
+            ? <StrikethroughCrown size={112} color="var(--ks-popup-accent, #d4b86a)" strikeColor="var(--ks-popup-accent, #c44848)" />
             : <span className="text-7xl">{emoji}</span>}
         </div>
 
@@ -84,15 +84,15 @@ export function FunnyOverlay({ data, onClose }) {
 
 export function SimplifiedResult({ kind, title, subtitle, onClose, actionLabel }) {
   const palette = {
-    victory:           { accent: '#d4b86a', label: 'VÍŤAZ' },
-    draw:              { accent: '#d4b86a', label: 'REMÍZA' },
-    'temporary-king':  { accent: '#c44848', label: 'DOČASNÝ KRÁĽ' },
-    'win-pending':     { accent: '#d4b86a', label: 'POTVRD VÝHRU' },
-  }[kind] || { accent: '#d4b86a', label: '' };
+    victory:           { accent: 'var(--ks-popup-accent, #d4b86a)', label: 'VÍŤAZ' },
+    draw:              { accent: 'var(--ks-popup-accent, #d4b86a)', label: 'REMÍZA' },
+    'temporary-king':  { accent: 'var(--ks-popup-accent, #c44848)', label: 'DOČASNÝ KRÁĽ' },
+    'win-pending':     { accent: 'var(--ks-popup-accent, #d4b86a)', label: 'POTVRD VÝHRU' },
+  }[kind] || { accent: 'var(--ks-popup-accent, #d4b86a)', label: '' };
 
   const IconEl = ({ size = 56 }) => {
     if (kind === 'temporary-king') return <StrikethroughCrown size={size} />;
-    return <Crown size={size} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.5))' }} />;
+    return <Crown size={size} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px var(--ks-glow-orb, rgba(212,184,106,0.5)))' }} />;
   };
 
   return (

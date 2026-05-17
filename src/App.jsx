@@ -149,6 +149,20 @@ function skinVarsCss(selectedSkin, selectedFont) {
   }
   if (selectedSkin === 'brawlstars') {
     css += `
+:root{
+--ks-overlay-dark:radial-gradient(circle at center,rgba(80,20,120,0.96),rgba(10,4,28,0.98));
+--ks-overlay-doubt:radial-gradient(circle at center,rgba(60,15,100,0.96),rgba(10,4,28,0.97));
+--ks-overlay-fight:radial-gradient(circle at center,rgba(100,20,140,0.96),rgba(15,5,35,0.97));
+--ks-overlay-doom:radial-gradient(circle at center,rgba(30,8,70,0.97),rgba(5,2,15,0.99));
+--ks-modal-overlay:rgba(20,6,40,0.82);
+--ks-modal-dark-overlay:rgba(10,4,28,0.94);
+--ks-popup-accent:#e070d0;
+--ks-glow-orb:rgba(180,80,220,0.50);
+--ks-toast-info-bg:rgba(44,10,68,0.92);
+--ks-toast-warn-bg:rgba(60,12,88,0.88);
+--ks-toast-info-border:rgba(200,80,220,0.70);
+--ks-toast-warn-border:rgba(230,120,255,0.60);
+}
 .ks-gold{color:#e070d0!important}
 .ks-gold-bg{background:linear-gradient(135deg,#b030b0,#6010a0)!important;box-shadow:0 0 18px rgba(200,80,230,0.65)!important}
 .ks-card{background:rgba(44,16,68,0.90)!important;border-color:rgba(200,80,220,0.32)!important;box-shadow:0 0 12px rgba(160,60,200,0.30)!important}
@@ -159,6 +173,20 @@ function skinVarsCss(selectedSkin, selectedFont) {
   }
   if (selectedSkin === 'brawlblue') {
     css += `
+:root{
+--ks-overlay-dark:radial-gradient(circle at center,rgba(10,50,130,0.96),rgba(3,10,42,0.98));
+--ks-overlay-doubt:radial-gradient(circle at center,rgba(8,40,110,0.96),rgba(3,10,42,0.97));
+--ks-overlay-fight:radial-gradient(circle at center,rgba(10,70,160,0.96),rgba(3,14,54,0.97));
+--ks-overlay-doom:radial-gradient(circle at center,rgba(5,25,70,0.97),rgba(2,6,24,0.99));
+--ks-modal-overlay:rgba(3,12,42,0.82);
+--ks-modal-dark-overlay:rgba(3,10,42,0.94);
+--ks-popup-accent:#40d8f0;
+--ks-glow-orb:rgba(40,180,240,0.50);
+--ks-toast-info-bg:rgba(6,28,80,0.92);
+--ks-toast-warn-bg:rgba(8,36,100,0.88);
+--ks-toast-info-border:rgba(40,180,240,0.70);
+--ks-toast-warn-border:rgba(80,210,255,0.60);
+}
 .ks-gold{color:#40d8f0!important}
 .ks-gold-bg{background:linear-gradient(135deg,#1a96d8,#0e5cac)!important;box-shadow:0 0 18px rgba(40,180,240,0.65)!important}
 .ks-card{background:rgba(8,38,90,0.90)!important;border-color:rgba(40,180,240,0.30)!important;box-shadow:0 0 12px rgba(30,140,200,0.28)!important}
@@ -183,6 +211,20 @@ function skinVarsCss(selectedSkin, selectedFont) {
 .ks-live-pos-2{color:#7a5030!important}
 .ks-live-pos-3{color:#8a6040!important}
 .ks-divider{background:linear-gradient(90deg,transparent,rgba(140,88,18,0.38),transparent)!important}
+:root{
+--ks-overlay-dark:radial-gradient(circle at center,rgba(120,80,15,0.94),rgba(30,18,5,0.97));
+--ks-overlay-doubt:radial-gradient(circle at center,rgba(100,60,10,0.94),rgba(28,16,4,0.97));
+--ks-overlay-fight:radial-gradient(circle at center,rgba(140,60,10,0.95),rgba(35,18,4,0.97));
+--ks-overlay-doom:radial-gradient(circle at center,rgba(80,15,10,0.97),rgba(20,6,4,0.99));
+--ks-modal-overlay:rgba(30,18,5,0.78);
+--ks-modal-dark-overlay:rgba(25,15,4,0.94);
+--ks-popup-accent:#c49a28;
+--ks-glow-orb:rgba(196,154,40,0.45);
+--ks-toast-info-bg:rgba(44,28,6,0.94);
+--ks-toast-warn-bg:rgba(55,30,4,0.90);
+--ks-toast-info-border:rgba(160,100,20,0.70);
+--ks-toast-warn-border:rgba(200,140,30,0.60);
+}
 `;
   }
   return css;
@@ -2396,7 +2438,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
 
       {/* VÍŤAZSTVO / REMÍZA — celoobrazovkové, nezávisle na queue */}
       {winnerCelebration && funnyWindowsDisplayMode === 'standard' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-6 ks-overlay-bg" style={{ background: 'radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98))' }}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-6 ks-overlay-bg" style={{ background: 'var(--ks-overlay-dark, radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98)))' }}>
           <div className="ks-funny relative z-10 text-center max-w-md">
             <div className="text-7xl mb-3 ks-funny-emoji">{winnerCelebration.isDraw ? '👑👑' : '👑'}</div>
             <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">
@@ -2484,23 +2526,23 @@ function DecisionPresenter({ playerName, target, displayMode, onConfirm, onRejec
   if (displayMode === 'standard') {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg"
-           style={{ background: 'radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98))' }}>
+           style={{ background: 'var(--ks-overlay-dark, radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98)))' }}>
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full ks-funny-orb"
-               style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)' }} />
+               style={{ background: 'radial-gradient(circle, var(--ks-glow-orb, rgba(212,184,106,0.5)), transparent 70%)' }} />
           <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full ks-funny-orb"
-               style={{ background: 'radial-gradient(circle, rgba(212,184,106,0.5), transparent 70%)', animationDelay: '1s' }} />
+               style={{ background: 'radial-gradient(circle, var(--ks-glow-orb, rgba(212,184,106,0.5)), transparent 70%)', animationDelay: '1s' }} />
         </div>
         <div className="ks-funny relative z-10 text-center max-w-sm">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, transparent, #d4b86a)' }} />
+            <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, transparent, var(--ks-popup-accent, #d4b86a))' }} />
             <Crown size={16} className="ks-gold" />
-            <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, #d4b86a, transparent)' }} />
+            <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, var(--ks-popup-accent, #d4b86a), transparent)' }} />
           </div>
-          <div className="text-7xl mb-3 ks-funny-emoji" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.6))' }}>😤</div>
+          <div className="text-7xl mb-3 ks-funny-emoji" style={{ filter: 'drop-shadow(0 4px 16px var(--ks-glow-orb, rgba(212,184,106,0.6)))' }}>😤</div>
           <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">🏁 DOSIAHOL {target.toLocaleString('sk-SK')} — POTVRD VÝHRU</div>
           <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2"
-               style={{ textShadow: '0 4px 24px rgba(212,184,106,0.4), 0 0 40px rgba(212,184,106,0.4)' }}>
+               style={{ textShadow: '0 4px 24px var(--ks-glow-orb, rgba(212,184,106,0.4)), 0 0 40px var(--ks-glow-orb, rgba(212,184,106,0.4))' }}>
             {playerName}
           </div>
           <div className="ks-body ks-cream text-base mb-5 leading-snug">
@@ -2508,13 +2550,13 @@ function DecisionPresenter({ playerName, target, displayMode, onConfirm, onRejec
           </div>
           <div className="grid grid-cols-2 gap-3">
             <button onClick={onConfirm}
-              className="ks-press py-4 px-3 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
+              className="ks-press py-4 px-3 rounded-sm border-2 ks-border-accent ks-bg-confirm hover:brightness-125">
               <Crown size={20} className="ks-gold mx-auto mb-1" />
               <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
               <div className="ks-muted text-[10px] ks-mono mt-0.5">VÝHRA POTVRDENÁ</div>
             </button>
             <button onClick={onReject}
-              className="ks-press py-4 px-3 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
+              className="ks-press py-4 px-3 rounded-sm border-2 border-red-900/50 ks-bg-reject hover:brightness-125">
               <X size={20} className="ks-text-accent mx-auto mb-1" />
               <div className="ks-display ks-text-accent text-base font-bold">Nepotvrdil</div>
               <div className="ks-text-accent/60 text-[10px] ks-mono mt-0.5">VÝHRA NEPOTVRDENÁ</div>
@@ -2528,11 +2570,11 @@ function DecisionPresenter({ playerName, target, displayMode, onConfirm, onRejec
   // simplified & suppressed: kompaktná karta bez click-outside
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
-         style={{ background: 'rgba(10,8,6,0.92)' }}>
+         style={{ background: 'var(--ks-modal-dark-overlay, rgba(10,8,6,0.92))' }}>
       <div className="ks-card max-w-sm w-full rounded-sm border-2 p-5 text-center shadow-2xl"
-           style={{ borderColor: '#d4b86a' }}>
+           style={{ borderColor: 'var(--ks-popup-accent, #d4b86a)' }}>
         <div className="flex justify-center mb-3">
-          <Crown size={48} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px rgba(212,184,106,0.5))' }} />
+          <Crown size={48} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px var(--ks-glow-orb, rgba(212,184,106,0.5)))' }} />
         </div>
         <div className="ks-mono ks-gold text-xs tracking-widest mb-2">POTVRD VÝHRU</div>
         <div className="ks-display text-2xl font-bold ks-cream leading-tight px-2 mb-1">{playerName}</div>
@@ -2542,11 +2584,11 @@ function DecisionPresenter({ playerName, target, displayMode, onConfirm, onRejec
         </div>
         <div className="grid grid-cols-2 gap-3">
           <button onClick={onConfirm}
-            className="ks-press py-3 px-2 rounded-sm border-2 ks-border-accent bg-gradient-to-b from-amber-900/40 to-amber-950/40 hover:brightness-125">
+            className="ks-press py-3 px-2 rounded-sm border-2 ks-border-accent ks-bg-confirm hover:brightness-125">
             <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
           </button>
           <button onClick={onReject}
-            className="ks-press py-3 px-2 rounded-sm border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/40 hover:brightness-125">
+            className="ks-press py-3 px-2 rounded-sm border-2 border-red-900/50 ks-bg-reject hover:brightness-125">
             <div className="ks-display ks-text-accent text-base font-bold">✗ Nepotvrdil</div>
           </button>
         </div>

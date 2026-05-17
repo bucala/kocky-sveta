@@ -25,6 +25,24 @@
     --ks-popup-offset: 0px;       /* vertikálny posun pre toast-y a simplified karty */
     --ks-popup-opacity: 0.92;     /* default opacity pozadia popupov */
     --ks-popup-safe-bottom: env(safe-area-inset-bottom, 0px);
+
+    /* ── Overlay / popup skin variables ─────────────────────────────────
+       Fullscreen dark overlays (WIN, DecisionPresenter, FunnyOverlay)    */
+    --ks-overlay-dark:   radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98));
+    --ks-overlay-doubt:  radial-gradient(circle at center, rgba(80,30,30,0.95),  rgba(0,0,0,0.95));
+    --ks-overlay-fight:  radial-gradient(circle at center, rgba(120,40,30,0.95), rgba(20,10,5,0.97));
+    --ks-overlay-doom:   radial-gradient(circle at center, rgba(60,20,20,0.97),  rgba(0,0,0,0.98));
+    /* Modal sheet + compact card overlays */
+    --ks-modal-overlay:      rgba(0,0,0,0.70);
+    --ks-modal-dark-overlay: rgba(10,8,6,0.92);
+    /* Popup accent color — borders, labels, icon glows */
+    --ks-popup-accent: #d4b86a;
+    --ks-glow-orb:     rgba(212,184,106,0.50);
+    /* Toast backgrounds */
+    --ks-toast-info-bg:   rgba(28,18,8,0.92);
+    --ks-toast-warn-bg:   rgba(50,32,6,0.88);
+    --ks-toast-info-border: var(--ks-accent);
+    --ks-toast-warn-border: rgba(201,168,92,0.70);
   }
   /* Pomocná trieda pre nepriebehové popupy (toast, simplified result).
      Posúva ich smerom dolu o --ks-popup-offset + safe-area-inset-bottom.
@@ -32,6 +50,10 @@
   .ks-popup-anchor {
     transform: translateY(calc(var(--ks-popup-offset) + var(--ks-popup-safe-bottom)));
   }
+  .ks-toast-info { background: var(--ks-toast-info-bg) !important; border-color: var(--ks-toast-info-border) !important; }
+  .ks-toast-warn { background: var(--ks-toast-warn-bg) !important; border-color: var(--ks-toast-warn-border) !important; }
+  .ks-bg-confirm { background: linear-gradient(180deg, color-mix(in srgb, var(--ks-accent) 22%, var(--ks-bg-soft)), var(--ks-bg-soft-2)); }
+  .ks-bg-reject  { background: linear-gradient(180deg, rgba(120,20,20,0.28), rgba(60,10,10,0.36)); }
 
   .ks-display { font-family: var(--ks-font-display, 'Cormorant Garamond', serif); letter-spacing: 0.02em; }
   .ks-mono    { font-family: var(--ks-font-mono, 'Bebas Neue', sans-serif); letter-spacing: 0.08em; }
