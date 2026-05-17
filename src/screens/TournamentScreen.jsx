@@ -534,8 +534,7 @@ if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tourname
 
 return (
   <div
-    className={`min-h-screen ks-fade ${isRecorderMode ? 'pb-6' : 'pb-32'}`}
-    style={{ background: (SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic).bg }}
+    className={`min-h-screen ks-fade ks-bg ${isRecorderMode ? 'pb-6' : 'pb-32'}`}
   >
       {!isRecorderMode && (
         <Header

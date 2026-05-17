@@ -75,6 +75,16 @@ const SKIN_PRESETS = {
     bg:'linear-gradient(180deg,#f0f0f0 0%,#e4e4e4 100%)',
     vars: { '--ks-bg-main':'#f5f5f5','--ks-bg-soft':'rgba(255,255,255,0.98)','--ks-bg-soft-2':'rgba(250,250,250,1.0)','--ks-card-sub':'rgba(245,245,245,0.98)','--ks-border':'rgba(0,0,0,0.15)','--ks-border-strong':'rgba(0,0,0,0.40)','--ks-text':'#111111','--ks-text-muted':'#555555','--ks-accent':'#111111','--ks-accent-2':'#cccccc','--ks-button-text':'#ffffff','--ks-danger':'#cc0000','--ks-sticky-bg':'rgba(240,240,240,0.99)','--ks-sticky-bg2':'rgba(230,230,230,1.0)' }
   },
+  brawlstars: {
+    id:'brawlstars', name:'Brawl Stars',
+    bg:'radial-gradient(ellipse at 50% 35%, #6030a0 0%, #38155a 48%, #1a0830 100%)',
+    vars: { '--ks-bg-main':'#1a0830','--ks-bg-soft':'rgba(52,18,80,0.92)','--ks-bg-soft-2':'rgba(28,10,45,0.96)','--ks-card-sub':'rgba(40,14,62,0.74)','--ks-border':'rgba(200,80,220,0.28)','--ks-border-strong':'rgba(230,120,255,0.62)','--ks-text':'#f8e8ff','--ks-text-muted':'#c0a0d8','--ks-accent':'#e070d0','--ks-accent-2':'#8030b0','--ks-button-text':'#280a3a','--ks-danger':'#ff6090','--ks-sticky-bg':'rgba(20,6,34,0.97)','--ks-sticky-bg2':'rgba(14,4,24,0.98)' }
+  },
+  brawlblue: {
+    id:'brawlblue', name:'Brawl Blue',
+    bg:'radial-gradient(ellipse at 50% 40%, #1a96d8 0%, #0e62ac 46%, #061e54 100%)',
+    vars: { '--ks-bg-main':'#061e54','--ks-bg-soft':'rgba(10,48,110,0.92)','--ks-bg-soft-2':'rgba(6,26,65,0.96)','--ks-card-sub':'rgba(8,36,88,0.74)','--ks-border':'rgba(40,180,240,0.28)','--ks-border-strong':'rgba(80,210,255,0.62)','--ks-text':'#e8f4ff','--ks-text-muted':'#90b8d8','--ks-accent':'#40d8f0','--ks-accent-2':'#2878c8','--ks-button-text':'#030e28','--ks-danger':'#ff6090','--ks-sticky-bg':'rgba(4,14,44,0.97)','--ks-sticky-bg2':'rgba(3,10,32,0.98)' }
+  },
 };
 
 const FONT_PRESETS = {
@@ -84,6 +94,7 @@ const FONT_PRESETS = {
   crimson:   { id: 'crimson',   name: 'Crimson Pro',     stack: "'Crimson Pro', Georgia, serif",                        monoStack: "'Bebas Neue', sans-serif" },
   comicsans: { id: 'comicsans', name: 'Comic Sans MS',   stack: "'Comic Sans MS', 'Comic Sans', cursive",               monoStack: "'Bebas Neue', sans-serif" },
   inkfree:   { id: 'inkfree',   name: 'Ink Free',        stack: "'Ink Free', 'Segoe Script', cursive",                  monoStack: "'Bebas Neue', sans-serif" },
+  caveatbrush: { id: 'caveatbrush', name: 'Caveat Brush', stack: "'Caveat Brush', 'Segoe Script', cursive",             monoStack: "'Bebas Neue', sans-serif" },
 };
 
 function skinVarsCss(selectedSkin, selectedFont) {
@@ -129,6 +140,26 @@ function skinVarsCss(selectedSkin, selectedFont) {
 .ks-live-pos-1{color:#111!important;border-color:rgba(0,0,0,0.55)!important}
 .ks-live-pos-2{color:#333!important}
 .ks-live-pos-3{color:#666!important}
+`;
+  }
+  if (selectedSkin === 'brawlstars') {
+    css += `
+.ks-gold{color:#e070d0!important}
+.ks-gold-bg{background:linear-gradient(135deg,#b030b0,#6010a0)!important;box-shadow:0 0 18px rgba(200,80,230,0.65)!important}
+.ks-card{background:rgba(44,16,68,0.90)!important;border-color:rgba(200,80,220,0.32)!important;box-shadow:0 0 12px rgba(160,60,200,0.30)!important}
+.ks-border-sub{border-color:rgba(200,80,220,0.20)!important}
+.ks-live-row td,.ks-live-table th{border-color:rgba(200,80,220,0.18)!important}
+.ks-live-row:hover td{background:rgba(80,20,110,0.35)!important}
+`;
+  }
+  if (selectedSkin === 'brawlblue') {
+    css += `
+.ks-gold{color:#40d8f0!important}
+.ks-gold-bg{background:linear-gradient(135deg,#1a96d8,#0e5cac)!important;box-shadow:0 0 18px rgba(40,180,240,0.65)!important}
+.ks-card{background:rgba(8,38,90,0.90)!important;border-color:rgba(40,180,240,0.30)!important;box-shadow:0 0 12px rgba(30,140,200,0.28)!important}
+.ks-border-sub{border-color:rgba(40,180,240,0.18)!important}
+.ks-live-row td,.ks-live-table th{border-color:rgba(40,180,240,0.14)!important}
+.ks-live-row:hover td{background:rgba(10,60,130,0.40)!important}
 `;
   }
   return css;
@@ -1112,7 +1143,7 @@ function startTournament(players, targetScore) {
     <div className="ks-bg min-h-screen ks-cream ks-body" data-skin={selectedSkin} data-animations={animationsEnabled ? 'on' : 'off'} style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
       <style>{skinVarsCss(selectedSkin, selectedFont)}</style>
       <style>{`:root { --ks-popup-offset: ${POPUP_CONFIG.VERTICAL_OFFSET}; --ks-popup-opacity: ${POPUP_CONFIG.OPACITY}; }`}</style>
-      {selectedSkin === 'brawlstars' && animationsEnabled && <BrawlBackground />}
+      {(selectedSkin === 'brawlstars' || selectedSkin === 'brawlblue') && animationsEnabled && <BrawlBackground skin={selectedSkin} />}
 
       {view === 'menu' && (
         <MainMenu
@@ -2029,7 +2060,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
   if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback />;
   
   return (
-    <div className={`min-h-screen ks-fade ${isRecorderMode ? 'pb-6' : 'pb-32'}`} style={{ background: (SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic).bg }}>
+    <div className={`min-h-screen ks-fade ks-bg ${isRecorderMode ? 'pb-6' : 'pb-32'}`}>
       {!isRecorderMode && (
         <Header
           title={`Turnaj · do ${target.toLocaleString('sk-SK')}`}
@@ -2655,7 +2686,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
 
   if (activeCategory === 'cat-settings') {
     return (
-      <div className="min-h-screen ks-fade pb-32" style={{ background: (SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic).bg }}>
+      <div className="min-h-screen ks-fade ks-bg pb-32">
         <Header title="Hodnoty hry" onBack={() => setActiveCategory(null)} />
 
         <div className="p-4 max-w-2xl mx-auto space-y-3">
@@ -2691,7 +2722,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
     const categoryrules = activeCategory === 'cat-custom' ? customrules : rulesInCategory(activeCategory);
 
     return (
-      <div className="min-h-screen ks-fade pb-32" style={{ background: (SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic).bg }}>
+      <div className="min-h-screen ks-fade ks-bg pb-32">
         <Header title={cat.title} onBack={() => { setActiveCategory(null); setEditingId(null); }} />
 
         <div className="p-4 max-w-2xl mx-auto space-y-3">
@@ -2737,7 +2768,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
   }
 
   return (
-    <div className="min-h-screen ks-fade pb-32" style={{ background: (SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic).bg }}>
+    <div className="min-h-screen ks-fade ks-bg pb-32">
       <Header title="Úprava pravidiel" onBack={onBack} />
 
       <div className="p-4 max-w-2xl mx-auto space-y-2">
@@ -3137,7 +3168,7 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
   })();
 
   return (
-    <div className="min-h-screen ks-fade pb-32" style={{ background: (SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic).bg }}>
+    <div className="min-h-screen ks-fade ks-bg pb-32">
       <Header title="Detail turnaja" onBack={editing ? cancelEdit : onBack}
         right={
           <div className="flex items-center gap-2">
