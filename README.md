@@ -1,21 +1,31 @@
-# 🎲 Kocky sveta
+# 🎲 Kocky Sveta 2026
 
-> Elegantná digitálna verzia bodovacej hry **Kocky** pre web aj Android (Capacitor + React).
+> Elegantná digitálna verzia bodovacej hry **Kocky** pre web aj Android — s online multiplayerom cez Firebase.
 
 ![Vite](https://img.shields.io/badge/Vite-6.x-8b5cf6?style=for-the-badge&logo=vite&logoColor=white)
 ![React](https://img.shields.io/badge/React-18.x-0f172a?style=for-the-badge&logo=react)
+![Firebase](https://img.shields.io/badge/Firebase-12.x-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![Capacitor](https://img.shields.io/badge/Capacitor-6.x-2563eb?style=for-the-badge&logo=capacitor&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-57%2F57%20✓-22c55e?style=for-the-badge)
+![Release](https://img.shields.io/badge/release-v1.5.5-d4b86a?style=for-the-badge)
 
-## 📦 Status: STABILNÝ — v1.5.3
+## 📦 Status: STABILNÝ — v1.5.5
 
-> **Tag:** `v1.5.3`
+> **Tag:** [`v1.5.5`](https://github.com/bucala/kocky-sveta/releases/tag/v1.5.5) — Firebase Online Features
+
+---
+
+## 🌐 Live Demo
+
+**Produkcia:** [https://kocky-sveta-2026.web.app](https://kocky-sveta-2026.web.app)
 
 ---
 
 ## ✨ Funkcie
 
-- offline hra pre viac hráčov na jednom zariadení (až 6 hráčov)
+### 📴 Offline režim
+
+- hra pre viac hráčov na jednom zariadení (až 6 hráčov)
 - vlastné pravidlá a nastaviteľné bodovanie
 - export a import turnajov cez Excel (lazy-loaded)
 - archív odohraných hier a prehľad výsledkov
@@ -23,104 +33,142 @@
 - progress chart, standings, history graf
 - Android build cez Capacitor + Android Studio
 - **modulárna architektúra** — screens, components, constants, utils, hooks, lib
-- **tournamentEngine.js** — čistá doménová knižnica (pure functions, bez React), unit testovaná
+- **tournamentEngine.js** — čistá doménová knižnica (pure functions, unit testovaná)
 
-> Aplikácia je **plne offline**. Všetky dáta sa ukladajú lokálne na zariadenie cez `localStorage`.
+### 🔥 Online režim (nové vo v1.5.5)
+
+- **Real-time multiplayer** — hranie s priateľmi online cez Firebase
+- **Zdieľané miestnosti** — vytvor kód miestnosti alebo sa pripoj ku existujúcej
+- **Vlastný kód miestnosti** — zadaj ľubovoľný názov (napr. RUBIKON) ako kód
+- **Session persistencia** — zostaneš prihlásený aj po obnovení stránky (F5)
+- **Live sledovanie hráčov** — vidíš kto je v miestnosti v reálnom čase
+- **Online/offline badge** — vizuálny indikátor pripojenia v hlavnom menu
+- **Klikateľný badge** — rýchla navigácia na online miestnosť
+- **Admin panel** — PIN-chránené nastavenia (override kódu, debug mód)
 
 ---
 
-## 📝 Changelog
+## 🛠️ Tech Stack
 
-### v1.5.3 — 2026-05-16 — Endgame & Domain Refactor Release
+### Frontend
+- **React 18** + Vite 6
+- **Lucide React** (ikony)
+- **SheetJS / xlsx** (Excel export/import, lazy-loaded)
+- **Zustand** (state management + persist middleware)
+- **Tailwind CSS** (štýlovanie)
 
-```
-🐛 fix: stale closure v handleFinishTournament / handleAbortTournament
-  • useCallback([]) zachytával finishTournament z prvého renderu → active=null →
-    if (!active) return → turnaj sa nikdy neuzavrel po víťazstve/draw
-  • Fix: finishTournamentRef / abortTournamentRef sa aktualizujú každý render;
-    stable callback vždy volá aktuálnu verziu funkcie
-  • Opravuje scenáre: víťaz, remíza, presný zásah (všetky 3 ✅ overené)
+### Backend & Služby
+- **Firebase Authentication** — anonymné prihlásenie
+- **Cloud Firestore** — real-time databáza pre online miestnosti
+- **Firebase Hosting** — produkčné nasadenie
+- **Capacitor 6** — Android natívne buildy
 
-♻️ refactor: unifikácia computeWinners + computeTotals (FÁZA 2)
-  • Lokálne kópie oboch funkcií odstránené z App.jsx (~130 riadkov)
-  • Jediný zdroj pravdy: src/lib/tournamentEngine.js
-  • finishTournament, TournamentScreen aj ArchiveScreen teraz zdieľajú
-    rovnakú implementáciu výpočtu víťaza
+---
 
-🛡️ fix(fáza-1): pendingDecision:null v provisional pred computeWinners()
-  • confirmWin + roundEnded branch: provisional neobsahoval pendingDecision:null
-    → tournamentEngine.js pendingDecision guard blokoval detekciu víťaza
-  • normal roundEnded branch: rovnaká oprava
-  • Odstránený dead code: commitDash(), opts.confirmCandidate,
-    opts.retryWin, opts.declineWin, opts.__declineWin_removed
+## 🚀 Rýchly štart
 
-🧹 chore: odstránené production console.log (6 miest)
-  • [APP] App component mounted, view changed, startTournament
-  • [APP] HIT_TARGET toast branch
-  • [TS] TournamentScreen mounted, render snapshot
+### Predpoklady
 
-🏗️ feat(fázy 1–8): domain/UI decoupling refactor
-  • pendingDecision domain objekt pre endgame exact-hit flow
-  • resolvePendingDecision() — jediný autoritatívny vstup pre Potvrdil/Nepotvrdil
-  • showDecisionPopup ako derived UI state (nie useState)
-  • DecisionPresenter — jeden renderer pre všetky vizuálne varianty popupu
-  • computeWinners() rešpektuje otvorené pendingDecision (guard v tournamentEngine)
-  • Premenovanie technických názvov pre zrozumiteľnosť
+- Node.js 18+
+- npm alebo yarn
+- Firebase účet (pre online funkcie)
 
-🧪 test: 57 unit testov (50 tournamentEngine + 7 useFunnyQueue) — všetky zelené
-```
+### Inštalácia
 
-### v1.5.2 — 2026-05-10
+```bash
+# Klonovanie repozitára
+git clone https://github.com/bucala/kocky-sveta.git
+cd kocky-sveta
 
-```
-🐛 fix: opravené zobrazenie nového kola pri dokončení kola
-🐛 fix: stabilnejší browser fallback pri sťahovaní Excel exportu
-📦 dep: Firebase zafixovaný na ^12.12.1
+# Inštalácia závislostí
+npm install
+
+# Nastavenie env premenných
+cp .env.example .env.local
+# Uprav .env.local s tvojimi Firebase údajmi
 ```
 
-### v1.5.1 — 2026-05-09
+### Nastavenie prostredia
 
-```
-🐛 fix: riadok tabuľky sa zobrazí hneď v ďalšom kole
-📤 fix: export archívu do Excelu — stabilnejší browser fallback
-```
+Vytvor `.env.local` s Firebase prihlasovacími údajmi:
 
-### v1.5.0 — 2026-05-08 — Modularizácia & Performance Release
-
-```
-♻️ refactor: extrakcia obrazoviek z App.jsx do samostatných súborov
-  • TournamentScreen, ArchiveScreen, RulesEditor → src/screens/
-  • GameWidgets, FunnyOverlay, ProgressChart, SkinSelector → src/components/
-
-⚡ perf: lazy loading XLSX knižnice (~430 KB chunk len pri exporte)
-🎨 style: STYLES konštanta → src/app.css
-♿ a11y: aria-label na icon-only tlačidlá
-🐛 fix: mojibake v SimplifiedResult.jsx (slovenská diakritika)
-🧹 chore: odstránených 38 dočasných Python skriptov
+```bash
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
+VITE_FIREBASE_APP_ID=your-app-id
+VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id
 ```
 
-### v1.4.1 — 2026-05-07
+Údaje nájdeš vo [Firebase Console](https://console.firebase.google.com/project/kocky-sveta-2026/settings/general/web).
 
-```
-🐞 fix: useFunnyQueue — cleanup, stale closure, memoization
-🧪 ci: Vitest test suite pre useFunnyQueue
-```
+### Vývoj
 
-### v1.4.0 — 2026-05-06
-
-```
-♻️ refactor: Migrácia komponentov na React Hooks, extrakcia useFunnyQueue
-```
-
-### v1.2.9 — 2026-05-05
-
-```
-⚡ perf: React.memo ScoreTable — ~30–60% menej re-renderov
+```bash
+npm run dev      # dev server
+npm test         # Vitest unit testy (57/57)
+npm run build    # produkčný build
+npm run preview  # lokálny náhľad produkcie
 ```
 
 ---
 
-## 🎮 Pravidlá hry (implementované)
+## 📦 Nasadenie
+
+### Firebase Hosting
+
+```bash
+# Produkčný build
+npm run build
+
+# Nasadiť všetko
+firebase deploy
+
+# Nasadiť len hosting
+firebase deploy --only hosting
+
+# Nasadiť len Firestore pravidlá
+firebase deploy --only firestore:rules
+```
+
+### Firebase Setup (prvýkrát)
+
+1. Inštalácia Firebase CLI: `npm install -g firebase-tools`
+2. Prihlásenie: `firebase login`
+3. Inicializácia: `firebase init` (ak ešte nebola spravená)
+4. Nasadenie: `firebase deploy`
+
+---
+
+## 🔧 Firebase konfigurácia
+
+### Požadované služby
+
+- **Authentication** → povolené anonymné prihlásenie
+- **Firestore Database** → produkčný mód s bezpečnostnými pravidlami
+- **Hosting** → napojené na repozitár
+
+### Bezpečnostné pravidlá
+
+Pozri `firestore.rules` pre databázové prístupové pravidlá.
+
+---
+
+## 📱 Android Build
+
+```bash
+npm install
+npm run build-android   # vite build + cap sync + post-sync fixes
+npx cap open android    # otvorí Android Studio
+```
+
+V Android Studio: **Build → Clean Project**, potom **Build → Rebuild Project**.
+
+---
+
+## 🎮 Pravidlá hry
 
 | Kategória | Pravidlo |
 |-----------|----------|
@@ -135,35 +183,6 @@
 
 ---
 
-## 🧩 Rýchly štart
-
-```bash
-npm install
-npm run dev          # web dev server
-npm test             # Vitest unit testy (57/57)
-```
-
-## 📦 Buildy
-
-### Web
-
-```bash
-npm run build
-npm run preview      # rýchly local preview
-```
-
-### Android
-
-```bash
-npm install
-npm run build-android   # vite build + cap sync + post-sync fixes
-npx cap open android    # otvorí Android Studio
-```
-
-V Android Studio: **Build → Clean Project**, potom **Build → Rebuild Project**.
-
----
-
 ## 🧱 Štruktúra projektu
 
 ```
@@ -171,43 +190,49 @@ src/
 ├── App.jsx                    — orchestrátor (routing, state, persistence)
 ├── app.css                    — aplikačné štýly
 ├── index.css                  — global štýly + Google Fonts import
-├── main.jsx                   — entry point + localStorage polyfill
+├── main.jsx                   — entry point + ErrorBoundary
 ├── atoms/
+│   ├── ErrorBoundary.jsx      — React Error Boundary
 │   ├── SimplifiedResult.jsx   — výsledkový badge
 │   └── index.js
 ├── components/
 │   ├── FunnyOverlay.jsx       — funny message popup systém
 │   ├── GameWidgets.jsx        — DiceIcon, DiceRow, GoldButton, Ornament…
-│   ├── ProgressChart.jsx      — Recharts graf vývoja skóre
+│   ├── Modal.jsx              — modálne okno
+│   ├── ProgressChart.jsx      — SVG graf vývoja skóre
+│   ├── RulesContent.jsx       — obsah pravidiel
 │   ├── ScoreTable.jsx         — tabuľka skóre (React.memo)
 │   ├── SkinSelector.jsx       — výber vizuálneho skinu
 │   └── ui.jsx                 — zdieľané UI komponenty
 ├── constants/
-│   ├── game.js                — herné konštanty
 │   ├── gameConfig.js          — QUICK_VALUES, TARGET_OPTIONS, POPUP_CONFIG…
 │   ├── rules.js               — pravidlá r1–r18
 │   └── skins.js               — definície skinov
-├── hooks/
-│   └── useFunnyQueue.js       — vlastný hook pre funny queue (memoizovaný)
 ├── lib/
+│   ├── firebase.js            — Firebase konfigurácia
 │   ├── gameEngine.js          — herný engine (legacy wrapper)
-│   ├── firebase.js            — Firebase konfigurácia (offline stub)
 │   ├── storage.js             — localStorage abstrakcia
 │   ├── tournamentEngine.js    — čistá doménová knižnica (pure functions)
-│   └── tournamentEngine.test.js — 50 unit testov pre domain logiku
-├── screens/
-│   ├── ArchiveScreen.jsx      — archív turnajov + detail
-│   ├── GameViewModesScreen.jsx
-│   ├── MainMenu.jsx
-│   ├── NewTournament.jsx
-│   ├── OnlineScreen.jsx
-│   ├── RulesEditor.jsx        — editor pravidiel
-│   ├── SettingsMenu.jsx
-│   ├── TournamentScreen.jsx   — herný flow (Master logika)
-│   └── VisualAndSkinScreen.jsx
-└── utils/
-    ├── format.js              — formátovanie dátumov a časov
-    └── xlsxLazy.js            — lazy loader pre XLSX knižnicu
+│   └── tournamentEngine.test.js — 50 unit testov
+├── online/
+│   ├── createRoom.ts          — vytvorenie Firebase miestnosti
+│   ├── hashPin.ts             — PIN hashing
+│   ├── joinRoom.ts            — pripojenie do miestnosti
+│   ├── onlineStore.ts         — Zustand store s persist middleware
+│   ├── types.ts               — TypeScript typy
+│   ├── updateGameState.ts     — Firestore write
+│   └── useRoomSubscription.ts — real-time Firestore listener
+└── screens/
+    ├── AdminScreen.jsx        — PIN-chránený admin panel
+    ├── ArchiveScreen.jsx      — archív turnajov + detail
+    ├── GameViewModesScreen.jsx
+    ├── MainMenu.jsx
+    ├── NewTournament.jsx
+    ├── OnlineScreen.jsx       — online miestnosti (create/join)
+    ├── RulesEditor.jsx        — editor pravidiel
+    ├── SettingsMenu.jsx
+    ├── TournamentScreen.jsx   — herný flow
+    └── VisualAndSkinScreen.jsx
 ```
 
 ---
@@ -225,41 +250,6 @@ src/
 | `computeRanking(players, totals)` | Zoradí hráčov, pridelí rank (zdieľaný pri remíze) |
 | `computeWinners(tournament)` | Určí víťazov — strict / classic / sudden win / pendingDecision |
 | `evaluateTournamentState(tournament)` | Komplexný derivovaný stav (status, ranking, eligibility…) |
-
----
-
-## ✅ Manual Testing Checklist — v1.5.3
-
-### 🏗️ Build
-- [ ] `npm run build` — build prebehne bez chýb
-- [ ] `npm test` — 57/57 Vitest testov zelených ✅
-- [ ] `npm run dev` — app štartuje bez chýb v konzole
-
-### 🎮 Endgame scenáre (kritické)
-- [ ] **Scenár A:** Hráč 1 Nepotvrdil → Hráč 2 Potvrdil → Results screen, Hráč 2 = winner ✅
-- [ ] **Scenár B:** Alice Potvrdil (10000) → Bob normálny (9800) → Results screen, Alice = winner ✅
-- [ ] **Scenár C:** Alice Potvrdil (10000) → Bob Potvrdil (10000) → Results screen, DRAW ✅
-- [ ] **Scenár D:** Bust (prekročenie) → zostáva na pôvodnom skóre, žiadna penalta
-- [ ] **Scenár E:** Penalta (hod = 0 bodov) → −1000 sa odpočíta
-
-### 🏆 Základný herný flow
-- [ ] Nový turnaj — 2/3/6 hráčov, rôzne ciele
-- [ ] Penalizácia −1000 funguje
-- [ ] Archív → Detail → správne výsledky
-- [ ] Strict mode (r18=Nie) — prvý hráč čo dosiahne cieľ vyhráva
-
-### 📤 Export / Import
-- [ ] Export do Excelu — súbor sa stiahne
-- [ ] Import z Excelu — turnaje sa importujú
-- [ ] Import neznámeho súboru — error, nie crash
-
-### 🎨 Skin & Fonty
-- [ ] Všetky skiny sa správne aplikujú (Klasik, Les, Royal, Pergamen, Orech)
-- [ ] Fonty sa načítajú bez FOIT
-
-### 📱 Android Build
-- [ ] `npm run build-android`
-- [ ] APK na zariadení — endgame flow, archív, export
 
 ---
 
@@ -282,8 +272,39 @@ npm install
 npm test
 ```
 
+### Firebase Auth — nový UID po každom refreshi
+Skontroluj, či je `browserLocalPersistence` nastavené vo `firebase.js` a či `ensureAuth()` čaká na `authStateReady()` pred `signInAnonymously()`.
+
 ---
 
-## 📘 Poznámka
+## ✅ Manual Testing Checklist — v1.5.5
 
-Aplikácia bola pôvodne navrhnutá s Firebase online miestnosťami. Tie boli odstránené pre zjednodušenie — projekt je teraz čisto offline (žiadny `google-services.json`, žiadne Firestore rules, žiadne env premenné).
+### 🏗️ Build
+- [ ] `npm run build` — build prebehne bez chýb
+- [ ] `npm test` — 57/57 Vitest testov zelených
+- [ ] `npm run dev` — app štartuje bez chýb v konzole
+
+### 🌐 Online funkcie
+- [ ] Vytvorenie novej miestnosti — vygeneruje kód
+- [ ] Vlastný kód miestnosti (napr. RUBIKON)
+- [ ] Pripojenie cez kód — druhé zariadenie vidí miestnosť
+- [ ] Real-time sync — zmena hry sa prejaví na oboch zariadeniach
+- [ ] Session persistencia — po F5 zostáva v miestnosti
+- [ ] Online/offline badge — zobrazuje správny stav
+- [ ] Kliknutie na badge — navigácia na online miestnosť
+
+### 🎮 Herný flow
+- [ ] **Scenár A:** Hráč 1 Nepotvrdil → Hráč 2 Potvrdil → Results screen, Hráč 2 = winner
+- [ ] **Scenár B:** Alice Potvrdil (10000) → Bob normálny (9800) → Results screen, Alice = winner
+- [ ] **Scenár C:** Alice Potvrdil (10000) → Bob Potvrdil (10000) → Results screen, DRAW
+- [ ] **Scenár D:** Bust (prekročenie) → zostáva na pôvodnom skóre, žiadna penalta
+- [ ] **Scenár E:** Penalta (hod = 0 bodov) → −1000 sa odpočíta
+
+### 📤 Export / Import
+- [ ] Export do Excelu — súbor sa stiahne
+- [ ] Import z Excelu — turnaje sa importujú správne
+- [ ] Import neznámeho súboru — error, nie crash
+
+---
+
+**Latest Release:** [v1.5.5 — Firebase Online Features](https://github.com/bucala/kocky-sveta/releases/tag/v1.5.5)
