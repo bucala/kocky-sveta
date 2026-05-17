@@ -12,8 +12,8 @@ import {
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import ScoreTable from './components/ScoreTable.jsx';
+import { ProgressChart } from './components/ProgressChart.jsx';
 import { MainMenu, MenuButton } from './screens/MainMenu.jsx';
 import { NewTournament } from './screens/NewTournament.jsx';
 import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
@@ -581,8 +581,23 @@ export default function App() {
     setScoreDisplayMode(m => m === 'delta' ? 'cumulative' : 'delta');
   }, []);
 
+  // ─── Undo stack (max 5 krokov) ───────────────────────────────────────────
+  const [undoStack, setUndoStack] = useState([]);
+  const activeRef = useRef(null);
+  useEffect(() => { activeRef.current = active; }, [active]);
+
   const handleUpdateActive = useCallback((updater) => {
+    const snapshot = activeRef.current;
+    if (snapshot) setUndoStack(s => [...s.slice(-4), snapshot]);
     setActive(prev => typeof updater === 'function' ? updater(prev) : updater);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    setUndoStack(s => {
+      if (!s.length) return s;
+      setActive(s[s.length - 1]);
+      return s.slice(0, -1);
+    });
   }, []);
 
   // Refs hold the latest function so stable callbacks never go stale
@@ -650,6 +665,7 @@ export default function App() {
   }, [adminSettings.roomName, rules, selectedSkin, setOnlineRoomId, setOnlineUid, setOnlineStatus]);
 
 function startTournament(players, targetScore) {
+    setUndoStack([]);
     setActive({
       id: Date.now(),
       date: new Date().toISOString(),
@@ -1170,6 +1186,8 @@ function startTournament(players, targetScore) {
             funnyWindowsDisplayMode={funnyWindowsDisplayMode}
             debugMode={adminSettings.debugMode}
             minWriteOffOverride={adminSettings.minWriteOffOverride}
+            canUndo={undoStack.length > 0}
+            onUndo={handleUndo}
           />
         ) : (
           <SafeTournamentFallback title="Turnaj sa nepodarilo načítať" />
@@ -2519,11 +2537,8 @@ function Standings({ players, totals, target }) {
 
 // ─── Pravidlá ─────────────────────────────────────────────────────────────
 
-// ─── Graf priebehu hry ────────────────────────────────────────────────────
-
-const PLAYER_COLORS = ['#d4b86a', '#e08854', '#7ba88a', '#c47880', '#80a8c4', '#b89580'];
-
-function ProgressChart({ tournament, totals, target }) {
+// Pozn: ProgressChart bol presunutý do src/components/ProgressChart.jsx (SVG bez recharts)
+function _unused_ProgressChart_recharts({ tournament, totals, target }) {
   if (!tournament || !Array.isArray(tournament.players)) return null;
   const { players, rounds } = tournament;
 
