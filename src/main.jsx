@@ -53,6 +53,13 @@ if ('serviceWorker' in navigator && import.meta.env.PROD && isHttpContext) {
   });
 }
 
+// ─── Potlačenie kontextového menu (dlhý stisk na mobile) ────────────────
+document.addEventListener('contextmenu', (e) => {
+  if (!(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+    e.preventDefault();
+  }
+}, { capture: true });
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />

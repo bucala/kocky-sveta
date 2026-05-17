@@ -451,6 +451,7 @@ export default function App() {
   const [funnyWindowsDisplayMode, setFunnyWindowsDisplayMode] = useState('standard');
   const [adminSettings, setAdminSettings] = useState(DEFAULT_ADMIN_SETTINGS);
   const [showAdminPin, setShowAdminPin] = useState(false);
+  const [showEasterEgg, setShowEasterEgg] = useState(false);
 
   const { setRoomId: setOnlineRoomId, setUid: setOnlineUid, setStatus: setOnlineStatus, roomId: onlineRoomId, roomState: onlineRoomState } = useOnlineStore();
 
@@ -1099,6 +1100,7 @@ function startTournament(players, targetScore) {
           funnyWindowsDisplayMode={funnyWindowsDisplayMode}
           onFunnyWindowsDisplayModeChange={setFunnyWindowsDisplayMode}
           onAdmin={() => setShowAdminPin(true)}
+          onShowEgg={() => setShowEasterEgg(true)}
         />
       )}
       {view === 'admin' && (
@@ -1190,6 +1192,19 @@ function startTournament(players, targetScore) {
           onCancel={() => setShowAdminPin(false)}
         />
       )}
+      {showEasterEgg && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95"
+          onClick={() => setShowEasterEgg(false)}
+        >
+          <img
+            src="/Easteregg.jpg"
+            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
+            alt=""
+            draggable={false}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -1202,15 +1217,14 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
 
 // ─── Vizuál a Skiny submenu ───────────────────────────────────────────────
 
-function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin }) {
+function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin, onShowEgg }) {
   const fileInputRef = useRef(null);
   const [eggClicks, setEggClicks] = useState(0);
-  const [showEgg, setShowEgg] = useState(false);
 
   function handleEggClick() {
     const next = eggClicks + 1;
     setEggClicks(next);
-    if (next >= 5) { setShowEgg(true); setEggClicks(0); }
+    if (next >= 5) { onShowEgg?.(); setEggClicks(0); }
   }
 
   function handleFilePick(e) {
@@ -1399,11 +1413,6 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
           </div>
         </div>
 
-        {showEgg && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95" onClick={() => setShowEgg(false)}>
-            <img src="/Easteregg.jpg" className="max-w-full max-h-full object-contain" alt="" draggable={false} />
-          </div>
-        )}
       </div>
     </div>
   );
@@ -2619,18 +2628,19 @@ function RulesView({ rules, onBack }) {
       <div className="p-4 max-w-2xl mx-auto space-y-3">
         <div className="ks-card rounded-sm p-5">
           <p className="ks-body ks-cream leading-relaxed">
-            Cieľom hry <em className="ks-gold">Kocky</em> je byť prvým hráčom, ktorý dosiahne cieľové skóre
-            <strong className="ks-gold"> {target.toLocaleString('sk-SK')}</strong>. Hráči sa striedajú v hodoch šesťkociek.
+            Cieľom hry <em className="ks-gold">Kocky</em> je byť prvým hráčom, ktorý dosiahne cieľové skóre —
+            <strong className="ks-gold"> {target.toLocaleString('sk-SK')}</strong> v klasickej hre alebo
+            <strong className="ks-gold"> 5 000</strong> v skrátenej. Hráči sa striedajú v hodoch šesťkociek.
           </p>
           <p className="ks-body ks-cream leading-relaxed mt-2">
             Každý zápis musí byť aspoň <strong className="ks-gold">{minWO} bodov</strong> (minimálny odpis) — alebo daj <em>čiarku</em>.
-            Ak v hode nepadla žiadna bodujúca kocka,
-            z aktuálneho skóre sa odpočíta <strong className="ks-text-accent">{Math.abs(penalty).toLocaleString('sk-SK')} bodov</strong>.
+            Hru sa dá začať aj čiarkou bez bodov. Ak v hode nepadla žiadna bodujúca kocka,
+            z aktuálneho skóre sa odpočíta <strong className="ks-text-accent">−{Math.abs(penalty).toLocaleString('sk-SK')} bodov</strong>.
           </p>
           <p className="ks-body ks-cream leading-relaxed mt-2">
-            Ak hod prekročí cieľ, body sa nezapočítajú a zapíše sa čiarka.
-            V závere hry treba dohrať na <em className="ks-gold">presný cieľ</em>; ak je zapnuté potvrdenie víťazstva,
-            po presnom zásahu nasleduje overovací ťah — musí padnúť <em>ničnehodenie</em>.
+            Ak hod prekročí cieľ, body sa nezapočítajú a podľa nastavenia sa zapíše spravidla <em>čiarka</em>.
+            V závere hry treba dohrať na <em className="ks-gold">presný cieľ</em>; ak sa zapne potvrdenie víťazstva,
+            po presnom zásahu nasleduje ešte overovací ťah, v ktorom musí padnúť <em>niečohodnenie</em>.
           </p>
           <p className="ks-muted ks-body text-xs italic mt-3">
             Hodnoty cieľa, minimálneho odpisu a penalizácie sa dajú upraviť v <em>Nastavenia → Úprava pravidiel</em>.
