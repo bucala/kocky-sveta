@@ -451,6 +451,7 @@ export default function App() {
   const [funnyWindowsDisplayMode, setFunnyWindowsDisplayMode] = useState('standard');
   const [adminSettings, setAdminSettings] = useState(DEFAULT_ADMIN_SETTINGS);
   const [showAdminPin, setShowAdminPin] = useState(false);
+  const [showEasterEgg, setShowEasterEgg] = useState(false);
 
   const { setRoomId: setOnlineRoomId, setUid: setOnlineUid, setStatus: setOnlineStatus, roomId: onlineRoomId, roomState: onlineRoomState } = useOnlineStore();
 
@@ -1099,6 +1100,7 @@ function startTournament(players, targetScore) {
           funnyWindowsDisplayMode={funnyWindowsDisplayMode}
           onFunnyWindowsDisplayModeChange={setFunnyWindowsDisplayMode}
           onAdmin={() => setShowAdminPin(true)}
+          onShowEgg={() => setShowEasterEgg(true)}
         />
       )}
       {view === 'admin' && (
@@ -1190,6 +1192,19 @@ function startTournament(players, targetScore) {
           onCancel={() => setShowAdminPin(false)}
         />
       )}
+      {showEasterEgg && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95"
+          onClick={() => setShowEasterEgg(false)}
+        >
+          <img
+            src="/Easteregg.jpg"
+            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
+            alt=""
+            draggable={false}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -1202,15 +1217,14 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
 
 // ─── Vizuál a Skiny submenu ───────────────────────────────────────────────
 
-function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin }) {
+function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin, onShowEgg }) {
   const fileInputRef = useRef(null);
   const [eggClicks, setEggClicks] = useState(0);
-  const [showEgg, setShowEgg] = useState(false);
 
   function handleEggClick() {
     const next = eggClicks + 1;
     setEggClicks(next);
-    if (next >= 5) { setShowEgg(true); setEggClicks(0); }
+    if (next >= 5) { onShowEgg?.(); setEggClicks(0); }
   }
 
   function handleFilePick(e) {
@@ -1399,11 +1413,6 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
           </div>
         </div>
 
-        {showEgg && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95" onClick={() => setShowEgg(false)}>
-            <img src="/Easteregg.jpg" className="max-w-full max-h-full object-contain" alt="" draggable={false} />
-          </div>
-        )}
       </div>
     </div>
   );
