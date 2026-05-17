@@ -873,6 +873,7 @@ function startTournament(players, targetScore) {
 
   async function importFromExcel(file) {
     try {
+      const XLSX = (await import('xlsx')).default || await import('xlsx');
       const data = await file.arrayBuffer();
       const wb = XLSX.read(data, { type: 'array' });
 
