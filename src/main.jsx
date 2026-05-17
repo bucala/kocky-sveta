@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
+import { ErrorBoundary } from './atoms/ErrorBoundary.jsx';
 import './index.css';
 
 // ─── window.storage polyfill — namapovanie na localStorage ──────────────
@@ -62,6 +63,8 @@ document.addEventListener('contextmenu', (e) => {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>,
 );

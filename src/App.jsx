@@ -520,25 +520,32 @@ export default function App() {
   }, [onlineRoomId]);
 
   // ─── Online sync ──────────────────────────────────────────────────────────
-  // Tracks whether the last `active` update came from Firestore (to avoid echo writes).
-  const syncingFromRemote = useRef(false);
+  // lastRemoteJson stores the JSON of the last activeTournament received from
+  // Firestore. The write effect skips the push when local active matches this
+  // string — this is data-based dedup and avoids the fragile ref-flag approach.
+  const lastRemoteJson = useRef(null);
 
-  // Remote → local: apply activeTournament from Firestore to local state.
+  // Remote → local: apply activeTournament received from Firestore.
   useEffect(() => {
     const remoteActive = onlineRoomState?.activeTournament;
     if (remoteActive === undefined) return;
-    syncingFromRemote.current = true;
+    const json = JSON.stringify(remoteActive ?? null);
+    if (json === lastRemoteJson.current) return; // already applied, skip
+    lastRemoteJson.current = json;
     setActive(remoteActive ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(onlineRoomState?.activeTournament)]);
 
-  // Local → remote: push active tournament to Firestore when it changes locally.
+  // Local → remote: push to Firestore only when local state differs from last remote.
   useEffect(() => {
-    if (!loaded) return;
-    if (syncingFromRemote.current) { syncingFromRemote.current = false; return; }
-    if (!onlineRoomId) return;
+    if (!loaded || !onlineRoomId) return;
+    const currentJson = JSON.stringify(active ?? null);
+    if (currentJson === lastRemoteJson.current) return; // this is the echo — skip
     import('./online/updateGameState.ts').then(({ updateGameState }) => {
-      updateGameState(onlineRoomId, { activeTournament: active ?? null }).catch(() => {});
+      updateGameState(onlineRoomId, { activeTournament: active ?? null }).catch((e) => {
+        console.error('[sync] Firestore write failed:', e);
+        setOnlineStatus('error');
+      });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, onlineRoomId, loaded]);
