@@ -12,8 +12,8 @@ import {
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import ScoreTable from './components/ScoreTable.jsx';
+import { ProgressChart } from './components/ProgressChart.jsx';
 import { MainMenu, MenuButton } from './screens/MainMenu.jsx';
 import { NewTournament } from './screens/NewTournament.jsx';
 import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
@@ -494,10 +494,17 @@ export default function App() {
   }, [active, loaded]);
   useEffect(() => { if (loaded) window.storage.set('adminSettings', JSON.stringify(adminSettings)).catch(() => {}); }, [adminSettings, loaded]);
 
-  // ─── Inactivity auto-disconnect (12 min) ─────────────────────────────────
+  // ─── Inactivity auto-disconnect (12 h) ───────────────────────────────────
+  const INACTIVITY_LIMIT   = 12 * 60 * 60 * 1000; // 12 hodín
+  const INACTIVITY_WARNING =  2 * 60 * 1000;       // varovanie 2 min pred odpojením
+  const [inactivityWarning, setInactivityWarning] = useState(false);
+
   const lastActivityRef = useRef(Date.now());
   useEffect(() => {
-    const touch = () => { lastActivityRef.current = Date.now(); };
+    const touch = () => {
+      lastActivityRef.current = Date.now();
+      setInactivityWarning(false); // user is active → dismiss warning
+    };
     window.addEventListener('mousemove', touch, { passive: true });
     window.addEventListener('keydown', touch, { passive: true });
     window.addEventListener('click', touch, { passive: true });
@@ -510,35 +517,47 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    if (!onlineRoomId) return;
+    if (!onlineRoomId) { setInactivityWarning(false); return; }
     const id = setInterval(() => {
-      if (Date.now() - lastActivityRef.current >= 12 * 60 * 1000) {
+      const inactive = Date.now() - lastActivityRef.current;
+      if (inactive >= INACTIVITY_LIMIT) {
+        setInactivityWarning(false);
         useOnlineStore.getState().reset();
+      } else if (inactive >= INACTIVITY_LIMIT - INACTIVITY_WARNING) {
+        setInactivityWarning(true);
       }
-    }, 60_000);
+    }, 30_000);
     return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlineRoomId]);
 
   // ─── Online sync ──────────────────────────────────────────────────────────
-  // Tracks whether the last `active` update came from Firestore (to avoid echo writes).
-  const syncingFromRemote = useRef(false);
+  // lastRemoteJson stores the JSON of the last activeTournament received from
+  // Firestore. The write effect skips the push when local active matches this
+  // string — this is data-based dedup and avoids the fragile ref-flag approach.
+  const lastRemoteJson = useRef(null);
 
-  // Remote → local: apply activeTournament from Firestore to local state.
+  // Remote → local: apply activeTournament received from Firestore.
   useEffect(() => {
     const remoteActive = onlineRoomState?.activeTournament;
     if (remoteActive === undefined) return;
-    syncingFromRemote.current = true;
+    const json = JSON.stringify(remoteActive ?? null);
+    if (json === lastRemoteJson.current) return; // already applied, skip
+    lastRemoteJson.current = json;
     setActive(remoteActive ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(onlineRoomState?.activeTournament)]);
 
-  // Local → remote: push active tournament to Firestore when it changes locally.
+  // Local → remote: push to Firestore only when local state differs from last remote.
   useEffect(() => {
-    if (!loaded) return;
-    if (syncingFromRemote.current) { syncingFromRemote.current = false; return; }
-    if (!onlineRoomId) return;
+    if (!loaded || !onlineRoomId) return;
+    const currentJson = JSON.stringify(active ?? null);
+    if (currentJson === lastRemoteJson.current) return; // this is the echo — skip
     import('./online/updateGameState.ts').then(({ updateGameState }) => {
-      updateGameState(onlineRoomId, { activeTournament: active ?? null }).catch(() => {});
+      updateGameState(onlineRoomId, { activeTournament: active ?? null }).catch((e) => {
+        console.error('[sync] Firestore write failed:', e);
+        setOnlineStatus('error');
+      });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, onlineRoomId, loaded]);
@@ -562,8 +581,23 @@ export default function App() {
     setScoreDisplayMode(m => m === 'delta' ? 'cumulative' : 'delta');
   }, []);
 
+  // ─── Undo stack (max 5 krokov) ───────────────────────────────────────────
+  const [undoStack, setUndoStack] = useState([]);
+  const activeRef = useRef(null);
+  useEffect(() => { activeRef.current = active; }, [active]);
+
   const handleUpdateActive = useCallback((updater) => {
+    const snapshot = activeRef.current;
+    if (snapshot) setUndoStack(s => [...s.slice(-4), snapshot]);
     setActive(prev => typeof updater === 'function' ? updater(prev) : updater);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    setUndoStack(s => {
+      if (!s.length) return s;
+      setActive(s[s.length - 1]);
+      return s.slice(0, -1);
+    });
   }, []);
 
   // Refs hold the latest function so stable callbacks never go stale
@@ -615,9 +649,8 @@ export default function App() {
       await auth.authStateReady();
       if (!auth.currentUser) await signInAnonymously(auth);
       const uid = auth.currentUser.uid;
-      const rid = await createRoom({
+      const { roomId: rid } = await createRoom({
         hostName: 'hráč',
-        pin: '0000',
         selectedSkin: selectedSkin || 'classic',
         rules: rules || [],
         customRoomId: customId,
@@ -632,6 +665,7 @@ export default function App() {
   }, [adminSettings.roomName, rules, selectedSkin, setOnlineRoomId, setOnlineUid, setOnlineStatus]);
 
 function startTournament(players, targetScore) {
+    setUndoStack([]);
     setActive({
       id: Date.now(),
       date: new Date().toISOString(),
@@ -839,6 +873,7 @@ function startTournament(players, targetScore) {
 
   async function importFromExcel(file) {
     try {
+      const XLSX = (await import('xlsx')).default || await import('xlsx');
       const data = await file.arrayBuffer();
       const wb = XLSX.read(data, { type: 'array' });
 
@@ -1152,6 +1187,8 @@ function startTournament(players, targetScore) {
             funnyWindowsDisplayMode={funnyWindowsDisplayMode}
             debugMode={adminSettings.debugMode}
             minWriteOffOverride={adminSettings.minWriteOffOverride}
+            canUndo={undoStack.length > 0}
+            onUndo={handleUndo}
           />
         ) : (
           <SafeTournamentFallback title="Turnaj sa nepodarilo načítať" />
@@ -1191,6 +1228,23 @@ function startTournament(players, targetScore) {
           onSuccess={() => { setShowAdminPin(false); setView('admin'); }}
           onCancel={() => setShowAdminPin(false)}
         />
+      )}
+      {inactivityWarning && onlineRoomId && (
+        <div className="fixed bottom-0 left-0 right-0 z-[9990] px-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+          <div className="max-w-md mx-auto ks-card border-2 border-amber-700/60 rounded-sm px-4 py-3 flex items-center gap-3 shadow-2xl">
+            <AlertTriangle size={18} className="ks-gold shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="ks-cream text-sm font-semibold ks-display">Neaktivita — čoskoro sa odpojíš</div>
+              <div className="ks-muted text-xs">Miestnosť sa odpojí za menej ako 2 minúty.</div>
+            </div>
+            <button
+              onClick={() => { lastActivityRef.current = Date.now(); setInactivityWarning(false); }}
+              className="ks-gold-bg ks-press px-3 py-1.5 rounded-sm ks-mono text-xs font-bold shrink-0"
+            >
+              ZOSTAŤ
+            </button>
+          </div>
+        </div>
       )}
       {showEasterEgg && (
         <div
@@ -2484,11 +2538,8 @@ function Standings({ players, totals, target }) {
 
 // ─── Pravidlá ─────────────────────────────────────────────────────────────
 
-// ─── Graf priebehu hry ────────────────────────────────────────────────────
-
-const PLAYER_COLORS = ['#d4b86a', '#e08854', '#7ba88a', '#c47880', '#80a8c4', '#b89580'];
-
-function ProgressChart({ tournament, totals, target }) {
+// Pozn: ProgressChart bol presunutý do src/components/ProgressChart.jsx (SVG bez recharts)
+function _unused_ProgressChart_recharts({ tournament, totals, target }) {
   if (!tournament || !Array.isArray(tournament.players)) return null;
   const { players, rounds } = tournament;
 

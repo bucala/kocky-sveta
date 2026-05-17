@@ -104,6 +104,10 @@ export function TournamentScreen({
   onSkinChange,
   tournamentViewMode = 'basic',
   funnyWindowsDisplayMode = 'standard',
+  canUndo = false,
+  onUndo,
+  debugMode,
+  minWriteOffOverride,
 }) {
   console.log('[TS] TournamentScreen mounted');
   console.log('[TS] view mode', tournamentViewMode);
@@ -616,6 +620,15 @@ return (
               <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed ks-border-sub rounded-sm">Pridaj body alebo čiarku z hodu nižšie…</div>
             )}
             <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">Zapísať</GoldButton>
+            {canUndo && (
+              <button
+                onClick={onUndo}
+                className="ks-press mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-sm border ks-border-sub ks-muted text-xs ks-mono hover:ks-cream"
+              >
+                <RotateCcw size={13} />
+                SPÄŤ (UNDO)
+              </button>
+            )}
           </div>
           <div className="ks-card-sub rounded-sm p-4 flex-1">
             <div className="ks-mono ks-muted text-xs mb-3">PRIDAJ BODY Z HODU</div>
@@ -727,6 +740,15 @@ return (
               <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">
                 Zapísať
               </GoldButton>
+              {canUndo && (
+                <button
+                  onClick={onUndo}
+                  className="ks-press mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-sm border ks-border-sub ks-muted text-xs ks-mono hover:ks-cream"
+                >
+                  <RotateCcw size={13} />
+                  SPÄŤ (UNDO)
+                </button>
+              )}
             </div>
           </div>
 

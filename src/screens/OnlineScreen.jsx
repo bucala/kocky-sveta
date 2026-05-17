@@ -74,9 +74,8 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
     setCreateErr('');
     try {
       const uid = await ensureAuth();
-      const rid = await createRoom({
+      const { roomId: rid } = await createRoom({
         hostName: playerName,
-        pin: '0000',
         selectedSkin: activeSkin || 'classic',
         rules: activeRules || [],
       });

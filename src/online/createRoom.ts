@@ -10,17 +10,23 @@ function generateRoomId(): string {
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
+function generatePin(): string {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
 export async function createRoom(params: {
   hostName: string;
-  pin: string;
+  pin?: string;
   selectedSkin: string;
   rules: string[];
   customRoomId?: string;
-}): Promise<string> {
+}): Promise<{ roomId: string; pin: string }> {
   const roomId = params.customRoomId
     ? params.customRoomId.toUpperCase().trim()
     : generateRoomId();
-  const ownerPinHash = await hashPin(params.pin);
+
+  const pin = params.pin || generatePin();
+  const ownerPinHash = await hashPin(pin);
 
   const uid = getAuth().currentUser?.uid;
   if (!uid) throw new Error('Nie si prihlásený');
@@ -47,6 +53,6 @@ export async function createRoom(params: {
   };
 
   await setDoc(doc(db, 'rooms', roomId), roomData);
-  if ((window as any).__ksVerboseFirebase) console.log('[createRoom] roomId:', roomId, 'uid:', uid, 'data:', roomData);
-  return roomId;
+  if ((window as any).__ksVerboseFirebase) console.log('[createRoom] roomId:', roomId, 'uid:', uid, 'pin:', pin);
+  return { roomId, pin };
 }
