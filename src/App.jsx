@@ -2619,18 +2619,19 @@ function RulesView({ rules, onBack }) {
       <div className="p-4 max-w-2xl mx-auto space-y-3">
         <div className="ks-card rounded-sm p-5">
           <p className="ks-body ks-cream leading-relaxed">
-            Cieľom hry <em className="ks-gold">Kocky</em> je byť prvým hráčom, ktorý dosiahne cieľové skóre
-            <strong className="ks-gold"> {target.toLocaleString('sk-SK')}</strong>. Hráči sa striedajú v hodoch šesťkociek.
+            Cieľom hry <em className="ks-gold">Kocky</em> je byť prvým hráčom, ktorý dosiahne cieľové skóre —
+            <strong className="ks-gold"> {target.toLocaleString('sk-SK')}</strong> v klasickej hre alebo
+            <strong className="ks-gold"> 5 000</strong> v skrátenej. Hráči sa striedajú v hodoch šesťkociek.
           </p>
           <p className="ks-body ks-cream leading-relaxed mt-2">
             Každý zápis musí byť aspoň <strong className="ks-gold">{minWO} bodov</strong> (minimálny odpis) — alebo daj <em>čiarku</em>.
-            Ak v hode nepadla žiadna bodujúca kocka,
-            z aktuálneho skóre sa odpočíta <strong className="ks-text-accent">{Math.abs(penalty).toLocaleString('sk-SK')} bodov</strong>.
+            Hru sa dá začať aj čiarkou bez bodov. Ak v hode nepadla žiadna bodujúca kocka,
+            z aktuálneho skóre sa odpočíta <strong className="ks-text-accent">−{Math.abs(penalty).toLocaleString('sk-SK')} bodov</strong>.
           </p>
           <p className="ks-body ks-cream leading-relaxed mt-2">
-            Ak hod prekročí cieľ, body sa nezapočítajú a zapíše sa čiarka.
-            V závere hry treba dohrať na <em className="ks-gold">presný cieľ</em>; ak je zapnuté potvrdenie víťazstva,
-            po presnom zásahu nasleduje overovací ťah — musí padnúť <em>ničnehodenie</em>.
+            Ak hod prekročí cieľ, body sa nezapočítajú a podľa nastavenia sa zapíše spravidla <em>čiarka</em>.
+            V závere hry treba dohrať na <em className="ks-gold">presný cieľ</em>; ak sa zapne potvrdenie víťazstva,
+            po presnom zásahu nasleduje ešte overovací ťah, v ktorom musí padnúť <em>niečohodnenie</em>.
           </p>
           <p className="ks-muted ks-body text-xs italic mt-3">
             Hodnoty cieľa, minimálneho odpisu a penalizácie sa dajú upraviť v <em>Nastavenia → Úprava pravidiel</em>.
