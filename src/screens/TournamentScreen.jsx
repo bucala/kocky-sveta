@@ -625,8 +625,8 @@ return (
               ))}
             </div>
             <div className="flex gap-2 mb-3">
-              <input type="number" value={customInput} onChange={(e) => setCustomInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCustom()} placeholder="Vlastná hodnota" className="flex-1 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
-              <GoldButton onClick={addCustom} icon={Plus} variant="outline">Pridaj</GoldButton>
+              <input type="number" value={customInput} onChange={(e) => setCustomInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCustom()} placeholder="Vlastná hodnota" className="min-w-0 flex-1 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
+              <button onClick={addCustom} className="ks-press ks-mono px-3 py-2 rounded-sm flex items-center justify-center gap-1.5 font-semibold border ks-border-accent ks-gold hover:bg-amber-900/20 shrink-0 text-sm whitespace-nowrap"><Plus size={16} strokeWidth={2} />Pridaj</button>
             </div>
             <div className="ks-divider my-3" />
             <div className="grid grid-cols-2 gap-2">
