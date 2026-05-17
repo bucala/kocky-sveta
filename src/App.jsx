@@ -452,7 +452,7 @@ export default function App() {
   const [adminSettings, setAdminSettings] = useState(DEFAULT_ADMIN_SETTINGS);
   const [showAdminPin, setShowAdminPin] = useState(false);
 
-  const { setRoomId: setOnlineRoomId, setUid: setOnlineUid, setStatus: setOnlineStatus } = useOnlineStore();
+  const { setRoomId: setOnlineRoomId, setUid: setOnlineUid, setStatus: setOnlineStatus, roomId: onlineRoomId, roomState: onlineRoomState } = useOnlineStore();
 
   useEffect(() => {
     (async () => {
@@ -492,6 +492,55 @@ export default function App() {
     else window.storage.delete('active').catch(() => {});
   }, [active, loaded]);
   useEffect(() => { if (loaded) window.storage.set('adminSettings', JSON.stringify(adminSettings)).catch(() => {}); }, [adminSettings, loaded]);
+
+  // ─── Inactivity auto-disconnect (12 min) ─────────────────────────────────
+  const lastActivityRef = useRef(Date.now());
+  useEffect(() => {
+    const touch = () => { lastActivityRef.current = Date.now(); };
+    window.addEventListener('mousemove', touch, { passive: true });
+    window.addEventListener('keydown', touch, { passive: true });
+    window.addEventListener('click', touch, { passive: true });
+    window.addEventListener('touchstart', touch, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', touch);
+      window.removeEventListener('keydown', touch);
+      window.removeEventListener('click', touch);
+      window.removeEventListener('touchstart', touch);
+    };
+  }, []);
+  useEffect(() => {
+    if (!onlineRoomId) return;
+    const id = setInterval(() => {
+      if (Date.now() - lastActivityRef.current >= 12 * 60 * 1000) {
+        useOnlineStore.getState().reset();
+      }
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [onlineRoomId]);
+
+  // ─── Online sync ──────────────────────────────────────────────────────────
+  // Tracks whether the last `active` update came from Firestore (to avoid echo writes).
+  const syncingFromRemote = useRef(false);
+
+  // Remote → local: apply activeTournament from Firestore to local state.
+  useEffect(() => {
+    const remoteActive = onlineRoomState?.activeTournament;
+    if (remoteActive === undefined) return;
+    syncingFromRemote.current = true;
+    setActive(remoteActive ?? null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(onlineRoomState?.activeTournament)]);
+
+  // Local → remote: push active tournament to Firestore when it changes locally.
+  useEffect(() => {
+    if (!loaded) return;
+    if (syncingFromRemote.current) { syncingFromRemote.current = false; return; }
+    if (!onlineRoomId) return;
+    import('./online/updateGameState.ts').then(({ updateGameState }) => {
+      updateGameState(onlineRoomId, { activeTournament: active ?? null }).catch(() => {});
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, onlineRoomId, loaded]);
 
   const minWriteOff = useMemo(() => {
     const r = rules.find(x => x.id === 'r14');
@@ -1155,6 +1204,14 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
 
 function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin }) {
   const fileInputRef = useRef(null);
+  const [eggClicks, setEggClicks] = useState(0);
+  const [showEgg, setShowEgg] = useState(false);
+
+  function handleEggClick() {
+    const next = eggClicks + 1;
+    setEggClicks(next);
+    if (next >= 5) { setShowEgg(true); setEggClicks(0); }
+  }
 
   function handleFilePick(e) {
     const file = e.target.files?.[0];
@@ -1326,21 +1383,27 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
         <div className="ks-mono ks-gold text-xs px-1 pt-4">O APLIKÁCII</div>
         <div className="ks-card w-full p-4 rounded-sm space-y-3">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <button onClick={handleEggClick} className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center ks-press select-none">
               <Info size={22} className="ks-gold" />
-            </div>
+            </button>
             <div className="flex-1">
               <div className="ks-display ks-cream text-xl font-semibold">Kocky sveta</div>
               <div className="ks-muted text-sm">React + Vite + Firebase + Capacitor</div>
             </div>
           </div>
           <div className="space-y-2 text-xs ks-muted leading-relaxed border-t ks-border-sub pt-3">
-            <p><span className="ks-cream font-semibold">Technológie:</span> React 18, Vite, Tailwind CSS, Firebase, Capacitor (Android/iOS)</p>
-            <p><span className="ks-cream font-semibold">Dáta:</span> Ukladané lokálne. Online sync cez Firebase Realtime DB.</p>
+            <p><span className="ks-cream font-semibold">Technológie:</span> React 18, Vite, Tailwind CSS, Firebase Firestore, Capacitor (Android/iOS)</p>
+            <p><span className="ks-cream font-semibold">Dáta:</span> Ukladané lokálne. Online sync cez Firebase Firestore v reálnom čase.</p>
             <p><span className="ks-cream font-semibold">Exporty:</span> XLSX (SheetJS) — každý turnaj ako list + súhrnný prehľad.</p>
-            <p><span className="ks-cream font-semibold">Vývoj:</span> Postavené s pomocou AI (Perplexity / Claude Sonnet). Dizajn, herná logika a pravidlá sú autorské.</p>
+            <p><span className="ks-cream font-semibold">Vývoj:</span> Marcel, 2026. Herná logika a pravidlá sú autorské.</p>
           </div>
         </div>
+
+        {showEgg && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95" onClick={() => setShowEgg(false)}>
+            <img src="/Easteregg.jpg" className="max-w-full max-h-full object-contain" alt="" draggable={false} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1473,8 +1536,7 @@ function TournamentScreen({
   const isLastPlayerInRound = currentPlayer === players.length - 1;
   // showDecisionPopup je odvodený z domain stavu – nie useState.
   // Zobrazí sa keď: (a) prebieha exact-hit-verification alebo (b) je confirmation kolo.
-  const showDecisionPopup = (!!tournament.pendingDecision || isConfirmationTurn)
-    && tournamentViewMode === 'basic';
+  const showDecisionPopup = !!tournament.pendingDecision || isConfirmationTurn;
 
   const pendingSum = pending.reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
   const newTotal = total + pendingSum;
@@ -2557,22 +2619,21 @@ function RulesView({ rules, onBack }) {
       <div className="p-4 max-w-2xl mx-auto space-y-3">
         <div className="ks-card rounded-sm p-5">
           <p className="ks-body ks-cream leading-relaxed">
-            Cieľom hry <em className="ks-gold">Kocky</em> je byť prvým hráčom, ktorý dosiahne cieľové skóre —
-            <strong className="ks-gold"> {target.toLocaleString('sk-SK')}</strong> v klasickej hre alebo
-            <strong className="ks-gold"> 5 000</strong> v krátkej. Hráči sa striedajú v hodoch šesťkociek.
+            Cieľom hry <em className="ks-gold">Kocky</em> je byť prvým hráčom, ktorý dosiahne cieľové skóre
+            <strong className="ks-gold"> {target.toLocaleString('sk-SK')}</strong>. Hráči sa striedajú v hodoch šesťkociek.
           </p>
           <p className="ks-body ks-cream leading-relaxed mt-2">
             Každý zápis musí byť aspoň <strong className="ks-gold">{minWO} bodov</strong> (minimálny odpis) — alebo daj <em>čiarku</em>.
-            Hru sa dá <em>začať</em> aj čiarkou bez bodov. Ak v hode nepadla žiadna bodujúca kocka,
+            Ak v hode nepadla žiadna bodujúca kocka,
             z aktuálneho skóre sa odpočíta <strong className="ks-text-accent">{Math.abs(penalty).toLocaleString('sk-SK')} bodov</strong>.
           </p>
           <p className="ks-body ks-cream leading-relaxed mt-2">
-            Ak hod prekročí cieľ, body sa nezapočítajú a podľa nastavenia sa zapíše neplatný ťah, spravidla <em>čiarka</em>.
-            V závere hry treba dohrať na <em className="ks-gold">presný cieľ</em>; ak sa zapne potvrdenie víťazstva, po presnom zásahu
-            nasleduje ešte overovací ťah, v ktorom musí padnúť ničnehodenie.
+            Ak hod prekročí cieľ, body sa nezapočítajú a zapíše sa čiarka.
+            V závere hry treba dohrať na <em className="ks-gold">presný cieľ</em>; ak je zapnuté potvrdenie víťazstva,
+            po presnom zásahu nasleduje overovací ťah — musí padnúť <em>ničnehodenie</em>.
           </p>
           <p className="ks-muted ks-body text-xs italic mt-3">
-            Hodnoty cieľa, prípisu a penalizácie sa dajú upraviť v <em>Nastavenia → Úprava pravidiel → Hodnoty hry</em>.
+            Hodnoty cieľa, minimálneho odpisu a penalizácie sa dajú upraviť v <em>Nastavenia → Úprava pravidiel</em>.
           </p>
         </div>
 

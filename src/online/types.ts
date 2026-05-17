@@ -27,6 +27,7 @@ export type RoomDocument = {
   rules: string[];
   players: Record<string, PlayerInRoom>;
   gameState: GameState;
+  activeTournament?: any | null;
 };
 
 export type LocalTournament = {
