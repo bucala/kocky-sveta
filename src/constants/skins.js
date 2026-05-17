@@ -21,7 +21,7 @@ export const FONT_PRESETS = {
   arial:     { id: 'arial',     name: 'Arial',           stack: "Arial, 'Helvetica Neue', sans-serif",                  monoStack: "'Bebas Neue', sans-serif" },
   crimson:   { id: 'crimson',   name: 'Crimson Pro',     stack: "'Crimson Pro', Georgia, serif",                        monoStack: "'Bebas Neue', sans-serif" },
   comicsans: { id: 'comicsans', name: 'Comic Sans MS',   stack: "'Comic Sans MS', 'Comic Sans', cursive",               monoStack: "'Bebas Neue', sans-serif" },
-  inkfree:   { id: 'inkfree',   name: 'Ink Free',        stack: "'Ink Free', 'Segoe Script', cursive",                  monoStack: "'Bebas Neue', sans-serif" },
+  caveatbrush: { id: 'caveatbrush', name: 'Caveat Brush', stack: "'Caveat Brush', 'Segoe Script', cursive", monoStack: "'Bebas Neue', sans-serif" },
 };
 
 export const DICE_ICONS = { 1: Dice1, 2: Dice2, 3: Dice3, 4: Dice4, 5: Dice5, 6: Dice6 };
@@ -71,6 +71,26 @@ export const SKIN_PRESETS = {
     bg:'linear-gradient(180deg,#f0f0f0 0%,#e4e4e4 100%)',
     vars: { '--ks-bg-main':'#f5f5f5','--ks-bg-soft':'rgba(255,255,255,0.98)','--ks-bg-soft-2':'rgba(250,250,250,1.0)','--ks-card-sub':'rgba(245,245,245,0.98)','--ks-border':'rgba(0,0,0,0.15)','--ks-border-strong':'rgba(0,0,0,0.40)','--ks-text':'#111111','--ks-text-muted':'#555555','--ks-accent':'#111111','--ks-accent-2':'#cccccc','--ks-button-text':'#ffffff','--ks-danger':'#cc0000','--ks-sticky-bg':'rgba(240,240,240,0.99)','--ks-sticky-bg2':'rgba(230,230,230,1.0)' }
   },
+  brawlstars: {
+    id: 'brawlstars', name: 'Brawl Stars',
+    bg: 'radial-gradient(ellipse at 50% 0%, #2a0e5e 0%, #130628 45%, #060113 100%)',
+    vars: {
+      '--ks-bg-main': '#080218',
+      '--ks-bg-soft': 'rgba(28,10,72,0.92)',
+      '--ks-bg-soft-2': 'rgba(14,5,36,0.96)',
+      '--ks-card-sub': 'rgba(20,8,55,0.72)',
+      '--ks-border': 'rgba(150,80,255,0.30)',
+      '--ks-border-strong': 'rgba(190,130,255,0.65)',
+      '--ks-text': '#f0e8ff',
+      '--ks-text-muted': '#a090c8',
+      '--ks-accent': '#c8a0ff',
+      '--ks-accent-2': '#7040e0',
+      '--ks-button-text': '#1a0a3e',
+      '--ks-danger': '#ff6090',
+      '--ks-sticky-bg': 'rgba(8,2,24,0.97)',
+      '--ks-sticky-bg2': 'rgba(6,1,18,0.98)',
+    },
+  },
 };
 
 
@@ -117,6 +137,14 @@ export function skinVarsCss(selectedSkin, selectedFont) {
 .ks-live-pos-1{color:#111!important;border-color:rgba(0,0,0,0.55)!important}
 .ks-live-pos-2{color:#333!important}
 .ks-live-pos-3{color:#666!important}
+`;
+  }
+  if (selectedSkin === 'brawlstars') {
+    css += `
+.ks-gold{color:#c8a0ff!important}
+.ks-gold-bg{background:linear-gradient(135deg,#7040e0,#4020a0)!important;box-shadow:0 0 16px rgba(150,80,255,0.6)!important}
+.ks-card{background:rgba(20,8,55,0.88)!important;border-color:rgba(150,80,255,0.35)!important;box-shadow:0 0 10px rgba(120,60,220,0.35)!important}
+.ks-border-sub{border-color:rgba(150,80,255,0.25)!important}
 `;
   }
   return css;
