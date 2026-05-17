@@ -494,10 +494,17 @@ export default function App() {
   }, [active, loaded]);
   useEffect(() => { if (loaded) window.storage.set('adminSettings', JSON.stringify(adminSettings)).catch(() => {}); }, [adminSettings, loaded]);
 
-  // ─── Inactivity auto-disconnect (12 min) ─────────────────────────────────
+  // ─── Inactivity auto-disconnect (12 h) ───────────────────────────────────
+  const INACTIVITY_LIMIT   = 12 * 60 * 60 * 1000; // 12 hodín
+  const INACTIVITY_WARNING =  2 * 60 * 1000;       // varovanie 2 min pred odpojením
+  const [inactivityWarning, setInactivityWarning] = useState(false);
+
   const lastActivityRef = useRef(Date.now());
   useEffect(() => {
-    const touch = () => { lastActivityRef.current = Date.now(); };
+    const touch = () => {
+      lastActivityRef.current = Date.now();
+      setInactivityWarning(false); // user is active → dismiss warning
+    };
     window.addEventListener('mousemove', touch, { passive: true });
     window.addEventListener('keydown', touch, { passive: true });
     window.addEventListener('click', touch, { passive: true });
@@ -510,13 +517,18 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    if (!onlineRoomId) return;
+    if (!onlineRoomId) { setInactivityWarning(false); return; }
     const id = setInterval(() => {
-      if (Date.now() - lastActivityRef.current >= 12 * 60 * 1000) {
+      const inactive = Date.now() - lastActivityRef.current;
+      if (inactive >= INACTIVITY_LIMIT) {
+        setInactivityWarning(false);
         useOnlineStore.getState().reset();
+      } else if (inactive >= INACTIVITY_LIMIT - INACTIVITY_WARNING) {
+        setInactivityWarning(true);
       }
-    }, 60_000);
+    }, 30_000);
     return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlineRoomId]);
 
   // ─── Online sync ──────────────────────────────────────────────────────────
@@ -622,9 +634,8 @@ export default function App() {
       await auth.authStateReady();
       if (!auth.currentUser) await signInAnonymously(auth);
       const uid = auth.currentUser.uid;
-      const rid = await createRoom({
+      const { roomId: rid } = await createRoom({
         hostName: 'hráč',
-        pin: '0000',
         selectedSkin: selectedSkin || 'classic',
         rules: rules || [],
         customRoomId: customId,
@@ -1198,6 +1209,23 @@ function startTournament(players, targetScore) {
           onSuccess={() => { setShowAdminPin(false); setView('admin'); }}
           onCancel={() => setShowAdminPin(false)}
         />
+      )}
+      {inactivityWarning && onlineRoomId && (
+        <div className="fixed bottom-0 left-0 right-0 z-[9990] px-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+          <div className="max-w-md mx-auto ks-card border-2 border-amber-700/60 rounded-sm px-4 py-3 flex items-center gap-3 shadow-2xl">
+            <AlertTriangle size={18} className="ks-gold shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="ks-cream text-sm font-semibold ks-display">Neaktivita — čoskoro sa odpojíš</div>
+              <div className="ks-muted text-xs">Miestnosť sa odpojí za menej ako 2 minúty.</div>
+            </div>
+            <button
+              onClick={() => { lastActivityRef.current = Date.now(); setInactivityWarning(false); }}
+              className="ks-gold-bg ks-press px-3 py-1.5 rounded-sm ks-mono text-xs font-bold shrink-0"
+            >
+              ZOSTAŤ
+            </button>
+          </div>
+        </div>
       )}
       {showEasterEgg && (
         <div
