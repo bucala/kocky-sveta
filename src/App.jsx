@@ -22,6 +22,8 @@ import { OnlineScreen } from './screens/OnlineScreen.jsx';
 import { AdminScreen, AdminPinDialog, DEFAULT_ADMIN_SETTINGS } from './screens/AdminScreen.jsx';
 import { useOnlineStore } from './online/onlineStore.ts';
 import { computeWinners, computePlayerTotals as computeTotals } from './lib/tournamentEngine.js';
+import { sounds } from './lib/sounds.js';
+import { BrawlBackground } from './components/BrawlBackground.jsx';
 import './app.css';
 
 // ─── Konštanty ────────────────────────────────────────────────────────────
@@ -445,6 +447,8 @@ export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [selectedSkin, setSelectedSkin] = useState('classic');
   const [selectedFont, setSelectedFont] = useState('default');
+  const [soundsEnabled, setSoundsEnabled] = useState(true);
+  const [animationsEnabled, setAnimationsEnabled] = useState(true);
 
   const [scoreDisplayMode, setScoreDisplayMode] = useState('delta');
   const [tournamentViewMode, setTournamentViewMode] = useState('basic');
@@ -465,6 +469,8 @@ export default function App() {
       try { const skin = await window.storage.get('selectedSkin'); if (skin?.value) { const s = JSON.parse(skin.value); setSelectedSkin(SKIN_PRESETS[s] ? s : 'classic'); } } catch {
         try { const legacySkin = localStorage.getItem('ks-skin'); if (legacySkin) setSelectedSkin(legacySkin); } catch {}
       }
+      try { const se = await window.storage.get('soundsEnabled'); if (se?.value) setSoundsEnabled(JSON.parse(se.value)); } catch {}
+      try { const ae = await window.storage.get('animationsEnabled'); if (ae?.value) setAnimationsEnabled(JSON.parse(ae.value)); } catch {}
       try { const t = await window.storage.get('tournaments'); if (t?.value) setTournaments(JSON.parse(t.value)); } catch {}
       try { const a = await window.storage.get('active');      if (a?.value) setActive(JSON.parse(a.value)); }       catch {}
       try { const as = await window.storage.get('adminSettings'); if (as?.value) setAdminSettings(JSON.parse(as.value)); } catch {}
@@ -481,6 +487,9 @@ export default function App() {
     window.storage.set('selectedSkin', JSON.stringify(selectedSkin)).catch(() => {});
     try { localStorage.setItem('ks-skin', selectedSkin); } catch {}
   }, [selectedSkin, loaded]);
+  useEffect(() => { if (loaded) window.storage.set('soundsEnabled', JSON.stringify(soundsEnabled)).catch(() => {}); }, [soundsEnabled, loaded]);
+  useEffect(() => { if (loaded) window.storage.set('animationsEnabled', JSON.stringify(animationsEnabled)).catch(() => {}); }, [animationsEnabled, loaded]);
+  useEffect(() => { sounds.setEnabled(soundsEnabled); }, [soundsEnabled]);
 
   useEffect(() => { if (loaded) window.storage.set('rules', JSON.stringify(rules)).catch(() => {}); }, [rules, loaded]);
   useEffect(() => {
@@ -665,6 +674,7 @@ export default function App() {
   }, [adminSettings.roomName, rules, selectedSkin, setOnlineRoomId, setOnlineUid, setOnlineStatus]);
 
 function startTournament(players, targetScore) {
+    sounds.playStart();
     setUndoStack([]);
     setActive({
       id: Date.now(),
@@ -725,6 +735,7 @@ function startTournament(players, targetScore) {
       finishedAt: new Date().toISOString(),
       _validatedTotals: validation.totals,
     };
+    sounds.playWin();
     setTournaments(prev => [finished, ...prev]);
     setActive(null);
     setViewingTournament(finished);
@@ -1098,9 +1109,10 @@ function startTournament(players, targetScore) {
   }
 
   return (
-    <div className="ks-bg min-h-screen ks-cream ks-body" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+    <div className="ks-bg min-h-screen ks-cream ks-body" data-skin={selectedSkin} data-animations={animationsEnabled ? 'on' : 'off'} style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
       <style>{skinVarsCss(selectedSkin, selectedFont)}</style>
       <style>{`:root { --ks-popup-offset: ${POPUP_CONFIG.VERTICAL_OFFSET}; --ks-popup-opacity: ${POPUP_CONFIG.OPACITY}; }`}</style>
+      {selectedSkin === 'brawlstars' && animationsEnabled && <BrawlBackground />}
 
       {view === 'menu' && (
         <MainMenu
@@ -1169,6 +1181,10 @@ function startTournament(players, targetScore) {
           tournamentViewMode={tournamentViewMode}
           onTournamentViewModeChange={setTournamentViewMode}
           onViewModes={() => setView('viewModes')}
+          soundsEnabled={soundsEnabled}
+          onSoundsToggle={() => setSoundsEnabled(v => !v)}
+          animationsEnabled={animationsEnabled}
+          onAnimationsToggle={() => setAnimationsEnabled(v => !v)}
         />
       )}
       {view === 'newTournament' && <NewTournament onBack={() => setView('menu')} onStart={startTournament} />}

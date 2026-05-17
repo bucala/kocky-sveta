@@ -14,6 +14,7 @@ import { ProgressChart } from '../components/ProgressChart.jsx';
 import { RulesContent } from '../components/RulesContent.jsx';
 import { Modal } from '../components/Modal.jsx';
 import { isStrictMode, computeTotals, computeWinners } from '../lib/gameEngine.js';
+import { sounds } from '../lib/sounds.js';
 
 export function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
   return (
@@ -253,6 +254,7 @@ export function TournamentScreen({
       return;
     }
     if (pending.length === 1 && pending[0] === PENALTY_VALUE) return;
+    sounds.playPenalty();
     setPending([PENALTY_VALUE]);
   }
 
@@ -310,6 +312,7 @@ export function TournamentScreen({
   // komplet tvoja commitPoints z paste.txt – tu sme len upratali koncovku / winPending
   function commitPoints() {
     if (pending.length === 0) return;
+    sounds.playClick();
 
     if (pending[0] === 'dash') {
       if (isWinPendingTurn) {
