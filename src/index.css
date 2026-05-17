@@ -60,25 +60,18 @@ html, body, #root { width: 100%; overflow-x: hidden; }
 /* ── Brawl skin backgrounds — override .ks-bg for all game screens ─── */
 [data-skin="brawlstars"].ks-bg,
 [data-skin="brawlstars"] .ks-bg {
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cpath d='M80 20 L93 45 L120 38 L122 65 L148 74 L136 98 L152 118 L126 122 L122 148 L95 138 L80 158 L65 138 L38 148 L34 122 L8 118 L24 98 L12 74 L38 65 L40 38 L67 45 Z' fill='rgba(110,55,170,0.28)'/%3E%3Cpath d='M87 48 L65 87 L82 87 L72 113 L103 72 L86 72 Z' fill='rgba(185,135,255,0.48)'/%3E%3C/svg%3E") repeat,
-    radial-gradient(ellipse at 50% 35%, #6030a0 0%, #38155a 48%, #1a0830 100%) !important;
+  background: url('/brwls-poster_purple.jpg') center/cover no-repeat !important;
 }
 
 [data-skin="brawlblue"].ks-bg,
 [data-skin="brawlblue"] .ks-bg {
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Ccircle cx='80' cy='66' r='48' fill='rgba(205,232,255,0.30)'/%3E%3Ccircle cx='63' cy='64' r='13' fill='rgba(10,52,130,0.55)'/%3E%3Ccircle cx='97' cy='64' r='13' fill='rgba(10,52,130,0.55)'/%3E%3Cline x1='50' y1='48' x2='72' y2='54' stroke='rgba(10,52,130,0.60)' stroke-width='5' stroke-linecap='round'/%3E%3Cline x1='110' y1='48' x2='88' y2='54' stroke='rgba(10,52,130,0.60)' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M75 82 L80 74 L85 82Z' fill='rgba(10,52,130,0.45)'/%3E%3Crect x='52' y='102' width='56' height='20' rx='6' fill='rgba(205,232,255,0.22)'/%3E%3Crect x='59' y='108' width='10' height='16' rx='3' fill='rgba(10,52,130,0.50)'/%3E%3Crect x='75' y='108' width='10' height='16' rx='3' fill='rgba(10,52,130,0.50)'/%3E%3Crect x='91' y='108' width='10' height='16' rx='3' fill='rgba(10,52,130,0.50)'/%3E%3C/svg%3E") repeat,
-    radial-gradient(ellipse at 50% 40%, #1a96d8 0%, #0e62ac 46%, #061e54 100%) !important;
+  background: url('/brwls-poster_blue.jpg') center/cover no-repeat !important;
 }
 
 /* ── Harry Potter skin background ────────────────────────────────────── */
 [data-skin="harrypotter"].ks-bg,
 [data-skin="harrypotter"] .ks-bg {
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cg stroke='rgba(100%2C62%2C12%2C0.28)' fill='none' stroke-width='2.5'%3E%3Cpolygon points='100 18 145 95 55 95'/%3E%3Ccircle cx='100' cy='68' r='27'/%3E%3Cline x1='100' y1='18' x2='100' y2='95'/%3E%3C/g%3E%3Cpath d='M164 30 L153 54 L163 54 L150 80' stroke='rgba(100%2C62%2C12%2C0.22)' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M35 152 L38 141 L41 152 L52 155 L41 158 L38 169 L35 158 L24 155Z' fill='rgba(100%2C62%2C12%2C0.20)'/%3E%3Ccircle cx='172' cy='164' r='3.5' fill='rgba(100%2C62%2C12%2C0.16)'/%3E%3Ccircle cx='20' cy='128' r='2.5' fill='rgba(100%2C62%2C12%2C0.13)'/%3E%3C/svg%3E") repeat,
-    radial-gradient(ellipse at 25% 45%, rgba(160,110,40,0.22), transparent 55%),
-    linear-gradient(160deg, #f8ecd4 0%, #efe0b8 40%, #e8d6a4 70%, #f2e8c8 100%) !important;
+  background: url('/hp-parchment.jpg') center/cover no-repeat !important;
 }
 
 /* ── Harry Potter floating elements ──────────────────────────────────── */
