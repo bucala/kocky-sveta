@@ -5,8 +5,6 @@ import { Wifi, WifiOff, AlertCircle, ChevronLeft, Copy, Check, LogOut, Info, Use
 import { useOnlineStore } from '../online/onlineStore.ts';
 import { createRoom } from '../online/createRoom.ts';
 import { joinRoom } from '../online/joinRoom.ts';
-import { useRoomSubscription } from '../online/useRoomSubscription.ts';
-
 export function OnlineStatusIcon() {
   const status = useOnlineStore((s) => s.status);
   if (status === 'connected') return <Wifi size={18} className="text-green-400" />;
@@ -54,8 +52,6 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
 
   const [useName, setUseName] = useState(!!defaultRoomName);
   const [name, setName] = useState(defaultRoomName || '');
-
-  useRoomSubscription(roomId, (data) => setRoomState(data), () => setStatus('error'));
 
   // Wait for Firebase to restore persisted auth before signing in anonymously.
   // auth.currentUser is null immediately after page load — authStateReady() waits

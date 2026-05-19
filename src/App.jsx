@@ -21,6 +21,7 @@ import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
 import { OnlineScreen } from './screens/OnlineScreen.jsx';
 import { AdminScreen, AdminPinDialog, DEFAULT_ADMIN_SETTINGS } from './screens/AdminScreen.jsx';
 import { useOnlineStore } from './online/onlineStore.ts';
+import { useRoomSubscription } from './online/useRoomSubscription.ts';
 import { computeWinners, computePlayerTotals as computeTotals } from './lib/tournamentEngine.js';
 import { sounds } from './lib/sounds.js';
 import { BrawlBackground } from './components/BrawlBackground.jsx';
@@ -553,7 +554,11 @@ export default function App() {
   const [showAdminPin, setShowAdminPin] = useState(false);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
 
-  const { setRoomId: setOnlineRoomId, setUid: setOnlineUid, setStatus: setOnlineStatus, roomId: onlineRoomId, roomState: onlineRoomState } = useOnlineStore();
+  const { setRoomId: setOnlineRoomId, setUid: setOnlineUid, setStatus: setOnlineStatus, setRoomState: setOnlineRoomState, roomId: onlineRoomId, roomState: onlineRoomState } = useOnlineStore();
+
+  // ─── Persistent Firestore listener — must live in App, not OnlineScreen,
+  //     so it survives navigation away from the OnlineScreen component.
+  useRoomSubscription(onlineRoomId, setOnlineRoomState, () => setOnlineStatus('error'));
 
   useEffect(() => {
     (async () => {
@@ -636,36 +641,96 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlineRoomId]);
 
-  // ─── Online sync ──────────────────────────────────────────────────────────
-  // lastRemoteJson stores the JSON of the last activeTournament received from
-  // Firestore. The write effect skips the push when local active matches this
-  // string — this is data-based dedup and avoids the fragile ref-flag approach.
-  const lastRemoteJson = useRef(null);
+  // ─── Online real-time sync ────────────────────────────────────────────────
+  // Each synced field keeps its own lastRemoteJson ref so dedup is independent.
+  // CRITICAL: update the ref BEFORE the async Firestore write so echoes are
+  // suppressed correctly even when multiple writes are in-flight.
+  const lastRemoteActiveJson     = useRef(null);
+  const lastRemoteTournamentsJson = useRef(null);
+  const lastRemoteSkinJson       = useRef(null);
 
-  // Remote → local: apply activeTournament received from Firestore.
+  // ── activeTournament: Remote → local ─────────────────────────────────────
   useEffect(() => {
+    if (!onlineRoomId) return;
     const remoteActive = onlineRoomState?.activeTournament;
     if (remoteActive === undefined) return;
     const json = JSON.stringify(remoteActive ?? null);
-    if (json === lastRemoteJson.current) return; // already applied, skip
-    lastRemoteJson.current = json;
+    if (json === lastRemoteActiveJson.current) return;
+    lastRemoteActiveJson.current = json;
     setActive(remoteActive ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(onlineRoomState?.activeTournament)]);
+  }, [onlineRoomId, JSON.stringify(onlineRoomState?.activeTournament)]);
 
-  // Local → remote: push to Firestore only when local state differs from last remote.
+  // ── activeTournament: Local → remote (debounced 300 ms) ──────────────────
   useEffect(() => {
     if (!loaded || !onlineRoomId) return;
     const currentJson = JSON.stringify(active ?? null);
-    if (currentJson === lastRemoteJson.current) return; // this is the echo — skip
-    import('./online/updateGameState.ts').then(({ updateGameState }) => {
-      updateGameState(onlineRoomId, { activeTournament: active ?? null }).catch((e) => {
-        console.error('[sync] Firestore write failed:', e);
-        setOnlineStatus('error');
+    if (currentJson === lastRemoteActiveJson.current) return;
+    lastRemoteActiveJson.current = currentJson; // update immediately — suppresses echo
+    const timer = setTimeout(() => {
+      import('./online/updateGameState.ts').then(({ updateGameState }) => {
+        updateGameState(onlineRoomId, { activeTournament: active ?? null }).catch((e) => {
+          console.error('[sync] activeTournament write failed:', e);
+          setOnlineStatus('error');
+        });
       });
-    });
+    }, 300);
+    return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, onlineRoomId, loaded]);
+
+  // ── tournaments (archive): Remote → local ────────────────────────────────
+  useEffect(() => {
+    if (!onlineRoomId) return;
+    const remote = onlineRoomState?.syncedTournaments;
+    if (remote === undefined) return;
+    const json = JSON.stringify(remote ?? []);
+    if (json === lastRemoteTournamentsJson.current) return;
+    lastRemoteTournamentsJson.current = json;
+    setTournaments(remote ?? []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlineRoomId, JSON.stringify(onlineRoomState?.syncedTournaments)]);
+
+  // ── tournaments (archive): Local → remote (debounced 500 ms) ─────────────
+  useEffect(() => {
+    if (!loaded || !onlineRoomId) return;
+    const currentJson = JSON.stringify(tournaments ?? []);
+    if (currentJson === lastRemoteTournamentsJson.current) return;
+    lastRemoteTournamentsJson.current = currentJson;
+    const timer = setTimeout(() => {
+      import('./online/updateGameState.ts').then(({ updateGameState }) => {
+        updateGameState(onlineRoomId, { syncedTournaments: tournaments ?? [] }).catch((e) => {
+          console.error('[sync] tournaments write failed:', e);
+        });
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tournaments, onlineRoomId, loaded]);
+
+  // ── selectedSkin: Remote → local ─────────────────────────────────────────
+  useEffect(() => {
+    if (!onlineRoomId) return;
+    const remote = onlineRoomState?.selectedSkin;
+    if (!remote || remote === lastRemoteSkinJson.current) return;
+    lastRemoteSkinJson.current = remote;
+    if (SKIN_PRESETS[remote]) setSelectedSkin(remote);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlineRoomId, onlineRoomState?.selectedSkin]);
+
+  // ── selectedSkin: Local → remote (debounced 500 ms) ──────────────────────
+  useEffect(() => {
+    if (!loaded || !onlineRoomId) return;
+    if (selectedSkin === lastRemoteSkinJson.current) return;
+    lastRemoteSkinJson.current = selectedSkin;
+    const timer = setTimeout(() => {
+      import('./online/updateGameState.ts').then(({ updateGameState }) => {
+        updateGameState(onlineRoomId, { selectedSkin }).catch(console.error);
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSkin, onlineRoomId, loaded]);
 
   const minWriteOff = useMemo(() => {
     const r = rules.find(x => x.id === 'r14');

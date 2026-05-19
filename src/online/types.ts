@@ -28,6 +28,7 @@ export type RoomDocument = {
   players: Record<string, PlayerInRoom>;
   gameState: GameState;
   activeTournament?: any | null;
+  syncedTournaments?: any[] | null;
 };
 
 export type LocalTournament = {
