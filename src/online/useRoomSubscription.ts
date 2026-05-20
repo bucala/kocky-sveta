@@ -2,12 +2,13 @@
 import { useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
+import type { FirestoreError } from 'firebase/firestore';
 import type { RoomDocument } from './types';
 
 export function useRoomSubscription(
   roomId: string | null,
   onUpdate: (data: RoomDocument) => void,
-  onError?: (err: Error) => void
+  onError?: (err: FirestoreError) => void
 ) {
   useEffect(() => {
     if (!roomId) return;

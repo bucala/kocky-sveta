@@ -122,7 +122,7 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
       await joinRoom({ roomId: rid, playerName });
       setRoomId(rid);
       setUid(uid);
-      setIsRecorder(true);
+      setIsRecorder(false); // joiner = observer (read-only); creator is the sole recorder
       setStatus('connected');
     } catch (e) {
       setJoinErr(e.message || 'Miestnosť neexistuje');

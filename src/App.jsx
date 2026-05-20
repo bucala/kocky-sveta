@@ -558,7 +558,29 @@ export default function App() {
 
   // ─── Persistent Firestore listener — must live in App, not OnlineScreen,
   //     so it survives navigation away from the OnlineScreen component.
-  useRoomSubscription(onlineRoomId, setOnlineRoomState, () => setOnlineStatus('error'));
+  //     Rule 5: permission-denied means the recorder deleted the room while
+  //     the observer was watching. Silently leave — don't show the error icon.
+  useRoomSubscription(onlineRoomId, setOnlineRoomState, (err) => {
+    if (err.code === 'permission-denied') {
+      useOnlineStore.getState().reset();
+      setActive(null);
+      setView('menu');
+    } else {
+      setOnlineStatus('error');
+    }
+  });
+
+  // ─── Rule 6: clear local game state whenever we leave a room ─────────────
+  //     Prevents stale local data from appearing (or being written on rejoin).
+  const prevRoomIdRef = useRef(onlineRoomId);
+  useEffect(() => {
+    const wasInRoom = prevRoomIdRef.current !== null;
+    prevRoomIdRef.current = onlineRoomId;
+    if (wasInRoom && onlineRoomId === null) {
+      setActive(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlineRoomId]);
 
   // ─── Presence heartbeat ───────────────────────────────────────────────────
   // Updates lastSeen every 15 s so other devices can show accurate online state.
@@ -698,23 +720,35 @@ export default function App() {
 
   // ─── Online real-time sync ────────────────────────────────────────────────
   //
-  //  The Firestore document is the single source of truth. useRoomSubscription
-  //  drops optimistic (hasPendingWrites) snapshots, so onlineRoomState only ever
-  //  reflects SERVER-CONFIRMED state. That gives us, for free:
-  //   • A device never re-applies its own echo — its own confirmed write is
-  //     JSON-equal to local state, so the apply is skipped.
-  //   • While a device has unconfirmed writes it skips all snapshots, so it
-  //     never applies a stale intermediate echo of its own rapid writes.
-  //   • Cross-device conflicts resolve by last-write-wins at the server; every
-  //     device converges to the same confirmed document.
+  //  Architecture (6 rules):
   //
-  //  No client timestamps: comparing Date.now() across devices broke on clock
-  //  skew (a device whose clock ran ahead rejected every peer's writes). Sync
-  //  is now pure JSON comparison.
+  //  1. GLOBAL SUBSCRIPTION — useRoomSubscription lives here (App), never in a
+  //     screen component, so the listener survives navigation.
   //
-  //  Stale-closure fix: sync*Ref are assigned in the render body so the
-  //  debounced timer writes the value current at fire time, not the stale
-  //  closure value captured when the effect ran.
+  //  2. MASTER-SLAVE — isRecorder (persisted) is true only on the room creator.
+  //     Observers (isRecorder=false) run zero write paths. All local→remote
+  //     effects are gated on onlineIsRecorder.
+  //
+  //  3. ECHO + STARTUP PROTECTION — hasPendingWrites snapshots are discarded in
+  //     useRoomSubscription so onlineRoomState is always server-confirmed.
+  //     hasSeenSnapshotRef blocks the recorder from writing before it has seen
+  //     the room's state (prevents stomping on join). lastWritten*Ref is
+  //     updated BEFORE the Firestore call so dedup works immediately, not only
+  //     after the round-trip response. remote→local sets lastWritten*Ref too,
+  //     preventing the recorder from echoing back what it just received.
+  //
+  //  4. DEBOUNCING — 300 ms for game state (activeTournament), 500 ms for
+  //     archive and skin. Timer is cancelled (clearTimeout in return) on every
+  //     re-run so rapid changes collapse into one write.
+  //
+  //  5. SMART ERROR HANDLING — permission-denied from onSnapshot means the room
+  //     was deleted while an observer was watching. It is handled silently:
+  //     reset store, clear local state, return to menu. All other errors set
+  //     status='error' (shows the error icon).
+  //
+  //  6. CLEANUP ON LEAVE — prevRoomIdRef tracks the previous roomId; when it
+  //     goes null the local active tournament is cleared immediately. The
+  //     unsubscribe itself is handled by useRoomSubscription's effect cleanup.
 
   const syncActiveRef      = useRef(active);
   const syncTournamentsRef = useRef(tournaments);
@@ -947,6 +981,7 @@ export default function App() {
       });
       setOnlineRoomId(rid);
       setOnlineUid(uid);
+      useOnlineStore.getState().setIsRecorder(true);
       setOnlineStatus('connected');
       setView('online');
     } catch (e) {
