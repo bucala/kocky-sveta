@@ -12,10 +12,27 @@ export function OnlineStatusIcon() {
   return <WifiOff size={18} className="ks-muted" />;
 }
 
+// A player is considered online if their lastSeen heartbeat arrived within 30 s.
+// Falls back to the legacy boolean field for entries that predate heartbeats.
+function isPlayerOnline(player) {
+  if (player.lastSeen) {
+    const ms = player.lastSeen?.toMillis?.() ?? player.lastSeen;
+    if (typeof ms === 'number') return Date.now() - ms < 30_000;
+  }
+  return player.online ?? false;
+}
+
 function ActivePlayersPanel({ roomState, myUid }) {
   if (!roomState?.players) return null;
   const players = Object.entries(roomState.players);
   if (players.length === 0) return null;
+
+  // Force re-render every 15 s so the presence dots stay accurate
+  const [, tick] = React.useState(0);
+  React.useEffect(() => {
+    const id = setInterval(() => tick(n => n + 1), 15_000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div className="ks-card border ks-border-sub rounded-sm overflow-hidden">
@@ -24,18 +41,21 @@ function ActivePlayersPanel({ roomState, myUid }) {
         HRÁČI V MIESTNOSTI ({players.length})
       </div>
       <div className="divide-y ks-border-sub">
-        {players.map(([uid, player]) => (
-          <div key={uid} className="flex items-center gap-3 px-4 py-3">
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${player.online ? 'bg-green-400' : 'bg-zinc-600'}`} />
-            <div className="flex-1 min-w-0">
-              <div className="ks-cream text-sm font-medium truncate">
-                {player.name || 'hráč'}
-                {uid === myUid && <span className="ks-muted text-xs ml-1.5">(ty)</span>}
+        {players.map(([uid, player]) => {
+          const online = isPlayerOnline(player);
+          return (
+            <div key={uid} className="flex items-center gap-3 px-4 py-3">
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${online ? 'bg-green-400' : 'bg-zinc-600'}`} />
+              <div className="flex-1 min-w-0">
+                <div className="ks-cream text-sm font-medium truncate">
+                  {player.name || 'hráč'}
+                  {uid === myUid && <span className="ks-muted text-xs ml-1.5">(ty)</span>}
+                </div>
+                <div className="ks-muted text-xs">{online ? 'online' : 'offline'}</div>
               </div>
-              <div className="ks-muted text-xs">{player.online ? 'online' : 'offline'}</div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

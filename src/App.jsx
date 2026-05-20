@@ -554,11 +554,36 @@ export default function App() {
   const [showAdminPin, setShowAdminPin] = useState(false);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
 
-  const { setRoomId: setOnlineRoomId, setUid: setOnlineUid, setStatus: setOnlineStatus, setRoomState: setOnlineRoomState, roomId: onlineRoomId, roomState: onlineRoomState, isRecorder: onlineIsRecorder } = useOnlineStore();
+  const { setRoomId: setOnlineRoomId, setUid: setOnlineUid, setStatus: setOnlineStatus, setRoomState: setOnlineRoomState, roomId: onlineRoomId, uid: onlineUid, roomState: onlineRoomState, isRecorder: onlineIsRecorder } = useOnlineStore();
 
   // ─── Persistent Firestore listener — must live in App, not OnlineScreen,
   //     so it survives navigation away from the OnlineScreen component.
   useRoomSubscription(onlineRoomId, setOnlineRoomState, () => setOnlineStatus('error'));
+
+  // ─── Presence heartbeat ───────────────────────────────────────────────────
+  // Updates lastSeen every 15 s so other devices can show accurate online state.
+  // Fires immediately on connect so observers see us as online without waiting.
+  useEffect(() => {
+    if (!onlineRoomId || !onlineUid) return;
+    let cancelled = false;
+    const beat = () => {
+      if (cancelled) return;
+      import('./online/updatePresence.ts').then(({ updatePresence }) => {
+        updatePresence(onlineRoomId, onlineUid).catch(() => {});
+      });
+    };
+    beat();
+    const id = setInterval(beat, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      // Best-effort offline mark on disconnect
+      import('./online/updatePresence.ts').then(({ markOffline }) => {
+        markOffline(onlineRoomId, onlineUid).catch(() => {});
+      });
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlineRoomId, onlineUid]);
 
   useEffect(() => {
     (async () => {

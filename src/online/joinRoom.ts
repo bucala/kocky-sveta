@@ -1,11 +1,10 @@
 // src/online/joinRoom.ts
 import { db } from '../lib/firebase';
 import { getAuth } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, deleteField, serverTimestamp } from 'firebase/firestore';
 import { hashPin } from './hashPin';
+import { getDeviceId } from './deviceId';
 
-// PIN overovanie — infraštruktúra pripravená, ale neaktívna.
-// Aktivuje sa zmenou na true keď bude PIN flow v UI dokončený.
 const PIN_VERIFICATION_ENABLED = false;
 
 export async function joinRoom(params: {
@@ -21,7 +20,6 @@ export async function joinRoom(params: {
     throw new Error('Miestnosť neexistuje');
   }
 
-  // PIN verification (neaktívne — PIN_VERIFICATION_ENABLED = false)
   if (PIN_VERIFICATION_ENABLED && params.pin) {
     const roomData = snap.data();
     const inputHash = await hashPin(params.pin);
@@ -33,15 +31,32 @@ export async function joinRoom(params: {
   const uid = getAuth().currentUser?.uid;
   if (!uid) throw new Error('Nie si prihlásený');
 
-  await updateDoc(roomRef, {
-    [`players.${uid}`]: {
-      name: params.playerName,
-      score: 0,
-      isReady: false,
-      online: true,
-    },
-  });
+  const deviceId = getDeviceId();
+  const existingPlayers = snap.data()?.players ?? {};
 
-  if ((window as any).__ksVerboseFirebase) console.log('[joinRoom] roomId:', params.roomId, 'uid:', uid);
+  // Build a single atomic patch:
+  // 1. Remove any ghost entries from this same physical device (different UID, same deviceId)
+  // 2. Upsert this device's current player entry
+  const patch: Record<string, any> = {};
+
+  for (const [existingUid, player] of Object.entries(existingPlayers)) {
+    if ((player as any).deviceId === deviceId && existingUid !== uid) {
+      patch[`players.${existingUid}`] = deleteField();
+      if ((window as any).__ksVerboseFirebase) console.log('[joinRoom] removing ghost uid:', existingUid, 'for deviceId:', deviceId);
+    }
+  }
+
+  patch[`players.${uid}`] = {
+    name: params.playerName,
+    score: 0,
+    isReady: false,
+    online: true,
+    deviceId,
+    lastSeen: serverTimestamp(),
+  };
+
+  await updateDoc(roomRef, patch);
+
+  if ((window as any).__ksVerboseFirebase) console.log('[joinRoom] roomId:', params.roomId, 'uid:', uid, 'deviceId:', deviceId);
   return { uid };
 }

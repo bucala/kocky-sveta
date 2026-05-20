@@ -5,6 +5,8 @@ export type PlayerInRoom = {
   score: number;
   isReady: boolean;
   online?: boolean;
+  deviceId?: string;    // stable per-device ID, independent of Firebase UID
+  lastSeen?: any;       // Firestore serverTimestamp — used for presence heartbeat
 };
 
 export type GameHistoryItem = {

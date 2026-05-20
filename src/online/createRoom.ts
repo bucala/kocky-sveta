@@ -3,6 +3,7 @@ import { db } from '../lib/firebase';
 import { getAuth } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { hashPin } from './hashPin';
+import { getDeviceId } from './deviceId';
 import type { RoomDocument } from './types';
 
 function generateRoomId(): string {
@@ -31,18 +32,23 @@ export async function createRoom(params: {
   const uid = getAuth().currentUser?.uid;
   if (!uid) throw new Error('Nie si prihlásený');
 
+  const deviceId = getDeviceId();
+
   const roomData: RoomDocument = {
     ownerPinHash,
     status: 'waiting',
     updatedAt: serverTimestamp(),
     selectedSkin: params.selectedSkin,
     rules: params.rules,
+    activeTournament: null,
     players: {
       [uid]: {
         name: params.hostName,
         score: 0,
         isReady: false,
         online: true,
+        deviceId,
+        lastSeen: serverTimestamp(),
       },
     },
     gameState: {
@@ -53,6 +59,6 @@ export async function createRoom(params: {
   };
 
   await setDoc(doc(db, 'rooms', roomId), roomData);
-  if ((window as any).__ksVerboseFirebase) console.log('[createRoom] roomId:', roomId, 'uid:', uid, 'pin:', pin);
+  if ((window as any).__ksVerboseFirebase) console.log('[createRoom] roomId:', roomId, 'uid:', uid, 'deviceId:', deviceId);
   return { roomId, pin };
 }
