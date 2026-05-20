@@ -15,11 +15,16 @@ export function useRoomSubscription(
     const roomRef = doc(db, 'rooms', roomId);
     const unsubscribe = onSnapshot(
       roomRef,
+      { includeMetadataChanges: true },
       (snap) => {
-        if (snap.exists()) {
-          console.log('[useRoomSubscription] update:', roomId);
-          onUpdate(snap.data() as RoomDocument);
-        }
+        if (!snap.exists()) return;
+        // Skip optimistic local snapshots (our own un-confirmed writes).
+        // Processing only server-confirmed snapshots makes the Firestore
+        // document the single source of truth: a device never re-applies its
+        // own echo, and while it has pending writes it skips snapshots so it
+        // never applies a stale intermediate echo of its own rapid writes.
+        if (snap.metadata.hasPendingWrites) return;
+        onUpdate(snap.data() as RoomDocument);
       },
       (err) => {
         console.error('[useRoomSubscription] chyba:', err.code, err.message);

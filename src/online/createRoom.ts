@@ -40,10 +40,6 @@ export async function createRoom(params: {
     updatedAt: serverTimestamp(),
     selectedSkin: params.selectedSkin,
     rules: params.rules,
-    activeTournament: null,
-    activeTournamentTs: 0,
-    syncedTournamentsTs: 0,
-    selectedSkinTs: 0,
     players: {
       [uid]: {
         name: params.hostName,
