@@ -42,7 +42,7 @@ function ActivePlayersPanel({ roomState, myUid }) {
 }
 
 export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName }) {
-  const { roomId, uid: myUid, roomState, status, setRoomId, setUid, setRoomState, setStatus, reset } = useOnlineStore();
+  const { roomId, uid: myUid, roomState, status, setRoomId, setUid, setRoomState, setStatus, setIsRecorder, reset } = useOnlineStore();
 
   const [joinCode, setJoinCode] = useState('');
   const [joinErr, setJoinErr] = useState('');
@@ -77,6 +77,7 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
       });
       setRoomId(rid);
       setUid(uid);
+      setIsRecorder(true);   // creator = recorder, writes game state
       setStatus('connected');
     } catch (e) {
       const msg = e?.message || String(e);
@@ -101,6 +102,7 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
       await joinRoom({ roomId: rid, playerName });
       setRoomId(rid);
       setUid(uid);
+      setIsRecorder(false);  // joiner = observer, reads only
       setStatus('connected');
     } catch (e) {
       setJoinErr(e.message || 'Miestnosť neexistuje');
