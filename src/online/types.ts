@@ -26,11 +26,14 @@ export type RoomDocument = {
   status: 'waiting' | 'playing' | 'finished';
   updatedAt: any;
   selectedSkin: string;
+  selectedSkinTs?: number;
   rules: string[];
   players: Record<string, PlayerInRoom>;
   gameState: GameState;
   activeTournament?: any | null;
+  activeTournamentTs?: number;
   syncedTournaments?: any[] | null;
+  syncedTournamentsTs?: number;
 };
 
 export type LocalTournament = {
