@@ -585,6 +585,36 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlineRoomId, onlineUid]);
 
+  // ─── Screen Wake Lock ─────────────────────────────────────────────────────
+  // Keeps the display on while the app is in the foreground — same behaviour
+  // as video players. Released automatically when the page becomes hidden,
+  // re-acquired when it becomes visible again.
+  useEffect(() => {
+    if (!('wakeLock' in navigator)) return;
+    let lock = null;
+    let released = false;
+
+    const acquire = async () => {
+      if (released || document.visibilityState !== 'visible') return;
+      try {
+        lock = await navigator.wakeLock.request('screen');
+        lock.addEventListener('release', () => { lock = null; });
+      } catch {}
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') acquire();
+    };
+
+    acquire();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      released = true;
+      document.removeEventListener('visibilitychange', onVisibility);
+      lock?.release().catch(() => {});
+    };
+  }, []);
+
   useEffect(() => {
     (async () => {
       try { const r = await window.storage.get('rules');       if (r?.value) setrules(JSON.parse(r.value)); }        catch {}
