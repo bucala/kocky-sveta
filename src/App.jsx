@@ -719,13 +719,33 @@ export default function App() {
   const syncActiveRef      = useRef(active);
   const syncTournamentsRef = useRef(tournaments);
   const syncSkinRef        = useRef(selectedSkin);
-  const syncRoomStateRef   = useRef(onlineRoomState);
 
-  // Assign in render body — timers (300/500 ms later) see current values.
+  // Assign in render body — timers see the value current at fire time.
   syncActiveRef.current      = active;
   syncTournamentsRef.current = tournaments;
   syncSkinRef.current        = selectedSkin;
-  syncRoomStateRef.current   = onlineRoomState;
+
+  // Track last value successfully written to Firestore (per field).
+  // Prevents: (a) the recorder re-writing what it just received from remote,
+  // (b) the timer comparing against a stale onlineRoomState.
+  const lastWrittenActiveJson       = useRef(null);
+  const lastWrittenTournamentsJson  = useRef(null);
+  const lastWrittenSkinRef          = useRef(null);
+
+  // Reset "last written" bookmarks whenever we join a different room.
+  useEffect(() => {
+    lastWrittenActiveJson.current      = null;
+    lastWrittenTournamentsJson.current = null;
+    lastWrittenSkinRef.current         = null;
+  }, [onlineRoomId]);
+
+  // Flag: has at least one confirmed snapshot arrived? Used as a one-shot
+  // guard so the recorder doesn't write before it has seen the room's state.
+  const hasSeenSnapshotRef = useRef(false);
+  useEffect(() => {
+    if (onlineRoomState) hasSeenSnapshotRef.current = true;
+  }, [onlineRoomState]);
+  useEffect(() => { hasSeenSnapshotRef.current = false; }, [onlineRoomId]);
 
   // ── activeTournament ─────────────────────────────────────────────────────
 
@@ -734,29 +754,37 @@ export default function App() {
     if (!onlineRoomId || !onlineRoomState) return;
     const remoteActive = onlineRoomState.activeTournament;
     if (remoteActive === undefined) return; // field not set yet (fresh room)
-    if (JSON.stringify(remoteActive ?? null) === JSON.stringify(syncActiveRef.current ?? null)) return;
+    const remoteJson = JSON.stringify(remoteActive ?? null);
+    if (remoteJson === JSON.stringify(syncActiveRef.current ?? null)) return;
+    // Record what remote has so the recorder doesn't immediately echo it back.
+    lastWrittenActiveJson.current = remoteJson;
     setActive(remoteActive ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlineRoomId, onlineRoomState]);
 
   // Local → remote: RECORDER ONLY, debounced 300 ms.
-  // onlineRoomState guard ensures we've seen the room's confirmed state before
-  // writing (so a joining device can't stomp the room with stale local data).
+  // deps: only `active` (+ stable IDs) — NOT onlineRoomState, so Firestore
+  // heartbeat snapshots from the peer (~200 ms) never cancel this timer.
   useEffect(() => {
-    if (!loaded || !onlineRoomId || !onlineIsRecorder || !onlineRoomState) return;
-    if (JSON.stringify(active ?? null) === JSON.stringify(onlineRoomState.activeTournament ?? null)) return;
+    if (!loaded || !onlineRoomId || !onlineIsRecorder) return;
+    if (!hasSeenSnapshotRef.current) return; // wait for first confirmed snapshot
+    const myJson = JSON.stringify(active ?? null);
+    if (myJson === lastWrittenActiveJson.current) return; // already written
     const timer = setTimeout(() => {
       const cur = syncActiveRef.current ?? null;
-      if (JSON.stringify(cur) === JSON.stringify(syncRoomStateRef.current?.activeTournament ?? null)) return;
+      const curJson = JSON.stringify(cur);
+      if (curJson === lastWrittenActiveJson.current) return;
+      lastWrittenActiveJson.current = curJson; // optimistically mark as written
       import('./online/updateGameState.ts').then(({ updateGameState }) => {
         updateGameState(onlineRoomId, { activeTournament: cur }).catch((e) => {
           console.error('[sync] activeTournament write failed:', e);
+          lastWrittenActiveJson.current = null; // allow retry
         });
       });
     }, 300);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, onlineRoomId, loaded, onlineIsRecorder, onlineRoomState]);
+  }, [active, onlineRoomId, loaded, onlineIsRecorder]);
 
   // ── tournaments (archive) ────────────────────────────────────────────────
 
@@ -764,26 +792,33 @@ export default function App() {
     if (!onlineRoomId || !onlineRoomState) return;
     const remote = onlineRoomState.syncedTournaments;
     if (remote === undefined) return;
-    if (JSON.stringify(remote ?? []) === JSON.stringify(syncTournamentsRef.current ?? [])) return;
+    const remoteJson = JSON.stringify(remote ?? []);
+    if (remoteJson === JSON.stringify(syncTournamentsRef.current ?? [])) return;
+    lastWrittenTournamentsJson.current = remoteJson;
     setTournaments(remote ?? []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlineRoomId, onlineRoomState]);
 
   useEffect(() => {
-    if (!loaded || !onlineRoomId || !onlineIsRecorder || !onlineRoomState) return;
-    if (JSON.stringify(tournaments ?? []) === JSON.stringify(onlineRoomState.syncedTournaments ?? [])) return;
+    if (!loaded || !onlineRoomId || !onlineIsRecorder) return;
+    if (!hasSeenSnapshotRef.current) return;
+    const myJson = JSON.stringify(tournaments ?? []);
+    if (myJson === lastWrittenTournamentsJson.current) return;
     const timer = setTimeout(() => {
       const cur = syncTournamentsRef.current ?? [];
-      if (JSON.stringify(cur) === JSON.stringify(syncRoomStateRef.current?.syncedTournaments ?? [])) return;
+      const curJson = JSON.stringify(cur);
+      if (curJson === lastWrittenTournamentsJson.current) return;
+      lastWrittenTournamentsJson.current = curJson;
       import('./online/updateGameState.ts').then(({ updateGameState }) => {
         updateGameState(onlineRoomId, { syncedTournaments: cur }).catch((e) => {
           console.error('[sync] tournaments write failed:', e);
+          lastWrittenTournamentsJson.current = null;
         });
       });
     }, 500);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tournaments, onlineRoomId, loaded, onlineIsRecorder, onlineRoomState]);
+  }, [tournaments, onlineRoomId, loaded, onlineIsRecorder]);
 
   // ── selectedSkin ─────────────────────────────────────────────────────────
 
@@ -791,23 +826,31 @@ export default function App() {
     if (!onlineRoomId || !onlineRoomState) return;
     const remote = onlineRoomState.selectedSkin;
     if (!remote || remote === syncSkinRef.current) return;
-    if (SKIN_PRESETS[remote]) setSelectedSkin(remote);
+    if (SKIN_PRESETS[remote]) {
+      lastWrittenSkinRef.current = remote;
+      setSelectedSkin(remote);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlineRoomId, onlineRoomState]);
 
   useEffect(() => {
-    if (!loaded || !onlineRoomId || !onlineIsRecorder || !onlineRoomState) return;
-    if (selectedSkin === onlineRoomState.selectedSkin) return;
+    if (!loaded || !onlineRoomId || !onlineIsRecorder) return;
+    if (!hasSeenSnapshotRef.current) return;
+    if (selectedSkin === lastWrittenSkinRef.current) return;
     const timer = setTimeout(() => {
       const cur = syncSkinRef.current;
-      if (cur === syncRoomStateRef.current?.selectedSkin) return;
+      if (cur === lastWrittenSkinRef.current) return;
+      lastWrittenSkinRef.current = cur;
       import('./online/updateGameState.ts').then(({ updateGameState }) => {
-        updateGameState(onlineRoomId, { selectedSkin: cur }).catch(console.error);
+        updateGameState(onlineRoomId, { selectedSkin: cur }).catch((e) => {
+          console.error('[sync] selectedSkin write failed:', e);
+          lastWrittenSkinRef.current = null;
+        });
       });
     }, 500);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSkin, onlineRoomId, loaded, onlineIsRecorder, onlineRoomState]);
+  }, [selectedSkin, onlineRoomId, loaded, onlineIsRecorder]);
 
   const minWriteOff = useMemo(() => {
     const r = rules.find(x => x.id === 'r14');
