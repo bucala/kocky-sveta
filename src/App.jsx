@@ -786,13 +786,16 @@ export default function App() {
   // ── activeTournament ─────────────────────────────────────────────────────
 
   // Remote → local: ALL devices, fires on every confirmed snapshot.
+  // Compare against lastWrittenActiveJson (what Firestore last confirmed), NOT
+  // against syncActiveRef (current local value). Comparing against local would
+  // revert in-flight changes whenever a heartbeat or presence snapshot arrives
+  // with the previous Firestore value while a local change is still debouncing.
   useEffect(() => {
     if (!onlineRoomId || !onlineRoomState) return;
     const remoteActive = onlineRoomState.activeTournament;
     if (remoteActive === undefined) return; // field not set yet (fresh room)
     const remoteJson = JSON.stringify(remoteActive ?? null);
-    if (remoteJson === JSON.stringify(syncActiveRef.current ?? null)) return;
-    // Record what remote has so this device doesn't immediately echo it back.
+    if (remoteJson === lastWrittenActiveJson.current) return; // already in sync
     lastWrittenActiveJson.current = remoteJson;
     setActive(remoteActive ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -830,7 +833,7 @@ export default function App() {
     const remote = onlineRoomState.syncedTournaments;
     if (remote === undefined) return;
     const remoteJson = JSON.stringify(remote ?? []);
-    if (remoteJson === JSON.stringify(syncTournamentsRef.current ?? [])) return;
+    if (remoteJson === lastWrittenTournamentsJson.current) return;
     lastWrittenTournamentsJson.current = remoteJson;
     setTournaments(remote ?? []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -862,7 +865,7 @@ export default function App() {
   useEffect(() => {
     if (!onlineRoomId || !onlineRoomState) return;
     const remote = onlineRoomState.selectedSkin;
-    if (!remote || remote === syncSkinRef.current) return;
+    if (!remote || remote === lastWrittenSkinRef.current) return;
     if (SKIN_PRESETS[remote]) {
       lastWrittenSkinRef.current = remote;
       setSelectedSkin(remote);
