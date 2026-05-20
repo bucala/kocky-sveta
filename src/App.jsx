@@ -667,41 +667,66 @@ export default function App() {
   }, [onlineRoomId]);
 
   // ─── Online real-time sync ────────────────────────────────────────────────
-  // Architecture:
-  //   isRecorder = true  → this device CREATED the room; it is the sole writer.
-  //   isRecorder = false → this device JOINED the room; it is read-only.
   //
-  // Writers: update ref immediately before the async write so that the echo
-  //   from Firestore matches lastRemote* and is suppressed (no revert loop).
-  //   Writes are debounced to collapse rapid changes and avoid rate limits.
-  //   We also guard on `onlineRoomState !== null` so we never overwrite Firestore
-  //   with stale localStorage data before receiving the first snapshot.
+  //  ARCHITECTURE (one-way authority):
   //
-  // Readers: apply any incoming snapshot whose JSON differs from the last
-  //   applied value. No writes, no side-effects on Firestore.
+  //   RECORDER (isRecorder=true) → sole writer of game state to Firestore.
+  //     • local→remote: writes whenever local state differs from last write.
+  //       No onlineRoomState guard — writes immediately when loaded=true.
+  //     • remote→local: IGNORED entirely. The recorder's local state is always
+  //       authoritative. Applying echoes / heartbeat snapshots / stale writes
+  //       back would revert the game — the root cause of the "jumps to start" bug.
+  //
+  //   OBSERVER (isRecorder=false) → read-only.
+  //     • remote→local: applies every incoming snapshot that differs from
+  //       the last applied value.
+  //     • local→remote: blocked by !onlineIsRecorder guard — never writes.
+  //
+  //  Each field keeps its own lastRemote* ref so dedup is independent.
+  //  The ref is updated BEFORE the async Firestore call (immediate optimistic
+  //  update) so that the echo, when it arrives, matches and is skipped.
+  //
+  //  serverTimestamp() is deliberately avoided in all writes — it causes two
+  //  snapshots per write (optimistic + confirmed) which doubles traffic and
+  //  was triggering spurious remote→local applications on the observer.
+  //  Date.now() is used instead (see updateGameState.ts, updatePresence.ts).
+
   const lastRemoteActiveJson      = useRef(null);
   const lastRemoteTournamentsJson = useRef(null);
   const lastRemoteSkinJson        = useRef(null);
 
-  // ── activeTournament: Remote → local (all devices) ───────────────────────
+  // Reset dedup refs when switching rooms so stale data from a previous
+  // room can't accidentally suppress writes to the new room.
   useEffect(() => {
-    if (!onlineRoomId) return;
+    lastRemoteActiveJson.current      = null;
+    lastRemoteTournamentsJson.current = null;
+    lastRemoteSkinJson.current        = null;
+  }, [onlineRoomId]);
+
+  // ── activeTournament ─────────────────────────────────────────────────────
+
+  // Remote → local: OBSERVER ONLY.
+  // Recorder ignores all incoming activeTournament — echoes and heartbeat
+  // snapshots from older writes would revert the recorder's current game.
+  useEffect(() => {
+    if (!onlineRoomId || onlineIsRecorder) return;
     const remoteActive = onlineRoomState?.activeTournament;
-    if (remoteActive === undefined) return;                   // snapshot not yet received
+    if (remoteActive === undefined) return;
     const json = JSON.stringify(remoteActive ?? null);
-    if (json === lastRemoteActiveJson.current) return;        // same as what we wrote — skip
+    if (json === lastRemoteActiveJson.current) return;
     lastRemoteActiveJson.current = json;
     setActive(remoteActive ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onlineRoomId, JSON.stringify(onlineRoomState?.activeTournament)]);
+  }, [onlineRoomId, onlineIsRecorder, JSON.stringify(onlineRoomState?.activeTournament)]);
 
-  // ── activeTournament: Local → remote (recorder only, debounced 300 ms) ───
+  // Local → remote: RECORDER ONLY, debounced 300 ms.
+  // No onlineRoomState guard — recorder writes immediately when loaded,
+  // without waiting for a snapshot (which could arrive with stale/null data).
   useEffect(() => {
     if (!loaded || !onlineRoomId || !onlineIsRecorder) return;
-    if (!onlineRoomState) return;                             // wait for first snapshot
     const currentJson = JSON.stringify(active ?? null);
-    if (currentJson === lastRemoteActiveJson.current) return; // no change vs last write
-    lastRemoteActiveJson.current = currentJson;               // update before async write
+    if (currentJson === lastRemoteActiveJson.current) return;
+    lastRemoteActiveJson.current = currentJson;
     const timer = setTimeout(() => {
       import('./online/updateGameState.ts').then(({ updateGameState }) => {
         updateGameState(onlineRoomId, { activeTournament: active ?? null }).catch((e) => {
@@ -711,11 +736,13 @@ export default function App() {
     }, 300);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, onlineRoomId, loaded, onlineIsRecorder, !!onlineRoomState]);
+  }, [active, onlineRoomId, loaded, onlineIsRecorder]);
 
-  // ── tournaments (archive): Remote → local (all devices) ──────────────────
+  // ── tournaments (archive) ────────────────────────────────────────────────
+
+  // Remote → local: OBSERVER ONLY.
   useEffect(() => {
-    if (!onlineRoomId) return;
+    if (!onlineRoomId || onlineIsRecorder) return;
     const remote = onlineRoomState?.syncedTournaments;
     if (remote === undefined) return;
     const json = JSON.stringify(remote ?? []);
@@ -723,12 +750,11 @@ export default function App() {
     lastRemoteTournamentsJson.current = json;
     setTournaments(remote ?? []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onlineRoomId, JSON.stringify(onlineRoomState?.syncedTournaments)]);
+  }, [onlineRoomId, onlineIsRecorder, JSON.stringify(onlineRoomState?.syncedTournaments)]);
 
-  // ── tournaments (archive): Local → remote (recorder only, debounced 500 ms)
+  // Local → remote: RECORDER ONLY, debounced 500 ms.
   useEffect(() => {
     if (!loaded || !onlineRoomId || !onlineIsRecorder) return;
-    if (!onlineRoomState) return;
     const currentJson = JSON.stringify(tournaments ?? []);
     if (currentJson === lastRemoteTournamentsJson.current) return;
     lastRemoteTournamentsJson.current = currentJson;
@@ -741,22 +767,23 @@ export default function App() {
     }, 500);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tournaments, onlineRoomId, loaded, onlineIsRecorder, !!onlineRoomState]);
+  }, [tournaments, onlineRoomId, loaded, onlineIsRecorder]);
 
-  // ── selectedSkin: Remote → local (all devices) ───────────────────────────
+  // ── selectedSkin ─────────────────────────────────────────────────────────
+
+  // Remote → local: OBSERVER ONLY — follows recorder's skin choice.
   useEffect(() => {
-    if (!onlineRoomId) return;
+    if (!onlineRoomId || onlineIsRecorder) return;
     const remote = onlineRoomState?.selectedSkin;
     if (!remote || remote === lastRemoteSkinJson.current) return;
     lastRemoteSkinJson.current = remote;
     if (SKIN_PRESETS[remote]) setSelectedSkin(remote);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onlineRoomId, onlineRoomState?.selectedSkin]);
+  }, [onlineRoomId, onlineIsRecorder, onlineRoomState?.selectedSkin]);
 
-  // ── selectedSkin: Local → remote (recorder only, debounced 500 ms) ───────
+  // Local → remote: RECORDER ONLY, debounced 500 ms.
   useEffect(() => {
     if (!loaded || !onlineRoomId || !onlineIsRecorder) return;
-    if (!onlineRoomState) return;
     if (selectedSkin === lastRemoteSkinJson.current) return;
     lastRemoteSkinJson.current = selectedSkin;
     const timer = setTimeout(() => {
@@ -766,7 +793,7 @@ export default function App() {
     }, 500);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSkin, onlineRoomId, loaded, onlineIsRecorder, !!onlineRoomState]);
+  }, [selectedSkin, onlineRoomId, loaded, onlineIsRecorder]);
 
   const minWriteOff = useMemo(() => {
     const r = rules.find(x => x.id === 'r14');

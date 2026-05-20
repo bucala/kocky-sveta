@@ -1,0 +1,1 @@
+import{d as e,u as d,a as m}from"./index-DYPSyuI8.js";import"./vendor-lucide-CeTbX5Qt.js";import"./vendor-react-oYV170lA.js";async function c(o,t){const a=e(m,"rooms",o);await d(a,{...t,updatedAt:Date.now()})}export{c as updateGameState};

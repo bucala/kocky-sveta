@@ -1,0 +1,1 @@
+import{u as o,d as n,a as r}from"./index-DYPSyuI8.js";import"./vendor-lucide-CeTbX5Qt.js";import"./vendor-react-oYV170lA.js";async function p(e,a){await o(n(r,"rooms",e),{[`players.${a}.lastSeen`]:Date.now(),[`players.${a}.online`]:!0})}async function l(e,a){await o(n(r,"rooms",e),{[`players.${a}.online`]:!1})}export{l as markOffline,p as updatePresence};
