@@ -754,8 +754,10 @@ export default function App() {
   }, [onlineRoomId, onlineRoomState?.activeTournamentTs]);
 
   // Local → remote: RECORDER ONLY, debounced 300 ms.
+  // onlineRoomState guard ensures we don't overwrite room data before receiving
+  // the first snapshot — prevents a joining recorder from stomping with stale data.
   useEffect(() => {
-    if (!loaded || !onlineRoomId || !onlineIsRecorder) return;
+    if (!loaded || !onlineRoomId || !onlineIsRecorder || !onlineRoomState) return;
     const json = JSON.stringify(active ?? null);
     if (json === lastJsonActive.current) return;
     const timer = setTimeout(() => {
@@ -770,7 +772,7 @@ export default function App() {
     }, 300);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, onlineRoomId, loaded, onlineIsRecorder]);
+  }, [active, onlineRoomId, loaded, onlineIsRecorder, !!onlineRoomState]);
 
   // ── tournaments (archive) ────────────────────────────────────────────────
 
@@ -791,7 +793,7 @@ export default function App() {
 
   // Local → remote: RECORDER ONLY, debounced 500 ms.
   useEffect(() => {
-    if (!loaded || !onlineRoomId || !onlineIsRecorder) return;
+    if (!loaded || !onlineRoomId || !onlineIsRecorder || !onlineRoomState) return;
     const json = JSON.stringify(tournaments ?? []);
     if (json === lastJsonTournaments.current) return;
     const timer = setTimeout(() => {
@@ -806,7 +808,7 @@ export default function App() {
     }, 500);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tournaments, onlineRoomId, loaded, onlineIsRecorder]);
+  }, [tournaments, onlineRoomId, loaded, onlineIsRecorder, !!onlineRoomState]);
 
   // ── selectedSkin ─────────────────────────────────────────────────────────
 
@@ -826,7 +828,7 @@ export default function App() {
 
   // Local → remote: RECORDER ONLY, debounced 500 ms.
   useEffect(() => {
-    if (!loaded || !onlineRoomId || !onlineIsRecorder) return;
+    if (!loaded || !onlineRoomId || !onlineIsRecorder || !onlineRoomState) return;
     if (selectedSkin === lastJsonSkin.current) return;
     const timer = setTimeout(() => {
       const ts = Date.now();
@@ -838,7 +840,7 @@ export default function App() {
     }, 500);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSkin, onlineRoomId, loaded, onlineIsRecorder]);
+  }, [selectedSkin, onlineRoomId, loaded, onlineIsRecorder, !!onlineRoomState]);
 
   const minWriteOff = useMemo(() => {
     const r = rules.find(x => x.id === 'r14');

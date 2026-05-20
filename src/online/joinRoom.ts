@@ -33,16 +33,31 @@ export async function joinRoom(params: {
 
   const deviceId = getDeviceId();
   const existingPlayers = snap.data()?.players ?? {};
+  const STALE_MS = 5 * 60 * 1000; // 5 minutes
 
   // Build a single atomic patch:
-  // 1. Remove any ghost entries from this same physical device (different UID, same deviceId)
-  // 2. Upsert this device's current player entry
+  // 1. Remove stale players (offline for >5 min) — cleans up ghost accumulation
+  // 2. Remove same physical device with a different UID (session refresh)
+  // 3. Upsert this device's current player entry
   const patch: Record<string, any> = {};
 
   for (const [existingUid, player] of Object.entries(existingPlayers)) {
-    if ((player as any).deviceId === deviceId && existingUid !== uid) {
+    if (existingUid === uid) continue;
+    const p = player as any;
+
+    // Same physical device, different UID → ghost from session refresh
+    if (p.deviceId === deviceId) {
       patch[`players.${existingUid}`] = deleteField();
-      if ((window as any).__ksVerboseFirebase) console.log('[joinRoom] removing ghost uid:', existingUid, 'for deviceId:', deviceId);
+      if ((window as any).__ksVerboseFirebase) console.log('[joinRoom] removing ghost (same device):', existingUid);
+      continue;
+    }
+
+    // Stale player: offline flag AND lastSeen older than threshold
+    const lastSeen = p.lastSeen?.toMillis?.() ?? p.lastSeen ?? 0;
+    const isStale = !p.online && typeof lastSeen === 'number' && lastSeen > 0 && Date.now() - lastSeen > STALE_MS;
+    if (isStale) {
+      patch[`players.${existingUid}`] = deleteField();
+      if ((window as any).__ksVerboseFirebase) console.log('[joinRoom] removing stale player:', existingUid, 'lastSeen:', lastSeen);
     }
   }
 

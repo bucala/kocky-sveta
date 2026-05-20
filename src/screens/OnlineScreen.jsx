@@ -210,25 +210,25 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
                 </div>
 
                 <div>
-                  <p className="ks-muted text-xs ks-mono mb-2">REŽIM ZARIADENIA</p>
+                  <p className="ks-muted text-xs ks-mono mb-2">SYNCHRONIZÁCIA</p>
                   <div className="flex rounded-sm overflow-hidden border ks-border-sub">
                     <button
                       onClick={() => setIsRecorderMode(true)}
                       className={`flex-1 py-2 text-xs ks-mono font-bold ks-press transition-colors ${isRecorderMode ? 'ks-gold-bg text-black' : 'ks-muted'}`}
                     >
-                      ZAPISOVATEĽ
+                      AKTÍVNA
                     </button>
                     <button
                       onClick={() => setIsRecorderMode(false)}
                       className={`flex-1 py-2 text-xs ks-mono font-bold ks-press transition-colors ${!isRecorderMode ? 'ks-gold-bg text-black' : 'ks-muted'}`}
                     >
-                      POZOROVATEĽ
+                      LEN ČÍTAM
                     </button>
                   </div>
                   <p className="ks-muted text-xs mt-1.5 leading-relaxed opacity-70">
                     {isRecorderMode
-                      ? 'Čítaš aj zapisuješ. Viacero zariadení môže zapisovať súčasne.'
-                      : 'Iba sleduješ. Toto zariadenie nezapíše žiadne zmeny.'}
+                      ? 'Toto zariadenie zapisuje skóre a synchronizuje zmeny.'
+                      : 'Toto zariadenie iba sleduje — nezapisuje žiadne zmeny.'}
                   </p>
                 </div>
 
@@ -275,7 +275,7 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
                   AKTÍVNA MIESTNOSŤ
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="ks-muted text-xs ks-mono opacity-60">{isRecorder ? 'ZAPISOVATEĽ' : 'POZOROVATEĽ'}</span>
+                  <span className="ks-muted text-xs ks-mono opacity-60">{isRecorder ? 'AKTÍVNA SYNC' : 'LEN ČÍTAM'}</span>
                   <div className={`flex items-center gap-1.5 text-xs ks-mono ${status === 'error' ? 'text-red-400' : 'text-green-400'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${status === 'error' ? 'bg-red-400' : 'bg-green-400'}`} />
                     {status === 'error' ? 'CHYBA' : 'ONLINE'}
