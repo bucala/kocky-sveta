@@ -62,7 +62,7 @@ function ActivePlayersPanel({ roomState, myUid }) {
 }
 
 export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName }) {
-  const { roomId, uid: myUid, roomState, status, isRecorder, setRoomId, setUid, setRoomState, setStatus, setIsRecorder, reset } = useOnlineStore();
+  const { roomId, uid: myUid, roomState, status, setRoomId, setUid, setRoomState, setStatus, setIsRecorder, reset } = useOnlineStore();
 
   const [joinCode, setJoinCode] = useState('');
   const [joinErr, setJoinErr] = useState('');
@@ -72,7 +72,6 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
 
   const [useName, setUseName] = useState(!!defaultRoomName);
   const [name, setName] = useState(defaultRoomName || '');
-  const [isRecorderMode, setIsRecorderMode] = useState(true); // default: read+write
 
   // Wait for Firebase to restore persisted auth before signing in anonymously.
   // auth.currentUser is null immediately after page load — authStateReady() waits
@@ -123,7 +122,7 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
       await joinRoom({ roomId: rid, playerName });
       setRoomId(rid);
       setUid(uid);
-      setIsRecorder(isRecorderMode);
+      setIsRecorder(true);
       setStatus('connected');
     } catch (e) {
       setJoinErr(e.message || 'Miestnosť neexistuje');
@@ -209,29 +208,6 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
                   )}
                 </div>
 
-                <div>
-                  <p className="ks-muted text-xs ks-mono mb-2">SYNCHRONIZÁCIA</p>
-                  <div className="flex rounded-sm overflow-hidden border ks-border-sub">
-                    <button
-                      onClick={() => setIsRecorderMode(true)}
-                      className={`flex-1 py-2 text-xs ks-mono font-bold ks-press transition-colors ${isRecorderMode ? 'ks-gold-bg text-black' : 'ks-muted'}`}
-                    >
-                      AKTÍVNA
-                    </button>
-                    <button
-                      onClick={() => setIsRecorderMode(false)}
-                      className={`flex-1 py-2 text-xs ks-mono font-bold ks-press transition-colors ${!isRecorderMode ? 'ks-gold-bg text-black' : 'ks-muted'}`}
-                    >
-                      LEN ČÍTAM
-                    </button>
-                  </div>
-                  <p className="ks-muted text-xs mt-1.5 leading-relaxed opacity-70">
-                    {isRecorderMode
-                      ? 'Toto zariadenie zapisuje skóre a synchronizuje zmeny.'
-                      : 'Toto zariadenie iba sleduje — nezapisuje žiadne zmeny.'}
-                  </p>
-                </div>
-
                 {joinErr && <p className="text-red-400 text-xs">{joinErr}</p>}
 
                 <button
@@ -274,12 +250,9 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
                   <Wifi size={13} />
                   AKTÍVNA MIESTNOSŤ
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="ks-muted text-xs ks-mono opacity-60">{isRecorder ? 'AKTÍVNA SYNC' : 'LEN ČÍTAM'}</span>
-                  <div className={`flex items-center gap-1.5 text-xs ks-mono ${status === 'error' ? 'text-red-400' : 'text-green-400'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${status === 'error' ? 'bg-red-400' : 'bg-green-400'}`} />
-                    {status === 'error' ? 'CHYBA' : 'ONLINE'}
-                  </div>
+                <div className={`flex items-center gap-1.5 text-xs ks-mono ${status === 'error' ? 'text-red-400' : 'text-green-400'}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${status === 'error' ? 'bg-red-400' : 'bg-green-400'}`} />
+                  {status === 'error' ? 'CHYBA' : 'ONLINE'}
                 </div>
               </div>
 

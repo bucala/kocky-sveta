@@ -698,149 +698,155 @@ export default function App() {
 
   // ─── Online real-time sync ────────────────────────────────────────────────
   //
-  //  MULTI-RECORDER ARCHITECTURE (timestamp-based conflict resolution):
+  //  ARCHITECTURE:
+  //   RECORDER (isRecorder=true) → reads AND writes (multi-recorder supported).
+  //   OBSERVER (isRecorder=false) → reads only.
   //
-  //   Any device can be a RECORDER (isRecorder=true) — both reads and writes.
-  //   OBSERVER (isRecorder=false) — reads only, never writes.
+  //   Echo prevention: each write stamps `activeTournamentTs = Date.now()`.
+  //   Remote→local skips anything with ts ≤ our last written ts (our own echo
+  //   and stale writes from other recorders we've already moved past).
+  //   Backward compat: for old rooms missing *Ts fields, JSON comparison is used.
   //
-  //   Each synced field stores a *Ts timestamp alongside its value.
-  //   Conflict resolution: last-write-wins.
-  //     • Remote→local: apply if remoteTs > lastSyncTs (newer than our last write).
-  //       This filters our own echoes (remoteTs === lastSyncTs) and stale writes
-  //       from other recorders that arrived after we already moved forward.
-  //     • Local→remote: recorder only. ts = Date.now(), set lastSyncTs = ts
-  //       before the async Firestore call so the echo is filtered when it arrives.
-  //
-  //   Each field has two refs:
-  //     lastSyncTs   — timestamp of the last write we made or remote we applied.
-  //     lastJson     — JSON of the last value we set locally (change dedup).
+  //   Stale-closure fix: `activeRef.current`, `tournamentsRef.current`,
+  //   `selectedSkinRef.current`, and `onlineRoomStateRef.current` are assigned in
+  //   the render body so timer callbacks always see the live value, not the stale
+  //   closure value captured when the effect ran.
 
-  const lastSyncActiveTs  = useRef(0);
-  const lastJsonActive    = useRef(null);
+  const syncActiveRef         = useRef(active);
+  const syncTournamentsRef    = useRef(tournaments);
+  const syncSkinRef           = useRef(selectedSkin);
+  const syncRoomStateRef      = useRef(onlineRoomState);
 
-  const lastSyncTournamentsTs = useRef(0);
-  const lastJsonTournaments   = useRef(null);
+  // Assign in render body — timers (300/500 ms later) see current values.
+  syncActiveRef.current      = active;
+  syncTournamentsRef.current = tournaments;
+  syncSkinRef.current        = selectedSkin;
+  syncRoomStateRef.current   = onlineRoomState;
 
-  const lastSyncSkinTs = useRef(0);
-  const lastJsonSkin   = useRef(null);
+  // Tracks the ts we stamped on our last WRITE (used for echo prevention).
+  const lastWrittenActiveTs      = useRef(0);
+  const lastWrittenTournamentsTs = useRef(0);
+  const lastWrittenSkinTs        = useRef(0);
 
-  // Reset all refs when switching rooms.
+  // Reset on room change.
   useEffect(() => {
-    lastSyncActiveTs.current  = 0;
-    lastJsonActive.current    = null;
-    lastSyncTournamentsTs.current = 0;
-    lastJsonTournaments.current   = null;
-    lastSyncSkinTs.current    = 0;
-    lastJsonSkin.current      = null;
+    lastWrittenActiveTs.current      = 0;
+    lastWrittenTournamentsTs.current = 0;
+    lastWrittenSkinTs.current        = 0;
   }, [onlineRoomId]);
 
   // ── activeTournament ─────────────────────────────────────────────────────
 
-  // Remote → local: ALL devices (recorders and observers).
-  // Only applies if the remote timestamp is strictly newer than our last write/apply.
-  // This filters our own echoes and stale writes from other recorders.
+  // Remote → local: ALL devices, fires on every Firestore snapshot.
+  // Dep is onlineRoomState (not just activeTournamentTs) so old rooms without
+  // the ts field also trigger this effect when new snapshots arrive.
   useEffect(() => {
-    if (!onlineRoomId) return;
-    const remoteTs = onlineRoomState?.activeTournamentTs ?? 0;
-    const remoteActive = onlineRoomState?.activeTournament;
-    if (remoteActive === undefined) return;
-    if (remoteTs <= lastSyncActiveTs.current) return;
-    const json = JSON.stringify(remoteActive ?? null);
-    lastSyncActiveTs.current = remoteTs;
-    if (json === lastJsonActive.current) return;
-    lastJsonActive.current = json;
+    if (!onlineRoomId || !onlineRoomState) return;
+    const remoteTs     = onlineRoomState.activeTournamentTs ?? 0;
+    const remoteActive = onlineRoomState.activeTournament;
+    // Skip initial empty placeholder written by createRoom (null + ts=0).
+    if (remoteActive == null && remoteTs === 0) return;
+    // Skip our own echo and anything older than our last write.
+    if (remoteTs > 0 && remoteTs <= lastWrittenActiveTs.current) return;
+    // Skip if local already matches.
+    const remoteJson = JSON.stringify(remoteActive ?? null);
+    if (remoteJson === JSON.stringify(syncActiveRef.current ?? null)) return;
     setActive(remoteActive ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onlineRoomId, onlineRoomState?.activeTournamentTs]);
+  }, [onlineRoomId, onlineRoomState]);
 
   // Local → remote: RECORDER ONLY, debounced 300 ms.
-  // onlineRoomState guard ensures we don't overwrite room data before receiving
-  // the first snapshot — prevents a joining recorder from stomping with stale data.
+  // Guard: onlineRoomState must be non-null so we've seen the room's current
+  // state before writing (prevents joining recorder from stomping with stale data).
+  // Timer uses refs so it writes the value current at fire time, not the stale
+  // closure value from when the effect ran.
   useEffect(() => {
     if (!loaded || !onlineRoomId || !onlineIsRecorder || !onlineRoomState) return;
-    const json = JSON.stringify(active ?? null);
-    if (json === lastJsonActive.current) return;
+    const myJson     = JSON.stringify(active ?? null);
+    const remoteJson = JSON.stringify(onlineRoomState.activeTournament ?? null);
+    if (myJson === remoteJson) return; // already in sync
     const timer = setTimeout(() => {
+      const cur    = syncActiveRef.current ?? null;
+      const remote = syncRoomStateRef.current?.activeTournament ?? null;
+      if (JSON.stringify(cur) === JSON.stringify(remote)) return; // resolved during delay
       const ts = Date.now();
-      lastSyncActiveTs.current = ts;
-      lastJsonActive.current = json;
+      lastWrittenActiveTs.current = ts;
       import('./online/updateGameState.ts').then(({ updateGameState }) => {
-        updateGameState(onlineRoomId, { activeTournament: active ?? null, activeTournamentTs: ts }).catch((e) => {
+        updateGameState(onlineRoomId, { activeTournament: cur, activeTournamentTs: ts }).catch((e) => {
           console.error('[sync] activeTournament write failed:', e);
         });
       });
     }, 300);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, onlineRoomId, loaded, onlineIsRecorder, !!onlineRoomState]);
+  }, [active, onlineRoomId, loaded, onlineIsRecorder, onlineRoomState]);
 
   // ── tournaments (archive) ────────────────────────────────────────────────
 
-  // Remote → local: ALL devices.
   useEffect(() => {
-    if (!onlineRoomId) return;
-    const remoteTs = onlineRoomState?.syncedTournamentsTs ?? 0;
-    const remote = onlineRoomState?.syncedTournaments;
-    if (remote === undefined) return;
-    if (remoteTs <= lastSyncTournamentsTs.current) return;
-    const json = JSON.stringify(remote ?? []);
-    lastSyncTournamentsTs.current = remoteTs;
-    if (json === lastJsonTournaments.current) return;
-    lastJsonTournaments.current = json;
+    if (!onlineRoomId || !onlineRoomState) return;
+    const remoteTs = onlineRoomState.syncedTournamentsTs ?? 0;
+    const remote   = onlineRoomState.syncedTournaments;
+    if (remote == null && remoteTs === 0) return;
+    if (remoteTs > 0 && remoteTs <= lastWrittenTournamentsTs.current) return;
+    const remoteJson = JSON.stringify(remote ?? []);
+    if (remoteJson === JSON.stringify(syncTournamentsRef.current ?? [])) return;
     setTournaments(remote ?? []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onlineRoomId, onlineRoomState?.syncedTournamentsTs]);
+  }, [onlineRoomId, onlineRoomState]);
 
-  // Local → remote: RECORDER ONLY, debounced 500 ms.
   useEffect(() => {
     if (!loaded || !onlineRoomId || !onlineIsRecorder || !onlineRoomState) return;
-    const json = JSON.stringify(tournaments ?? []);
-    if (json === lastJsonTournaments.current) return;
+    const myJson     = JSON.stringify(tournaments ?? []);
+    const remoteJson = JSON.stringify(onlineRoomState.syncedTournaments ?? []);
+    if (myJson === remoteJson) return;
     const timer = setTimeout(() => {
+      const cur    = syncTournamentsRef.current ?? [];
+      const remote = syncRoomStateRef.current?.syncedTournaments ?? [];
+      if (JSON.stringify(cur) === JSON.stringify(remote)) return;
       const ts = Date.now();
-      lastSyncTournamentsTs.current = ts;
-      lastJsonTournaments.current = json;
+      lastWrittenTournamentsTs.current = ts;
       import('./online/updateGameState.ts').then(({ updateGameState }) => {
-        updateGameState(onlineRoomId, { syncedTournaments: tournaments ?? [], syncedTournamentsTs: ts }).catch((e) => {
+        updateGameState(onlineRoomId, { syncedTournaments: cur, syncedTournamentsTs: ts }).catch((e) => {
           console.error('[sync] tournaments write failed:', e);
         });
       });
     }, 500);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tournaments, onlineRoomId, loaded, onlineIsRecorder, !!onlineRoomState]);
+  }, [tournaments, onlineRoomId, loaded, onlineIsRecorder, onlineRoomState]);
 
   // ── selectedSkin ─────────────────────────────────────────────────────────
 
-  // Remote → local: ALL devices.
   useEffect(() => {
-    if (!onlineRoomId) return;
-    const remoteTs = onlineRoomState?.selectedSkinTs ?? 0;
-    const remote = onlineRoomState?.selectedSkin;
+    if (!onlineRoomId || !onlineRoomState) return;
+    const remoteTs = onlineRoomState.selectedSkinTs ?? 0;
+    const remote   = onlineRoomState.selectedSkin;
     if (!remote) return;
-    if (remoteTs <= lastSyncSkinTs.current) return;
-    lastSyncSkinTs.current = remoteTs;
-    if (remote === lastJsonSkin.current) return;
-    lastJsonSkin.current = remote;
+    if (remoteTs > 0 && remoteTs <= lastWrittenSkinTs.current) return;
+    if (remote === syncSkinRef.current) return;
     if (SKIN_PRESETS[remote]) setSelectedSkin(remote);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onlineRoomId, onlineRoomState?.selectedSkinTs]);
+  }, [onlineRoomId, onlineRoomState]);
 
-  // Local → remote: RECORDER ONLY, debounced 500 ms.
   useEffect(() => {
     if (!loaded || !onlineRoomId || !onlineIsRecorder || !onlineRoomState) return;
-    if (selectedSkin === lastJsonSkin.current) return;
+    const mySkin     = selectedSkin;
+    const remoteSkin = onlineRoomState.selectedSkin;
+    if (mySkin === remoteSkin) return;
     const timer = setTimeout(() => {
+      const cur    = syncSkinRef.current;
+      const remote = syncRoomStateRef.current?.selectedSkin;
+      if (cur === remote) return;
       const ts = Date.now();
-      lastSyncSkinTs.current = ts;
-      lastJsonSkin.current = selectedSkin;
+      lastWrittenSkinTs.current = ts;
       import('./online/updateGameState.ts').then(({ updateGameState }) => {
-        updateGameState(onlineRoomId, { selectedSkin, selectedSkinTs: ts }).catch(console.error);
+        updateGameState(onlineRoomId, { selectedSkin: cur, selectedSkinTs: ts }).catch(console.error);
       });
     }, 500);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSkin, onlineRoomId, loaded, onlineIsRecorder, !!onlineRoomState]);
+  }, [selectedSkin, onlineRoomId, loaded, onlineIsRecorder, onlineRoomState]);
 
   const minWriteOff = useMemo(() => {
     const r = rules.find(x => x.id === 'r14');
