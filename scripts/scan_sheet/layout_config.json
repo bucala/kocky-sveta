@@ -1,0 +1,35 @@
+{
+  "_comment": "Koordináty zón sú relatívne (0.0–1.0 z rozmeru celého obrázka).",
+  "_comment2": "Nastav ich podľa skutočnej fotky – spusti s --debug aby si videl výrezy.",
+  "target_score": 10000,
+  "games": [
+    {
+      "id": 1,
+      "sheet": "Hra 1",
+      "players": ["Robo", "Marcel", "Paťo", "Jiří"],
+      "zone": { "x": 0.03, "y": 0.03, "w": 0.55, "h": 0.44 },
+      "header_rows": 2
+    },
+    {
+      "id": 2,
+      "sheet": "Hra 2",
+      "players": ["Jiří", "Robo", "Marcel"],
+      "zone": { "x": 0.61, "y": 0.03, "w": 0.36, "h": 0.44 },
+      "header_rows": 2
+    },
+    {
+      "id": 3,
+      "sheet": "Hra 3",
+      "players": ["Marcel", "Jiří"],
+      "zone": { "x": 0.03, "y": 0.52, "w": 0.30, "h": 0.44 },
+      "header_rows": 2
+    },
+    {
+      "id": 4,
+      "sheet": "Hra 4",
+      "players": ["Robo", "Marcel", "Jiří"],
+      "zone": { "x": 0.61, "y": 0.52, "w": 0.36, "h": 0.44 },
+      "header_rows": 2
+    }
+  ]
+}
