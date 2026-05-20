@@ -554,7 +554,7 @@ export default function App() {
   const [showAdminPin, setShowAdminPin] = useState(false);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
 
-  const { setRoomId: setOnlineRoomId, setUid: setOnlineUid, setStatus: setOnlineStatus, setRoomState: setOnlineRoomState, roomId: onlineRoomId, uid: onlineUid, roomState: onlineRoomState, isRecorder: onlineIsRecorder } = useOnlineStore();
+  const { setRoomId: setOnlineRoomId, setUid: setOnlineUid, setStatus: setOnlineStatus, setRoomState: setOnlineRoomState, roomId: onlineRoomId, uid: onlineUid, roomState: onlineRoomState } = useOnlineStore();
 
   // ─── Persistent Firestore listener — must live in App, not OnlineScreen,
   //     so it survives navigation away from the OnlineScreen component.
@@ -725,25 +725,27 @@ export default function App() {
   //  1. GLOBAL SUBSCRIPTION — useRoomSubscription lives here (App), never in a
   //     screen component, so the listener survives navigation.
   //
-  //  2. MASTER-SLAVE — isRecorder (persisted) is true only on the room creator.
-  //     Observers (isRecorder=false) run zero write paths. All local→remote
-  //     effects are gated on onlineIsRecorder.
+  //  2. SHARED SCOREBOARD — every device may write. Kocky is a scoreboard for
+  //     a physical dice game: either device legitimately records a score for
+  //     whichever player is rolling, so there is no single "recorder". Writes
+  //     don't collide because only one person enters a score at a time, and
+  //     last-write-wins at the server resolves any overlap.
   //
   //  3. ECHO + STARTUP PROTECTION — hasPendingWrites snapshots are discarded in
   //     useRoomSubscription so onlineRoomState is always server-confirmed.
-  //     hasSeenSnapshotRef blocks the recorder from writing before it has seen
-  //     the room's state (prevents stomping on join). lastWritten*Ref is
-  //     updated BEFORE the Firestore call so dedup works immediately, not only
-  //     after the round-trip response. remote→local sets lastWritten*Ref too,
-  //     preventing the recorder from echoing back what it just received.
+  //     hasSeenSnapshotRef blocks a device from writing before it has seen the
+  //     room's state (prevents stomping on join). lastWritten*Ref is updated
+  //     BEFORE the Firestore call so dedup works immediately, not only after
+  //     the round-trip response. remote→local sets lastWritten*Ref too, so a
+  //     device never echoes back what it just received from the peer.
   //
   //  4. DEBOUNCING — 300 ms for game state (activeTournament), 500 ms for
   //     archive and skin. Timer is cancelled (clearTimeout in return) on every
   //     re-run so rapid changes collapse into one write.
   //
   //  5. SMART ERROR HANDLING — permission-denied from onSnapshot means the room
-  //     was deleted while an observer was watching. It is handled silently:
-  //     reset store, clear local state, return to menu. All other errors set
+  //     was deleted while a peer was watching. It is handled silently: reset
+  //     store, clear local state, return to menu. All other errors set
   //     status='error' (shows the error icon).
   //
   //  6. CLEANUP ON LEAVE — prevRoomIdRef tracks the previous roomId; when it
@@ -760,7 +762,7 @@ export default function App() {
   syncSkinRef.current        = selectedSkin;
 
   // Track last value successfully written to Firestore (per field).
-  // Prevents: (a) the recorder re-writing what it just received from remote,
+  // Prevents: (a) a device re-writing what it just received from remote,
   // (b) the timer comparing against a stale onlineRoomState.
   const lastWrittenActiveJson       = useRef(null);
   const lastWrittenTournamentsJson  = useRef(null);
@@ -790,17 +792,18 @@ export default function App() {
     if (remoteActive === undefined) return; // field not set yet (fresh room)
     const remoteJson = JSON.stringify(remoteActive ?? null);
     if (remoteJson === JSON.stringify(syncActiveRef.current ?? null)) return;
-    // Record what remote has so the recorder doesn't immediately echo it back.
+    // Record what remote has so this device doesn't immediately echo it back.
     lastWrittenActiveJson.current = remoteJson;
     setActive(remoteActive ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlineRoomId, onlineRoomState]);
 
-  // Local → remote: RECORDER ONLY, debounced 300 ms.
+  // Local → remote: EVERY device may write (shared scoreboard — either device
+  // can record a score). debounced 300 ms.
   // deps: only `active` (+ stable IDs) — NOT onlineRoomState, so Firestore
   // heartbeat snapshots from the peer (~200 ms) never cancel this timer.
   useEffect(() => {
-    if (!loaded || !onlineRoomId || !onlineIsRecorder) return;
+    if (!loaded || !onlineRoomId) return;
     if (!hasSeenSnapshotRef.current) return; // wait for first confirmed snapshot
     const myJson = JSON.stringify(active ?? null);
     if (myJson === lastWrittenActiveJson.current) return; // already written
@@ -818,7 +821,7 @@ export default function App() {
     }, 300);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, onlineRoomId, loaded, onlineIsRecorder]);
+  }, [active, onlineRoomId, loaded]);
 
   // ── tournaments (archive) ────────────────────────────────────────────────
 
@@ -834,7 +837,7 @@ export default function App() {
   }, [onlineRoomId, onlineRoomState]);
 
   useEffect(() => {
-    if (!loaded || !onlineRoomId || !onlineIsRecorder) return;
+    if (!loaded || !onlineRoomId) return;
     if (!hasSeenSnapshotRef.current) return;
     const myJson = JSON.stringify(tournaments ?? []);
     if (myJson === lastWrittenTournamentsJson.current) return;
@@ -852,7 +855,7 @@ export default function App() {
     }, 500);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tournaments, onlineRoomId, loaded, onlineIsRecorder]);
+  }, [tournaments, onlineRoomId, loaded]);
 
   // ── selectedSkin ─────────────────────────────────────────────────────────
 
@@ -868,7 +871,7 @@ export default function App() {
   }, [onlineRoomId, onlineRoomState]);
 
   useEffect(() => {
-    if (!loaded || !onlineRoomId || !onlineIsRecorder) return;
+    if (!loaded || !onlineRoomId) return;
     if (!hasSeenSnapshotRef.current) return;
     if (selectedSkin === lastWrittenSkinRef.current) return;
     const timer = setTimeout(() => {
@@ -884,7 +887,7 @@ export default function App() {
     }, 500);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSkin, onlineRoomId, loaded, onlineIsRecorder]);
+  }, [selectedSkin, onlineRoomId, loaded]);
 
   const minWriteOff = useMemo(() => {
     const r = rules.find(x => x.id === 'r14');
@@ -981,7 +984,6 @@ export default function App() {
       });
       setOnlineRoomId(rid);
       setOnlineUid(uid);
-      useOnlineStore.getState().setIsRecorder(true);
       setOnlineStatus('connected');
       setView('online');
     } catch (e) {
