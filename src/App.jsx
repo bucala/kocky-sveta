@@ -570,17 +570,10 @@ export default function App() {
     }
   });
 
-  // ─── Rule 6: clear local game state whenever we leave a room ─────────────
-  //     Prevents stale local data from appearing (or being written on rejoin).
-  const prevRoomIdRef = useRef(onlineRoomId);
-  useEffect(() => {
-    const wasInRoom = prevRoomIdRef.current !== null;
-    prevRoomIdRef.current = onlineRoomId;
-    if (wasInRoom && onlineRoomId === null) {
-      setActive(null);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onlineRoomId]);
+  // Note: we intentionally do NOT clear `active` when leaving a room.
+  // The inactivity timer calls store.reset() after 12 h of idle, which
+  // disconnects the listener — but the local game data should survive so
+  // the user can reconnect and continue without losing their scoreboard.
 
   // ─── Presence heartbeat ───────────────────────────────────────────────────
   // Updates lastSeen every 15 s so other devices can show accurate online state.
@@ -748,22 +741,19 @@ export default function App() {
   //     store, clear local state, return to menu. All other errors set
   //     status='error' (shows the error icon).
   //
-  //  6. CLEANUP ON LEAVE — prevRoomIdRef tracks the previous roomId; when it
-  //     goes null the local active tournament is cleared immediately. The
-  //     unsubscribe itself is handled by useRoomSubscription's effect cleanup.
+  //  6. CLEANUP ON LEAVE — unsubscribe is handled by useRoomSubscription's
+  //     effect cleanup (roomId → null). Local game data is intentionally kept
+  //     so the user doesn't lose their scoreboard on an inactivity disconnect.
 
-  const syncActiveRef      = useRef(active);
   const syncTournamentsRef = useRef(tournaments);
   const syncSkinRef        = useRef(selectedSkin);
 
-  // Assign in render body — timers see the value current at fire time.
-  syncActiveRef.current      = active;
+  // Assign in render body — debounced timers see current values at fire time.
   syncTournamentsRef.current = tournaments;
   syncSkinRef.current        = selectedSkin;
 
-  // Track last value successfully written to Firestore (per field).
-  // Prevents: (a) a device re-writing what it just received from remote,
-  // (b) the timer comparing against a stale onlineRoomState.
+  // Track last value written to / received from Firestore (per field).
+  // remote→local sets these so a device never echoes back what it received.
   const lastWrittenActiveJson       = useRef(null);
   const lastWrittenTournamentsJson  = useRef(null);
   const lastWrittenSkinRef          = useRef(null);
@@ -775,21 +765,53 @@ export default function App() {
     lastWrittenSkinRef.current         = null;
   }, [onlineRoomId]);
 
-  // Flag: has at least one confirmed snapshot arrived? Used as a one-shot
-  // guard so the recorder doesn't write before it has seen the room's state.
+  // Flag: has at least one confirmed snapshot arrived?
+  // Guards against writing before we've seen the room's current state on join.
   const hasSeenSnapshotRef = useRef(false);
   useEffect(() => {
     if (onlineRoomState) hasSeenSnapshotRef.current = true;
   }, [onlineRoomState]);
   useEffect(() => { hasSeenSnapshotRef.current = false; }, [onlineRoomId]);
 
+  // Stable ref for the current room ID — readable inside callbacks without
+  // capturing stale closure values across renders.
+  const onlineRoomIdRef = useRef(onlineRoomId);
+  onlineRoomIdRef.current = onlineRoomId;
+
+  // ── syncActiveNow — action-triggered write ────────────────────────────────
+  //
+  // Writes activeTournament to Firestore IMMEDIATELY when called, with no
+  // debounce. The old debounce-in-useEffect approach had two fatal flaws:
+  //   1. Browser tab suspension (iOS background, Android Chrome) freezes
+  //      setTimeout — the timer never fires, the write never happens, and
+  //      when the tab resumes a stale snapshot reverts the user's input.
+  //   2. Any confirmed Firestore snapshot (heartbeat, presence write) that
+  //      arrived during the 300 ms window could — before the lastWritten fix
+  //      and still in edge cases after it — overwrite in-flight local state.
+  //
+  // Action-triggered writes are simpler, faster, and match the v1.2.x
+  // behaviour: "whoever clicked first wrote; delays showed a retry message."
+  const syncActiveNow = useCallback((newState) => {
+    const roomId = onlineRoomIdRef.current;
+    if (!roomId || !hasSeenSnapshotRef.current) return;
+    const newJson = JSON.stringify(newState ?? null);
+    if (newJson === lastWrittenActiveJson.current) return; // no-op if unchanged
+    lastWrittenActiveJson.current = newJson;
+    import('./online/updateGameState.ts').then(({ updateGameState }) => {
+      updateGameState(roomId, { activeTournament: newState ?? null }).catch((e) => {
+        console.error('[sync] activeTournament write failed:', e);
+        lastWrittenActiveJson.current = null; // allow next action to retry
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // stable — reads only refs
+
   // ── activeTournament ─────────────────────────────────────────────────────
 
   // Remote → local: ALL devices, fires on every confirmed snapshot.
-  // Compare against lastWrittenActiveJson (what Firestore last confirmed), NOT
-  // against syncActiveRef (current local value). Comparing against local would
-  // revert in-flight changes whenever a heartbeat or presence snapshot arrives
-  // with the previous Firestore value while a local change is still debouncing.
+  // Compares against lastWrittenActiveJson (last value known to Firestore),
+  // NOT against the current local state — so heartbeat/presence snapshots
+  // carrying the old activeTournament never revert in-progress local changes.
   useEffect(() => {
     if (!onlineRoomId || !onlineRoomState) return;
     const remoteActive = onlineRoomState.activeTournament;
@@ -800,31 +822,6 @@ export default function App() {
     setActive(remoteActive ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlineRoomId, onlineRoomState]);
-
-  // Local → remote: EVERY device may write (shared scoreboard — either device
-  // can record a score). debounced 300 ms.
-  // deps: only `active` (+ stable IDs) — NOT onlineRoomState, so Firestore
-  // heartbeat snapshots from the peer (~200 ms) never cancel this timer.
-  useEffect(() => {
-    if (!loaded || !onlineRoomId) return;
-    if (!hasSeenSnapshotRef.current) return; // wait for first confirmed snapshot
-    const myJson = JSON.stringify(active ?? null);
-    if (myJson === lastWrittenActiveJson.current) return; // already written
-    const timer = setTimeout(() => {
-      const cur = syncActiveRef.current ?? null;
-      const curJson = JSON.stringify(cur);
-      if (curJson === lastWrittenActiveJson.current) return;
-      lastWrittenActiveJson.current = curJson; // optimistically mark as written
-      import('./online/updateGameState.ts').then(({ updateGameState }) => {
-        updateGameState(onlineRoomId, { activeTournament: cur }).catch((e) => {
-          console.error('[sync] activeTournament write failed:', e);
-          lastWrittenActiveJson.current = null; // allow retry
-        });
-      });
-    }, 300);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, onlineRoomId, loaded]);
 
   // ── tournaments (archive) ────────────────────────────────────────────────
 
@@ -919,16 +916,21 @@ export default function App() {
   const handleUpdateActive = useCallback((updater) => {
     const snapshot = activeRef.current;
     if (snapshot) setUndoStack(s => [...s.slice(-4), snapshot]);
-    setActive(prev => typeof updater === 'function' ? updater(prev) : updater);
-  }, []);
+    // Compute new state synchronously so we can write it to Firestore immediately.
+    const newState = typeof updater === 'function' ? updater(snapshot) : updater;
+    setActive(newState);
+    syncActiveNow(newState);
+  }, [syncActiveNow]);
 
   const handleUndo = useCallback(() => {
     setUndoStack(s => {
       if (!s.length) return s;
-      setActive(s[s.length - 1]);
+      const prevState = s[s.length - 1];
+      setActive(prevState);
+      syncActiveNow(prevState);
       return s.slice(0, -1);
     });
-  }, []);
+  }, [syncActiveNow]);
 
   // Refs hold the latest function so stable callbacks never go stale
   const finishTournamentRef = useRef(null);
@@ -997,7 +999,7 @@ export default function App() {
 function startTournament(players, targetScore) {
     sounds.playStart();
     setUndoStack([]);
-    setActive({
+    const newTournament = {
       id: Date.now(),
       date: new Date().toISOString(),
       players, rounds: [],
@@ -1009,7 +1011,9 @@ function startTournament(players, targetScore) {
       confirmationRoundComplete: false,
       pendingDecision: null,
       targetScore, minWriteOff,
-    });
+    };
+    setActive(newTournament);
+    syncActiveNow(newTournament);
     setView('tournament');
   }
 
@@ -1059,6 +1063,7 @@ function startTournament(players, targetScore) {
     sounds.playWin();
     setTournaments(prev => [finished, ...prev]);
     setActive(null);
+    syncActiveNow(null);
     setViewingTournament(finished);
     setView('archiveDetail');
   }
@@ -1068,6 +1073,7 @@ function startTournament(players, targetScore) {
     if (!window.confirm('Naozaj chceš zrušiť rozohraný turnaj? Bude uložený do archívu ako nedokončený.')) return;
     setTournaments(prev => [{ ...active, status: 'aborted', finishedAt: new Date().toISOString() }, ...prev]);
     setActive(null);
+    syncActiveNow(null);
     setView('menu');
   }
 
