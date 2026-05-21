@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 
 function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, target, displayMode = 'delta', onToggleMode, hideModeToolbar = false, hideModeToggle = false, compactObserver = false }) {
-  if (!tournament || !Array.isArray(tournament.players)) return null;
+  if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return null;
   const { players, rounds } = tournament;
   const tableRef = useRef(null);
 
