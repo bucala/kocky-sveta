@@ -20,6 +20,8 @@ import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
 import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
 import { OnlineScreen } from './screens/OnlineScreen.jsx';
 import { AdminScreen, AdminPinDialog, DEFAULT_ADMIN_SETTINGS } from './screens/AdminScreen.jsx';
+import { getAuth, signInAnonymously } from 'firebase/auth';
+import { createRoom } from './online/createRoom.ts';
 import { useOnlineStore } from './online/onlineStore.ts';
 import { useRoomSubscription } from './online/useRoomSubscription.ts';
 import { computeWinners, computePlayerTotals as computeTotals } from './lib/tournamentEngine.js';
@@ -1010,8 +1012,6 @@ export default function App() {
     const customId = adminSettings.roomName?.toUpperCase().trim();
     if (!customId) { window.alert('Zadaj názov miestnosti.'); return; }
     try {
-      const { getAuth, signInAnonymously } = await import('firebase/auth');
-      const { createRoom } = await import('./online/createRoom.ts');
       const auth = getAuth();
       await auth.authStateReady();
       if (!auth.currentUser) await signInAnonymously(auth);
