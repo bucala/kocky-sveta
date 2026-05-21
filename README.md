@@ -7,17 +7,17 @@
 ![Firebase](https://img.shields.io/badge/Firebase-12.x-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![Capacitor](https://img.shields.io/badge/Capacitor-6.x-2563eb?style=for-the-badge&logo=capacitor&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-57%2F57%20✓-22c55e?style=for-the-badge)
-![Release](https://img.shields.io/badge/release-v1.5.5-d4b86a?style=for-the-badge)
+![Release](https://img.shields.io/badge/release-v1.6.0-d4b86a?style=for-the-badge)
 
-## 📦 Status: STABILNÝ — v1.5.5
+## 📦 Status: STABILNÝ — v1.6.0
 
-> **Tag:** [`v1.5.5`](https://github.com/bucala/kocky-sveta/releases/tag/v1.5.5) — Firebase Online Features
+> **Tag:** [`v1.6.0`](https://github.com/bucala/kocky-sveta/releases/tag/v1.6.0) — Online Sync Overhaul + Skins + UX
 
 ---
 
 ## 🌐 Live Demo
 
-**Produkcia:** [https://kocky-sveta-2026.web.app](https://kocky-sveta-2026.web.app)
+**Produkcia:** [https://kocky-sveta.vercel.app](https://kocky-sveta.vercel.app)
 
 ---
 
@@ -29,13 +29,13 @@
 - vlastné pravidlá a nastaviteľné bodovanie
 - export a import turnajov cez Excel (lazy-loaded)
 - archív odohraných hier a prehľad výsledkov
-- niekoľko vizuálnych skinov (Klasik, Les, Royal, Pergamen, Orech…)
-- progress chart, standings, history graf
+- niekoľko vizuálnych skinov (Klasik, Les, Royal, Pergamen, Orech, HP, Brawl Stars…)
+- progress chart (SVG), standings, history graf
 - Android build cez Capacitor + Android Studio
 - **modulárna architektúra** — screens, components, constants, utils, hooks, lib
 - **tournamentEngine.js** — čistá doménová knižnica (pure functions, unit testovaná)
 
-### 🔥 Online režim (nové vo v1.5.5)
+### 🔥 Online režim
 
 - **Real-time multiplayer** — hranie s priateľmi online cez Firebase
 - **Zdieľané miestnosti** — vytvor kód miestnosti alebo sa pripoj ku existujúcej
@@ -45,6 +45,57 @@
 - **Online/offline badge** — vizuálny indikátor pripojenia v hlavnom menu
 - **Klikateľný badge** — rýchla navigácia na online miestnosť
 - **Admin panel** — PIN-chránené nastavenia (override kódu, debug mód)
+- **Error badge** — vizuálna indikácia zlyhania synchronizácie
+
+---
+
+## 🆕 Changelog
+
+### v1.6.0 — Online Sync Overhaul + Skins + UX *(2026-05-21)*
+
+#### 🔄 Online sync — kompletný prepis
+
+- **Firestore nested arrays fix** — turnaj sa ukladá ako JSON string (Firestore nepodporuje vnorené polia)
+- **Bidirectional real-time sync** — všetky zariadenia syncujú v oboch smeroch bez master-slave logiky
+- **Stale ghost cleanup** — pri odpojení sa vyčistia všetky prítomnostné záznamy
+- **Recorder-only writes** — observer nikdy nezapíše do Firestore (žiadna korupcia dát)
+- **pendingWriteCount guard** — eager module load zabraňuje race condition pri prvom zápise
+- **Error badge** — červený indikátor pri zlyhaní Firestore zápisu
+- **Firestore ako source of truth** — klientské timestamps odstránené, používa serverový čas
+- **Anti-revert ochrana** — porovnanie remote ↔ last-written (nie aktuálny local state)
+- **Crash fix: rounds guard** — `ScoreTable` a `ProgressChart` chránené pred `undefined` `rounds` počas sync
+
+#### 🎨 Vizuálne skiny
+
+- **Harry Potter skin** — pergamenové pozadie + plávajúce HP ikony
+- **Brawl Stars skin** — dva odtiene (Classic + Brawl Blue) s ikonami postáv
+- **Poster backgrounds** — reálne plagátové obrázky ako pozadia skinov
+- **Comprehensive skinning** — CSS custom properties pre všetky popupy a overlaye
+
+#### 🔊 Zvuky & animácie
+
+- **Zvukový systém** — herné efekty (zápis, penalta, víťazstvo…)
+- **Animácie** — konfigurovateľné cez nastavenia
+- **Funny windows** — konfigurovateľný mód zobrazenia vtipných hlášok
+- **Caveat Brush** — nový ručne písaný font
+
+#### 📊 UX a herné funkcie
+
+- **SVG Progress Chart** — vlastný graf vývoja skóre (náhrada Recharts)
+- **Score display mode** — prepínač Delta (Δ) / Kumulatívny (Σ) v tabuľke skóre
+- **Tournament view mode** — základný / rozšírený pohľad na turnaj
+- **Web Wake Lock API** — displej nespadne do spánku počas hry
+- **OCR scan_sheet tool** — fotka → Excel tabuľka skóre (Anthropic Vision API)
+
+---
+
+### v1.5.5 — Firebase Online Features *(predchádzajúci stabilný release)*
+
+- Real-time multiplayer cez Firebase Firestore
+- Zdieľané miestnosti s vlastným kódom
+- Session persistencia (anonymný auth)
+- Presence systém (online/offline hráči)
+- Archive sync cez Firebase
 
 ---
 
@@ -61,6 +112,7 @@
 - **Firebase Authentication** — anonymné prihlásenie
 - **Cloud Firestore** — real-time databáza pre online miestnosti
 - **Firebase Hosting** — produkčné nasadenie
+- **Vercel** — automatické preview deployments
 - **Capacitor 6** — Android natívne buildy
 
 ---
@@ -199,9 +251,9 @@ src/
 │   ├── FunnyOverlay.jsx       — funny message popup systém
 │   ├── GameWidgets.jsx        — DiceIcon, DiceRow, GoldButton, Ornament…
 │   ├── Modal.jsx              — modálne okno
-│   ├── ProgressChart.jsx      — SVG graf vývoja skóre
+│   ├── ProgressChart.jsx      — vlastný SVG graf vývoja skóre
 │   ├── RulesContent.jsx       — obsah pravidiel
-│   ├── ScoreTable.jsx         — tabuľka skóre (React.memo)
+│   ├── ScoreTable.jsx         — tabuľka skóre (delta / kumulatívny mód)
 │   ├── SkinSelector.jsx       — výber vizuálneho skinu
 │   └── ui.jsx                 — zdieľané UI komponenty
 ├── constants/
@@ -211,16 +263,17 @@ src/
 ├── lib/
 │   ├── firebase.js            — Firebase konfigurácia
 │   ├── gameEngine.js          — herný engine (legacy wrapper)
+│   ├── sounds.js              — zvukový systém
 │   ├── storage.js             — localStorage abstrakcia
 │   ├── tournamentEngine.js    — čistá doménová knižnica (pure functions)
-│   └── tournamentEngine.test.js — 50 unit testov
+│   └── tournamentEngine.test.js — 57 unit testov
 ├── online/
 │   ├── createRoom.ts          — vytvorenie Firebase miestnosti
 │   ├── hashPin.ts             — PIN hashing
 │   ├── joinRoom.ts            — pripojenie do miestnosti
 │   ├── onlineStore.ts         — Zustand store s persist middleware
 │   ├── types.ts               — TypeScript typy
-│   ├── updateGameState.ts     — Firestore write
+│   ├── updateGameState.ts     — Firestore write (ukladá JSON string)
 │   └── useRoomSubscription.ts — real-time Firestore listener
 └── screens/
     ├── AdminScreen.jsx        — PIN-chránený admin panel
@@ -275,9 +328,12 @@ npm test
 ### Firebase Auth — nový UID po každom refreshi
 Skontroluj, či je `browserLocalPersistence` nastavené vo `firebase.js` a či `ensureAuth()` čaká na `authStateReady()` pred `signInAnonymously()`.
 
+### Online sync — červený error badge
+Firestore odmietol zápis (napr. bezpečnostné pravidlá). Skontroluj `firestore.rules` a Firebase Console → Firestore → Rules Playground.
+
 ---
 
-## ✅ Manual Testing Checklist — v1.5.5
+## ✅ Manual Testing Checklist — v1.6.0
 
 ### 🏗️ Build
 - [ ] `npm run build` — build prebehne bez chýb
@@ -288,17 +344,41 @@ Skontroluj, či je `browserLocalPersistence` nastavené vo `firebase.js` a či `
 - [ ] Vytvorenie novej miestnosti — vygeneruje kód
 - [ ] Vlastný kód miestnosti (napr. RUBIKON)
 - [ ] Pripojenie cez kód — druhé zariadenie vidí miestnosť
-- [ ] Real-time sync — zmena hry sa prejaví na oboch zariadeniach
+- [ ] Real-time sync — zmena skóre sa prejaví na oboch zariadeniach v reálnom čase
+- [ ] Pozorovateľ (observer) — nedostane sync späť na recorder, iba číta
 - [ ] Session persistencia — po F5 zostáva v miestnosti
 - [ ] Online/offline badge — zobrazuje správny stav
 - [ ] Kliknutie na badge — navigácia na online miestnosť
+- [ ] Error badge — červený indikátor pri Firestore zlyhaní
+- [ ] Odpojenie zariadenia — ghost hráč sa vyčistí
 
 ### 🎮 Herný flow
 - [ ] **Scenár A:** Hráč 1 Nepotvrdil → Hráč 2 Potvrdil → Results screen, Hráč 2 = winner
 - [ ] **Scenár B:** Alice Potvrdil (10000) → Bob normálny (9800) → Results screen, Alice = winner
 - [ ] **Scenár C:** Alice Potvrdil (10000) → Bob Potvrdil (10000) → Results screen, DRAW
 - [ ] **Scenár D:** Bust (prekročenie) → zostáva na pôvodnom skóre, žiadna penalta
-- [ ] **Scenár E:** Penalta (hod = 0 bodov) → −1000 sa odpočíta
+- [ ] **Scenár E:** Penalta (hod = 0 bodov) → −1 000 sa odpočíta
+- [ ] **Scenár F:** Online hra — obaja hráči pridávajú body, stav je konzistentný na oboch zariadeniach
+- [ ] **Scenár G:** Online hra — zariadenie sa odpojí a znovu pripojí, stav sa obnoví
+
+### 📊 Tabuľka skóre
+- [ ] Prepínač Delta (Δ) / Kumulatívny (Σ) — oba módy zobrazujú správne hodnoty
+- [ ] Progress Chart — graf sa plní po každom kole
+- [ ] Standings — poradie hráčov aktuálne po každom kole
+
+### 🎨 Skins & vizuál
+- [ ] Harry Potter skin — pergamenové pozadie + HP ikony
+- [ ] Brawl Stars skin (Classic + Brawl Blue) — Brawl ikony v pozadí
+- [ ] Ostatné skiny (Klasik, Les, Royal, Pergamen, Orech) — fungujú správne
+- [ ] Skin sa synchronizuje online — pozorovateľ vidí rovnaký skin ako recorder
+
+### 🔊 Zvuky & animácie
+- [ ] Zapnutie/vypnutie zvukov v nastaveniach — efekty reagujú
+- [ ] Zapnutie/vypnutie animácií v nastaveniach
+- [ ] Funny windows — vtipné hlášky sa zobrazujú (nastaviteľný mód)
+
+### 📱 Wake Lock
+- [ ] Displej nespadne do spánku počas hry (Web Wake Lock API)
 
 ### 📤 Export / Import
 - [ ] Export do Excelu — súbor sa stiahne
@@ -307,4 +387,4 @@ Skontroluj, či je `browserLocalPersistence` nastavené vo `firebase.js` a či `
 
 ---
 
-**Latest Release:** [v1.5.5 — Firebase Online Features](https://github.com/bucala/kocky-sveta/releases/tag/v1.5.5)
+**Latest Release:** [v1.6.0 — Online Sync Overhaul + Skins + UX](https://github.com/bucala/kocky-sveta/releases/tag/v1.6.0)
