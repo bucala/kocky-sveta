@@ -6,7 +6,7 @@ import {
   AlertCircle, AlertTriangle, Check, Play, RotateCcw, ScrollText, Crown,
   Calendar, ChevronRight, ListPlus, Pencil, Zap, Skull, Target,
   Download, Upload, Edit3, Clock, FileSpreadsheet, ChevronDown, TrendingUp,
-  Sigma, Layers, Monitor, Bell, Wifi, Info, Shield
+  Sigma, Layers, Monitor, Bell, Wifi, Info, Shield, ScanLine
 } from 'lucide-react';
 // XLSX sa načíta lazy pri prvom použití
 import { Capacitor } from '@capacitor/core';
@@ -1489,7 +1489,6 @@ function startTournament(players, targetScore) {
           onNew={() => setView('newTournament')}
           onArchive={() => { setArchiveReturnTo('menu'); setView('archive'); }}
           onStats={() => setView('playerStats')}
-          onScan={() => setView('scan')}
           onrules={() => setView('rules')}
           onSettings={() => setView('settings')}
           onOnline={() => setView('online')}
@@ -1507,6 +1506,7 @@ function startTournament(players, targetScore) {
           onImport={importFromExcel}
           onClearAll={clearAllData}
           onArchive={() => { setArchiveReturnTo('settings'); setView('archive'); }}
+          onScan={() => setView('scan')}
           tournamentCount={tournaments.length}
           selectedSkin={selectedSkin}
           onSkinChange={setSelectedSkin}
@@ -1692,7 +1692,7 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
 
 // ─── Vizuál, Zvuky a Skiny submenu ───────────────────────────────────────────────
 
-function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin, onShowEgg }) {
+function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, onScan, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin, onShowEgg }) {
   const fileInputRef = useRef(null);
   const [eggClicks, setEggClicks] = useState(0);
 
@@ -1829,6 +1829,18 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
           <div className="flex-1">
             <div className="ks-display ks-cream text-xl font-semibold">Editácia archívu</div>
             <div className="ks-muted text-sm">Otvor turnaj a klepni „Upraviť" — body, víťaza, kolá</div>
+          </div>
+          <ChevronRight className="ks-muted" size={20} />
+        </button>
+
+        <button onClick={onScan}
+          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <ScanLine size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">Sken tabuľky</div>
+            <div className="ks-muted text-sm">Odfotiť ručnú tabuľku a importovať do archívu</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
