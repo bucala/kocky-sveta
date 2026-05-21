@@ -28,6 +28,8 @@ import { useOnlineStore } from './online/onlineStore.ts';
 import { useRoomSubscription } from './online/useRoomSubscription.ts';
 import { computeWinners, computePlayerTotals as computeTotals } from './lib/tournamentEngine.js';
 import { sounds } from './lib/sounds.js';
+import { DEFAULT_EXTENSIONS, hapticFeedback, MILESTONE_VALUES } from './lib/extensions.js';
+import { Confetti } from './components/Confetti.jsx';
 import { BrawlBackground } from './components/BrawlBackground.jsx';
 import './app.css';
 
@@ -552,6 +554,7 @@ export default function App() {
   const [animationsEnabled, setAnimationsEnabled] = useState(true);
   const [quickValues, setQuickValues] = useState(DEFAULT_QUICK_VALUES);
   const [knownPlayers, setKnownPlayers] = useState(['Marcel', 'Robo', 'Tomáš', 'Jiří', 'Olino', 'Viki', 'Dedko', 'Jarka']);
+  const [extensions, setExtensions] = useState(DEFAULT_EXTENSIONS);
 
   const [scoreDisplayMode, setScoreDisplayMode] = useState('delta');
   const [tournamentViewMode, setTournamentViewMode] = useState('basic');
@@ -650,6 +653,7 @@ export default function App() {
       try { const ae = await window.storage.get('animationsEnabled'); if (ae?.value) setAnimationsEnabled(JSON.parse(ae.value)); } catch {}
       try { const qv = await window.storage.get('quickValues'); if (qv?.value) { const parsed = JSON.parse(qv.value); if (Array.isArray(parsed) && parsed.length > 0) setQuickValues(parsed); } } catch {}
       try { const kp = await window.storage.get('knownPlayers'); if (kp?.value) { const parsed = JSON.parse(kp.value); if (Array.isArray(parsed) && parsed.length > 0) setKnownPlayers(parsed); } } catch {}
+      try { const ex = await window.storage.get('extensions'); if (ex?.value) setExtensions(prev => ({ ...prev, ...JSON.parse(ex.value) })); } catch {}
       try { const t = await window.storage.get('tournaments'); if (t?.value) setTournaments(JSON.parse(t.value)); } catch {}
       try { const a = await window.storage.get('active');      if (a?.value) setActive(JSON.parse(a.value)); }       catch {}
       try { const as = await window.storage.get('adminSettings'); if (as?.value) setAdminSettings(JSON.parse(as.value)); } catch {}
@@ -669,6 +673,7 @@ export default function App() {
   useEffect(() => { if (loaded) window.storage.set('soundsEnabled', JSON.stringify(soundsEnabled)).catch(() => {}); }, [soundsEnabled, loaded]);
   useEffect(() => { if (loaded) window.storage.set('quickValues', JSON.stringify(quickValues)).catch(() => {}); }, [quickValues, loaded]);
   useEffect(() => { if (loaded) window.storage.set('knownPlayers', JSON.stringify(knownPlayers)).catch(() => {}); }, [knownPlayers, loaded]);
+  useEffect(() => { if (loaded) window.storage.set('extensions', JSON.stringify(extensions)).catch(() => {}); }, [extensions, loaded]);
   useEffect(() => { if (loaded) window.storage.set('animationsEnabled', JSON.stringify(animationsEnabled)).catch(() => {}); }, [animationsEnabled, loaded]);
   useEffect(() => { sounds.setEnabled(soundsEnabled); }, [soundsEnabled]);
 
@@ -1557,6 +1562,8 @@ function startTournament(players, targetScore) {
           onSoundsToggle={() => setSoundsEnabled(v => !v)}
           animationsEnabled={animationsEnabled}
           onAnimationsToggle={() => setAnimationsEnabled(v => !v)}
+          extensions={extensions}
+          onExtensionsChange={setExtensions}
         />
       )}
       {view === 'newTournament' && <NewTournament onBack={() => setView('menu')} onStart={startTournament} knownPlayers={knownPlayers} onKnownPlayersChange={setKnownPlayers} />}
@@ -1580,6 +1587,7 @@ function startTournament(players, targetScore) {
             isOnline={!!onlineRoomId}
             quickValues={quickValues}
             onQuickValuesChange={setQuickValues}
+            extensions={extensions}
           />
         ) : (
           <SafeTournamentFallback title="Turnaj sa nepodarilo načítať" />
@@ -1991,7 +1999,7 @@ function TournamentScreen({
   tournament, rules, onUpdate, onFinish, onAbort, onMenu,
   scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange,
   tournamentViewMode, funnyWindowsDisplayMode, debugMode, minWriteOffOverride,
-  isOnline, quickValues, onQuickValuesChange
+  isOnline, quickValues, onQuickValuesChange, extensions = {}
 }) {
   // Early null guard — before destructuring to prevent crash
   if (!tournament) return <SafeTournamentFallback />;
@@ -2018,6 +2026,8 @@ function TournamentScreen({
   const funnyCountRef = useRef(players.map(() => 0));
   const endgameNoticedRef = useRef(new Set());
   const prevPlayerRef = useRef(currentPlayer);
+  const prevTotalsRef = useRef(players.map(() => 0));
+  const [milestoneFlash, setMilestoneFlash] = useState(null);
 
   useEffect(() => {
     if (!isOnline) { prevPlayerRef.current = currentPlayer; return; }
@@ -2409,6 +2419,7 @@ function TournamentScreen({
         pendingDecision: null,
       };
     });
+    if (extensions.haptic) hapticFeedback();
     setPending([]);
     setCustomInput('');
   }
@@ -2442,6 +2453,26 @@ function TournamentScreen({
     }, 400);
     return () => clearTimeout(t);
   }, [currentPlayer, currentRound, isEndgame, isConfirmationTurn, exactNeeded]);
+
+  useEffect(() => {
+    if (!extensions.milestoneFlash) { prevTotalsRef.current = [...totals]; return; }
+    let flashed = false;
+    for (let p = 0; p < players.length; p++) {
+      const prev = prevTotalsRef.current[p] ?? 0;
+      const curr = totals[p] ?? 0;
+      if (curr > prev) {
+        const crossed = MILESTONE_VALUES.filter(m => prev < m && curr >= m);
+        if (crossed.length > 0 && !flashed) {
+          flashed = true;
+          const val = crossed[crossed.length - 1];
+          setMilestoneFlash({ player: players[p], value: val });
+          setTimeout(() => setMilestoneFlash(null), 1800);
+        }
+      }
+    }
+    prevTotalsRef.current = [...totals];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totals]);
 
 const isObserverMode = tournamentViewMode === 'observer';
 const isRecorderMode = tournamentViewMode === 'recorder';
@@ -2492,7 +2523,8 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
             <div className="h-full overflow-auto [font-size:clamp(18px,2.3vw,34px)]">
               <ScoreTable tournament={tournament} totals={totals} highlightPlayer={currentPlayer}
                           pendingPreview={pendingSum > 0 ? pendingSum : 0} target={target}
-                          displayMode={scoreDisplayMode} onToggleMode={onToggleScoreMode} hideModeToolbar={false} hideModeToggle={true} compactObserver={true} />
+                          displayMode={scoreDisplayMode} onToggleMode={onToggleScoreMode} hideModeToolbar={false} hideModeToggle={true} compactObserver={true}
+                          extensions={extensions} />
             </div>
           </div>
         </div>
@@ -2604,7 +2636,8 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
       <div className="px-3 pt-3">
         <ScoreTable tournament={tournament} totals={totals} highlightPlayer={currentPlayer}
                     pendingPreview={pendingSum > 0 ? pendingSum : 0} target={target}
-                    displayMode={scoreDisplayMode} onToggleMode={onToggleScoreMode} hideModeToolbar={true} />
+                    displayMode={scoreDisplayMode} onToggleMode={onToggleScoreMode} hideModeToolbar={true}
+                    extensions={extensions} />
       </div>
 
       <div className="px-4 mt-4">
@@ -2801,25 +2834,57 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
         />
       )}
 
+      {/* Konfety */}
+      <Confetti active={!!(winnerCelebration && extensions.confetti)} />
+
+      {/* Míľnik flash */}
+      {milestoneFlash && (
+        <div className="fixed inset-0 z-[80] pointer-events-none flex items-center justify-center">
+          <div className="ks-milestone-in absolute text-center px-6 py-4 rounded-lg"
+               style={{ left: '50%', top: '38%', background: 'rgba(14,12,10,0.92)', border: '2px solid var(--ks-accent,#d4b86a)' }}>
+            <div className="text-4xl mb-1">⚡</div>
+            <div className="ks-mono ks-gold text-xs tracking-widest mb-1">MÍĽNIK</div>
+            <div className="ks-display text-2xl font-bold ks-cream">{milestoneFlash.player}</div>
+            <div className="ks-display ks-gold text-3xl font-bold">{milestoneFlash.value.toLocaleString('sk-SK')}</div>
+          </div>
+        </div>
+      )}
+
       {/* VÍŤAZSTVO / REMÍZA — celoobrazovkové, nezávisle na queue */}
       {winnerCelebration && funnyWindowsDisplayMode === 'standard' && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-6 ks-overlay-bg" style={{ background: 'var(--ks-overlay-dark, radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98)))' }}>
-          <div className="ks-funny relative z-10 text-center max-w-md">
-            <div className="text-7xl mb-3 ks-funny-emoji">{winnerCelebration.isDraw ? '👑👑' : '👑'}</div>
-            <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">
-              {winnerCelebration.isDraw
-                ? `REMÍZA — ${winnerCelebration.winnerArr.length} VÍŤAZI`
-                : 'VÍŤAZ'}
+          {extensions.dramaticWinner ? (
+            <div className="relative z-10 text-center max-w-md">
+              <div className="ks-dramatic-win text-8xl mb-4" style={{ display: 'inline-block' }}>
+                {winnerCelebration.isDraw ? '👑👑' : '🏆'}
+              </div>
+              <div className="ks-mono ks-gold text-sm mb-2 tracking-[0.3em]">
+                {winnerCelebration.isDraw ? `REMÍZA · ${winnerCelebration.winnerArr.length} VÍŤAZI` : '· VÍŤAZ ·'}
+              </div>
+              <div className="ks-dramatic-name ks-display font-bold ks-cream leading-tight px-2"
+                   style={{ fontSize: 'clamp(2rem, 8vw, 3.5rem)', textShadow: '0 4px 32px rgba(212,184,106,0.6), 0 0 60px rgba(212,184,106,0.3)' }}>
+                {winnerCelebration.winnerArr.map(idx => players[idx]).join(' & ')}
+              </div>
+              <div className="ks-mono ks-gold text-base mt-3 opacity-80">
+                {winnerCelebration.winnerArr.map(idx => (totals[idx] || 0).toLocaleString('sk-SK')).join(' / ')} b.
+              </div>
             </div>
-            <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2">
-              {winnerCelebration.isDraw ? 'Víťazi' : 'Víťaz'}
+          ) : (
+            <div className="ks-funny relative z-10 text-center max-w-md">
+              <div className="text-7xl mb-3 ks-funny-emoji">{winnerCelebration.isDraw ? '👑👑' : '👑'}</div>
+              <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">
+                {winnerCelebration.isDraw ? `REMÍZA — ${winnerCelebration.winnerArr.length} VÍŤAZI` : 'VÍŤAZ'}
+              </div>
+              <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2">
+                {winnerCelebration.isDraw ? 'Víťazi' : 'Víťaz'}
+              </div>
+              <div className="ks-body ks-cream text-base mb-1 leading-snug">
+                {winnerCelebration.winnerArr.map(idx =>
+                  `${players[idx]} (${(totals[idx] || 0).toLocaleString('sk-SK')})`
+                ).join(', ')}
+              </div>
             </div>
-            <div className="ks-body ks-cream text-base mb-1 leading-snug">
-              {winnerCelebration.winnerArr.map(idx =>
-                `${players[idx]} (${(totals[idx] || 0).toLocaleString('sk-SK')})`
-              ).join(', ')}
-            </div>
-          </div>
+          )}
         </div>
       )}
       {winnerCelebration && funnyWindowsDisplayMode === 'simplified' && (
