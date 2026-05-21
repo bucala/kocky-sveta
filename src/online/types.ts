@@ -29,8 +29,10 @@ export type RoomDocument = {
   rules: string[];
   players: Record<string, PlayerInRoom>;
   gameState: GameState;
-  activeTournament?: any | null;
-  syncedTournaments?: any[] | null;
+  // Stored as a JSON string — the tournament object contains nested arrays
+  // (rounds[] of score arrays) which Firestore rejects as raw data.
+  activeTournament?: string | null;
+  syncedTournaments?: string | null;
 };
 
 export type LocalTournament = {

@@ -807,7 +807,9 @@ export default function App() {
     pendingWriteCountRef.current += 1;
     lastWrittenActiveJson.current = newJson;
     import('./online/updateGameState.ts').then(({ updateGameState }) => {
-      updateGameState(roomId, { activeTournament: newState ?? null })
+      // Store as a JSON STRING — the tournament object has nested arrays
+      // (rounds[] of score arrays) and Firestore rejects raw nested arrays.
+      updateGameState(roomId, { activeTournament: newJson })
         .then(() => {
           pendingWriteCountRef.current = Math.max(0, pendingWriteCountRef.current - 1);
           if ((window).__ksVerboseFirebase) console.log('[sync] write OK, pending:', pendingWriteCountRef.current);
@@ -835,13 +837,18 @@ export default function App() {
       if ((window).__ksVerboseFirebase) console.log('[sync] remote→local SKIP — write in-flight, pending:', pendingWriteCountRef.current);
       return;
     }
-    const remoteActive = onlineRoomState.activeTournament;
-    if (remoteActive === undefined) return; // field not set yet (fresh room)
-    const remoteJson = JSON.stringify(remoteActive ?? null);
+    const remoteRaw = onlineRoomState.activeTournament;
+    if (remoteRaw === undefined) return; // field not set yet (fresh room)
+    // remoteRaw is a JSON string (new format) or a raw object/null (legacy).
+    const remoteJson = typeof remoteRaw === 'string'
+      ? remoteRaw
+      : JSON.stringify(remoteRaw ?? null);
     if (remoteJson === lastWrittenActiveJson.current) return; // already in sync
     if ((window).__ksVerboseFirebase) console.log('[sync] remote→local APPLY — prev len:', lastWrittenActiveJson.current?.length, '→ new len:', remoteJson.length);
     lastWrittenActiveJson.current = remoteJson;
-    setActive(remoteActive ?? null);
+    let parsed = null;
+    try { parsed = remoteJson ? JSON.parse(remoteJson) : null; } catch { parsed = null; }
+    setActive(parsed);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlineRoomId, onlineRoomState]);
 
@@ -849,12 +856,17 @@ export default function App() {
 
   useEffect(() => {
     if (!onlineRoomId || !onlineRoomState) return;
-    const remote = onlineRoomState.syncedTournaments;
-    if (remote === undefined) return;
-    const remoteJson = JSON.stringify(remote ?? []);
+    const remoteRaw = onlineRoomState.syncedTournaments;
+    if (remoteRaw === undefined) return;
+    // remoteRaw is a JSON string (new format) or a raw array (legacy).
+    const remoteJson = typeof remoteRaw === 'string'
+      ? remoteRaw
+      : JSON.stringify(remoteRaw ?? []);
     if (remoteJson === lastWrittenTournamentsJson.current) return;
     lastWrittenTournamentsJson.current = remoteJson;
-    setTournaments(remote ?? []);
+    let parsed = [];
+    try { parsed = remoteJson ? JSON.parse(remoteJson) : []; } catch { parsed = []; }
+    setTournaments(Array.isArray(parsed) ? parsed : []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlineRoomId, onlineRoomState]);
 
@@ -869,7 +881,8 @@ export default function App() {
       if (curJson === lastWrittenTournamentsJson.current) return;
       lastWrittenTournamentsJson.current = curJson;
       import('./online/updateGameState.ts').then(({ updateGameState }) => {
-        updateGameState(onlineRoomId, { syncedTournaments: cur }).catch((e) => {
+        // Store as a JSON STRING — archived tournaments contain nested arrays.
+        updateGameState(onlineRoomId, { syncedTournaments: curJson }).catch((e) => {
           console.error('[sync] tournaments write failed:', e);
           lastWrittenTournamentsJson.current = null;
         });
