@@ -1569,6 +1569,7 @@ function startTournament(players, targetScore) {
             minWriteOffOverride={adminSettings.minWriteOffOverride}
             canUndo={undoStack.length > 0}
             onUndo={handleUndo}
+            isOnline={!!onlineRoomId}
           />
         ) : (
           <SafeTournamentFallback title="Turnaj sa nepodarilo načítať" />
@@ -1957,7 +1958,8 @@ function useFunnyQueue() {
 function TournamentScreen({
   tournament, rules, onUpdate, onFinish, onAbort, onMenu,
   scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange,
-  tournamentViewMode, funnyWindowsDisplayMode, debugMode, minWriteOffOverride
+  tournamentViewMode, funnyWindowsDisplayMode, debugMode, minWriteOffOverride,
+  isOnline
 }) {
   // Early null guard — before destructuring to prevent crash
   if (!tournament) return <SafeTournamentFallback />;
@@ -1980,6 +1982,20 @@ function TournamentScreen({
   const [winnerCelebration, setWinnerCelebration] = useState(null);
   const funnyCountRef = useRef(players.map(() => 0));
   const endgameNoticedRef = useRef(new Set());
+  const prevPlayerRef = useRef(currentPlayer);
+
+  useEffect(() => {
+    if (!isOnline) { prevPlayerRef.current = currentPlayer; return; }
+    if (currentPlayer !== prevPlayerRef.current) {
+      prevPlayerRef.current = currentPlayer;
+      const name = players[currentPlayer] || `Hráč ${currentPlayer + 1}`;
+      setToast({ msg: `Na rade: ${name}`, kind: 'info' });
+      const t = setTimeout(() => setToast(null), 3500);
+      sounds.playTurn();
+      return () => clearTimeout(t);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer, isOnline]);
 
   const totals = useMemo(
     () => computeTotals(rounds, players.length),

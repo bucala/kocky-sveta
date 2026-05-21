@@ -63,4 +63,20 @@ export const sounds = {
       o.start(); o.stop(c.currentTime + 0.25);
     } catch {}
   },
+  playTurn() {
+    if (!_enabled) return;
+    try {
+      const c = ctx();
+      [440, 554].forEach((freq, i) => {
+        const o = c.createOscillator(), g = c.createGain();
+        o.connect(g); g.connect(c.destination);
+        o.frequency.value = freq; o.type = 'sine';
+        const t = c.currentTime + i * 0.12;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.10, t + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+        o.start(t); o.stop(t + 0.22);
+      });
+    } catch {}
+  },
 };
