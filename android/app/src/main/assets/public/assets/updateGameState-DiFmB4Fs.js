@@ -1,0 +1,1 @@
+import{d as m}from"./index-BBUITSNI.js";import{d as r,u as p}from"./vendor-firebase-CW6riurQ.js";import"./vendor-lucide-CeTbX5Qt.js";import"./vendor-react-oYV170lA.js";import"./vendor-zustand-BD6BqSPo.js";async function n(o,t){const a=r(m,"rooms",o);await p(a,{...t,updatedAt:Date.now()})}export{n as updateGameState};
