@@ -21,6 +21,7 @@ import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
 import { OnlineScreen } from './screens/OnlineScreen.jsx';
 import { AdminScreen, AdminPinDialog, DEFAULT_ADMIN_SETTINGS } from './screens/AdminScreen.jsx';
 import { PlayerStatsScreen } from './screens/PlayerStatsScreen.jsx';
+import { ScanImportScreen } from './screens/ScanImportScreen.jsx';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { createRoom } from './online/createRoom.ts';
 import { useOnlineStore } from './online/onlineStore.ts';
@@ -1584,7 +1585,17 @@ function startTournament(players, targetScore) {
           onBack={() => setView(archiveReturnTo)}
           onView={(t) => { setViewingTournament(t); setView('archiveDetail'); }}
           onDelete={(id) => { if (window.confirm('Vymazať tento turnaj z archívu?')) setTournaments(prev => prev.filter(x => x.id !== id)); }}
+          onScan={() => setView('scan')}
           readOnly={archiveReturnTo === 'menu'}
+        />
+      )}
+      {view === 'scan' && (
+        <ScanImportScreen
+          onBack={() => setView('archive')}
+          onImport={(tournament) => {
+            setTournaments(prev => [tournament, ...(Array.isArray(prev) ? prev : [])]);
+            setView('archive');
+          }}
         />
       )}
       {view === 'archiveDetail' && (viewingTournament ? (
