@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.0] — 2026-05-21 — Online Sync Overhaul + Skins + UX
+
+### Pridané (Added)
+
+**Online sync:**
+- **Error badge** — červený vizuálny indikátor pri zlyhaní Firestore zápisu
+- **Bidirectional sync** — všetky zariadenia syncujú v oboch smeroch bez master-slave logiky
+- **pendingWriteCount guard** + eager module load — zabraňuje race condition pri prvom zápise
+- **Anti-revert ochrana** — porovnanie remote ↔ last-written (nie aktuálny local state)
+- **Stale ghost cleanup** — pri odpojení zariadenia sa vyčistia všetky prítomnostné záznamy
+- **Recorder-only writes** — observer nikdy nezapíše do Firestore (žiadna korupcia dát)
+
+**Vizuálne skiny:**
+- **Harry Potter skin** — pergamenové pozadie + plávajúce HP ikony
+- **Brawl Stars skin** — dva odtiene (Classic + Brawl Blue) s ikonami postáv
+- **Poster backgrounds** — reálne plagátové obrázky ako pozadia skinov
+- **Comprehensive skinning** — CSS custom properties pre všetky popupy a overlaye
+
+**Zvuky & animácie:**
+- **Zvukový systém** — herné efekty (zápis, penalta, víťazstvo, bust…)
+- **Animácie** — konfigurovateľné cez nastavenia
+- **Funny windows mode** — konfigurovateľný mód zobrazenia vtipných hlášok
+- **Caveat Brush** — nový ručne písaný font
+
+**UX & herné funkcie:**
+- **SVG Progress Chart** — vlastný graf vývoja skóre (náhrada Recharts, −529 KB)
+- **Score display mode** — prepínač Delta (Δ) / Kumulatívny (Σ) v tabuľke skóre
+- **Tournament view mode** — základný / rozšírený pohľad na turnaj
+- **Web Wake Lock API** — displej nespadne do spánku počas hry
+- **OCR scan_sheet tool** — fotka archy skóre → Excel tabuľka (Anthropic Vision API)
+
+### Zmenené (Changed)
+
+- `activeTournament` a `syncedTournaments` sa ukladajú ako **JSON string** — Firestore neumožňuje vnorené polia (nested arrays)
+- Online sync prepísaný — Firestore ako jediný source of truth, klientské timestamps odstránené
+- Vercel (`kocky-sveta.vercel.app`) ako primárna produkčná platforma; Firebase Hosting zachovaný ako záloha
+- `updateGameState.ts` — zápis cez JSON stringify/parse pre všetky online dáta
+
+### Opravené (Fixed)
+
+- **Firestore nested arrays** — `FirebaseError: Function updateDoc() called with invalid data. Nested arrays are not supported` → riešené JSON string serializáciou
+- **Crash `Cannot read properties of undefined (reading 'length')`** — `ScoreTable` a `ProgressChart` nemali guard pre `tournament.rounds`; pridaný `!Array.isArray(tournament.rounds)` do oboch komponentov
+- **Ghost players** pri odpojení — deviceId dedup + heartbeat-based prítomnostný systém
+- **Echo-zápisy** — porovnanie JSON stringov zabraňuje zbytočným Firestore zápisom
+
+### Infraštruktúra
+
+- Vercel deployment nakonfigurovaný ako primárna produkcia
+- Lokálny git tag `v1.6.0` vytvorený; GitHub release `1.6.0` automaticky vygenerovaný z CI
+
+---
+
 ## [1.5.5] — 2026-05-17 — Firebase Online Features
 
 ### Pridané (Added)
@@ -160,6 +212,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Release linky
 
+- [v1.6.0](https://github.com/bucala/kocky-sveta/releases/tag/1.6.0) — Online Sync Overhaul + Skins + UX
 - [v1.5.5](https://github.com/bucala/kocky-sveta/releases/tag/v1.5.5) — Firebase Online Features
-- [Produkčná appka](https://kocky-sveta-2026.web.app)
+- [v1.5.0](https://github.com/bucala/kocky-sveta/releases/tag/v1.5.0) — Modularizácia & Performance
+- [Produkčná appka](https://kocky-sveta.vercel.app)
+- [Firebase Hosting (záloha)](https://kocky-sveta-2026.web.app)
 - [Firebase Console](https://console.firebase.google.com/project/kocky-sveta-2026)

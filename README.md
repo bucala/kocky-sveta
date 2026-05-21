@@ -11,7 +11,7 @@
 
 ## 📦 Status: STABILNÝ — v1.6.0
 
-> **Tag:** [`v1.6.0`](https://github.com/bucala/kocky-sveta/releases/tag/v1.6.0) — Online Sync Overhaul + Skins + UX
+> **Tag:** [`v1.6.0`](https://github.com/bucala/kocky-sveta/releases/tag/1.6.0) — Online Sync Overhaul + Skins + UX
 
 ---
 
@@ -387,4 +387,4 @@ Firestore odmietol zápis (napr. bezpečnostné pravidlá). Skontroluj `firestor
 
 ---
 
-**Latest Release:** [v1.6.0 — Online Sync Overhaul + Skins + UX](https://github.com/bucala/kocky-sveta/releases/tag/v1.6.0)
+**Latest Release:** [v1.6.0 — Online Sync Overhaul + Skins + UX](https://github.com/bucala/kocky-sveta/releases/tag/1.6.0)
