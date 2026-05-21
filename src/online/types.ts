@@ -33,6 +33,8 @@ export type RoomDocument = {
   // (rounds[] of score arrays) which Firestore rejects as raw data.
   activeTournament?: string | null;
   syncedTournaments?: string | null;
+  // Chat messages — JSON string of ChatMessage[] (max 100 kept)
+  chatMessages?: string | null;
 };
 
 export type LocalTournament = {
