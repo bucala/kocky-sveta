@@ -234,7 +234,7 @@ function skinVarsCss(selectedSkin, selectedFont) {
   return css;
 }
 
-const QUICK_VALUES = [50, 100, 300, 400, 500, 600, 1000, 1500, 2000];
+const DEFAULT_QUICK_VALUES = [50, 100, 300, 400, 500, 600, 1000, 1500, 2000];
 const PENALTY_VALUE = -1000;
 
 const TARGET_OPTIONS = [
@@ -549,6 +549,7 @@ export default function App() {
   const [selectedFont, setSelectedFont] = useState('default');
   const [soundsEnabled, setSoundsEnabled] = useState(true);
   const [animationsEnabled, setAnimationsEnabled] = useState(true);
+  const [quickValues, setQuickValues] = useState(DEFAULT_QUICK_VALUES);
 
   const [scoreDisplayMode, setScoreDisplayMode] = useState('delta');
   const [tournamentViewMode, setTournamentViewMode] = useState('basic');
@@ -645,6 +646,7 @@ export default function App() {
       }
       try { const se = await window.storage.get('soundsEnabled'); if (se?.value) setSoundsEnabled(JSON.parse(se.value)); } catch {}
       try { const ae = await window.storage.get('animationsEnabled'); if (ae?.value) setAnimationsEnabled(JSON.parse(ae.value)); } catch {}
+      try { const qv = await window.storage.get('quickValues'); if (qv?.value) { const parsed = JSON.parse(qv.value); if (Array.isArray(parsed) && parsed.length > 0) setQuickValues(parsed); } } catch {}
       try { const t = await window.storage.get('tournaments'); if (t?.value) setTournaments(JSON.parse(t.value)); } catch {}
       try { const a = await window.storage.get('active');      if (a?.value) setActive(JSON.parse(a.value)); }       catch {}
       try { const as = await window.storage.get('adminSettings'); if (as?.value) setAdminSettings(JSON.parse(as.value)); } catch {}
@@ -662,6 +664,7 @@ export default function App() {
     try { localStorage.setItem('ks-skin', selectedSkin); } catch {}
   }, [selectedSkin, loaded]);
   useEffect(() => { if (loaded) window.storage.set('soundsEnabled', JSON.stringify(soundsEnabled)).catch(() => {}); }, [soundsEnabled, loaded]);
+  useEffect(() => { if (loaded) window.storage.set('quickValues', JSON.stringify(quickValues)).catch(() => {}); }, [quickValues, loaded]);
   useEffect(() => { if (loaded) window.storage.set('animationsEnabled', JSON.stringify(animationsEnabled)).catch(() => {}); }, [animationsEnabled, loaded]);
   useEffect(() => { sounds.setEnabled(soundsEnabled); }, [soundsEnabled]);
 
@@ -1570,6 +1573,8 @@ function startTournament(players, targetScore) {
             canUndo={undoStack.length > 0}
             onUndo={handleUndo}
             isOnline={!!onlineRoomId}
+            quickValues={quickValues}
+            onQuickValuesChange={setQuickValues}
           />
         ) : (
           <SafeTournamentFallback title="Turnaj sa nepodarilo načítať" />
@@ -1959,7 +1964,7 @@ function TournamentScreen({
   tournament, rules, onUpdate, onFinish, onAbort, onMenu,
   scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange,
   tournamentViewMode, funnyWindowsDisplayMode, debugMode, minWriteOffOverride,
-  isOnline
+  isOnline, quickValues, onQuickValuesChange
 }) {
   // Early null guard — before destructuring to prevent crash
   if (!tournament) return <SafeTournamentFallback />;
@@ -1973,6 +1978,9 @@ function TournamentScreen({
   const [customInput, setCustomInput] = useState('');
   const [showrules, setShowrules] = useState(false);
   const [showStandings, setShowStandings] = useState(false);
+  const [showQVEditor, setShowQVEditor] = useState(false);
+  const [qvInput, setQVInput] = useState('');
+  const qv = Array.isArray(quickValues) && quickValues.length > 0 ? quickValues : DEFAULT_QUICK_VALUES;
   const [toast, setToast] = useState(null);
   const funnyQueue = useFunnyQueue();
   const funny = funnyQueue.active;
@@ -2517,9 +2525,35 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
             <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">Zapísať</GoldButton>
           </div>
           <div className="ks-card-sub rounded-sm p-4 flex-1">
-            <div className="ks-mono ks-muted text-xs mb-3">PRIDAJ BODY Z HODU</div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="ks-mono ks-muted text-xs">PRIDAJ BODY Z HODU</div>
+              <button onClick={() => setShowQVEditor(v => !v)} className="ks-press ks-muted hover:ks-cream p-0.5"><Edit3 size={13} /></button>
+            </div>
+            {showQVEditor && onQuickValuesChange && (
+              <div className="mb-3 p-2.5 border ks-border-sub rounded-sm bg-stone-950/60 space-y-2">
+                <div className="ks-mono ks-muted text-xs">UPRAVIŤ TLAČIDLÁ</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {qv.map(v => (
+                    <button key={v} onClick={() => onQuickValuesChange(qv.filter(x => x !== v))}
+                      className="ks-press px-2 py-0.5 rounded-sm border ks-border-sub ks-cream text-xs flex items-center gap-1">
+                      {v} <X size={10} className="ks-muted" />
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-1.5">
+                  <input type="number" value={qvInput} onChange={e => setQVInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { const n = parseInt(qvInput, 10); if (n > 0 && !qv.includes(n)) { onQuickValuesChange([...qv, n].sort((a,b) => a-b)); setQVInput(''); } } }}
+                    placeholder="Pridaj hodnotu…" min="1" max="9999"
+                    className="flex-1 bg-transparent border ks-border-sub rounded-sm px-2 py-1 ks-cream text-xs outline-none" />
+                  <button onClick={() => { const n = parseInt(qvInput, 10); if (n > 0 && !qv.includes(n)) { onQuickValuesChange([...qv, n].sort((a,b) => a-b)); setQVInput(''); } }}
+                    className="ks-press ks-gold-bg px-2 py-1 rounded-sm text-black text-xs font-semibold">+</button>
+                  <button onClick={() => onQuickValuesChange(DEFAULT_QUICK_VALUES)}
+                    className="ks-press border ks-border-sub px-2 py-1 rounded-sm ks-muted text-xs">Reset</button>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-2 mb-3">
-              {QUICK_VALUES.map(v => (
+              {qv.map(v => (
                 <button key={v} onClick={() => addPoints(v)} className="ks-press border ks-border-sub bg-stone-950/40 hover:bg-stone-900/60 py-2.5 rounded-sm ks-display ks-cream text-lg font-semibold">+{v}</button>
               ))}
             </div>
@@ -2635,7 +2669,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
               <div className="ks-mono ks-muted text-xs mb-3">PRIDAJ BODY Z HODU</div>
 
               <div className="grid grid-cols-3 gap-2 mb-3">
-                {QUICK_VALUES.map(v => (
+                {qv.map(v => (
                   <button key={v} onClick={() => addPoints(v)}
                     className="ks-press border ks-border-sub bg-stone-950/40 hover:bg-stone-900/60 py-2.5 rounded-sm ks-display ks-cream text-lg font-semibold">
                     +{v}
