@@ -758,11 +758,21 @@ export default function App() {
   const lastWrittenTournamentsJson  = useRef(null);
   const lastWrittenSkinRef          = useRef(null);
 
+  // Counts activeTournament writes currently in-flight to Firestore.
+  // remote→local is suppressed while this is > 0 — prevents any Firestore
+  // snapshot (presence update, intermediate echo) from reverting local state
+  // while our write hasn't been confirmed yet.
+  const pendingWriteCountRef = useRef(0);
+
   // Reset "last written" bookmarks whenever we join a different room.
   useEffect(() => {
     lastWrittenActiveJson.current      = null;
     lastWrittenTournamentsJson.current = null;
     lastWrittenSkinRef.current         = null;
+    pendingWriteCountRef.current       = 0;
+    // Eagerly load the write module so syncActiveNow never has an async gap
+    // between setting lastWrittenActiveJson and actually calling updateDoc.
+    if (onlineRoomId) import('./online/updateGameState.ts').catch(() => {});
   }, [onlineRoomId]);
 
   // Flag: has at least one confirmed snapshot arrived?
@@ -778,30 +788,36 @@ export default function App() {
   const onlineRoomIdRef = useRef(onlineRoomId);
   onlineRoomIdRef.current = onlineRoomId;
 
+  // ── syncWriteError — viditeľný indikátor zlyhania Firestore write ──────────
+  const [syncWriteError, setSyncWriteError] = useState(null);
+
   // ── syncActiveNow — action-triggered write ────────────────────────────────
   //
-  // Writes activeTournament to Firestore IMMEDIATELY when called, with no
-  // debounce. The old debounce-in-useEffect approach had two fatal flaws:
-  //   1. Browser tab suspension (iOS background, Android Chrome) freezes
-  //      setTimeout — the timer never fires, the write never happens, and
-  //      when the tab resumes a stale snapshot reverts the user's input.
-  //   2. Any confirmed Firestore snapshot (heartbeat, presence write) that
-  //      arrived during the 300 ms window could — before the lastWritten fix
-  //      and still in edge cases after it — overwrite in-flight local state.
-  //
-  // Action-triggered writes are simpler, faster, and match the v1.2.x
-  // behaviour: "whoever clicked first wrote; delays showed a retry message."
+  // Writes activeTournament to Firestore IMMEDIATELY when called.
+  // pendingWriteCountRef is incremented before the write starts and
+  // decremented when it finishes (success or failure). The remote→local
+  // effect checks this counter and skips processing while > 0, preventing
+  // any Firestore snapshot (presence updates, echoes) from reverting local
+  // state while our write is in-flight.
   const syncActiveNow = useCallback((newState) => {
     const roomId = onlineRoomIdRef.current;
     if (!roomId || !hasSeenSnapshotRef.current) return;
     const newJson = JSON.stringify(newState ?? null);
     if (newJson === lastWrittenActiveJson.current) return; // no-op if unchanged
+    pendingWriteCountRef.current += 1;
     lastWrittenActiveJson.current = newJson;
     import('./online/updateGameState.ts').then(({ updateGameState }) => {
-      updateGameState(roomId, { activeTournament: newState ?? null }).catch((e) => {
-        console.error('[sync] activeTournament write failed:', e);
-        lastWrittenActiveJson.current = null; // allow next action to retry
-      });
+      updateGameState(roomId, { activeTournament: newState ?? null })
+        .then(() => {
+          pendingWriteCountRef.current = Math.max(0, pendingWriteCountRef.current - 1);
+          if ((window).__ksVerboseFirebase) console.log('[sync] write OK, pending:', pendingWriteCountRef.current);
+        })
+        .catch((e) => {
+          pendingWriteCountRef.current = Math.max(0, pendingWriteCountRef.current - 1);
+          console.error('[sync] activeTournament write FAILED:', e.code, e.message);
+          lastWrittenActiveJson.current = null; // allow revert to Firestore truth
+          setSyncWriteError(e.code || 'write-failed');
+        });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // stable — reads only refs
@@ -809,15 +825,21 @@ export default function App() {
   // ── activeTournament ─────────────────────────────────────────────────────
 
   // Remote → local: ALL devices, fires on every confirmed snapshot.
-  // Compares against lastWrittenActiveJson (last value known to Firestore),
-  // NOT against the current local state — so heartbeat/presence snapshots
-  // carrying the old activeTournament never revert in-progress local changes.
+  // Guards:
+  //  1. pendingWriteCountRef > 0  — our write is in-flight; any snapshot that
+  //     arrives now carries the pre-write Firestore state. Skip it entirely.
+  //  2. JSON comparison vs lastWrittenActiveJson — skip echoes of our own writes.
   useEffect(() => {
     if (!onlineRoomId || !onlineRoomState) return;
+    if (pendingWriteCountRef.current > 0) {
+      if ((window).__ksVerboseFirebase) console.log('[sync] remote→local SKIP — write in-flight, pending:', pendingWriteCountRef.current);
+      return;
+    }
     const remoteActive = onlineRoomState.activeTournament;
     if (remoteActive === undefined) return; // field not set yet (fresh room)
     const remoteJson = JSON.stringify(remoteActive ?? null);
     if (remoteJson === lastWrittenActiveJson.current) return; // already in sync
+    if ((window).__ksVerboseFirebase) console.log('[sync] remote→local APPLY — prev len:', lastWrittenActiveJson.current?.length, '→ new len:', remoteJson.length);
     lastWrittenActiveJson.current = remoteJson;
     setActive(remoteActive ?? null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1571,6 +1593,23 @@ function startTournament(players, targetScore) {
           onSuccess={() => { setShowAdminPin(false); setView('admin'); }}
           onCancel={() => setShowAdminPin(false)}
         />
+      )}
+      {syncWriteError && onlineRoomId && (
+        <div className="fixed bottom-0 left-0 right-0 z-[9991] px-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+          <div className="max-w-md mx-auto ks-card border-2 border-red-700/70 rounded-sm px-4 py-3 flex items-center gap-3 shadow-2xl">
+            <AlertCircle size={18} className="text-red-400 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="ks-cream text-sm font-semibold ks-display">Zápis zlyhal: {syncWriteError}</div>
+              <div className="ks-muted text-xs">Zmeny neboli uložené online. Skús znova alebo skontroluj sieť.</div>
+            </div>
+            <button
+              onClick={() => setSyncWriteError(null)}
+              className="ks-gold-bg ks-press px-3 py-1.5 rounded-sm ks-mono text-xs font-bold shrink-0"
+            >
+              OK
+            </button>
+          </div>
+        </div>
       )}
       {inactivityWarning && onlineRoomId && (
         <div className="fixed bottom-0 left-0 right-0 z-[9990] px-4 pb-[max(16px,env(safe-area-inset-bottom))]">
