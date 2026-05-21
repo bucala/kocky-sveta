@@ -551,6 +551,7 @@ export default function App() {
   const [soundsEnabled, setSoundsEnabled] = useState(true);
   const [animationsEnabled, setAnimationsEnabled] = useState(true);
   const [quickValues, setQuickValues] = useState(DEFAULT_QUICK_VALUES);
+  const [knownPlayers, setKnownPlayers] = useState(['Marcel', 'Robo', 'Tomáš', 'Jiří', 'Olino', 'Viki', 'Dedko', 'Jarka']);
 
   const [scoreDisplayMode, setScoreDisplayMode] = useState('delta');
   const [tournamentViewMode, setTournamentViewMode] = useState('basic');
@@ -648,6 +649,7 @@ export default function App() {
       try { const se = await window.storage.get('soundsEnabled'); if (se?.value) setSoundsEnabled(JSON.parse(se.value)); } catch {}
       try { const ae = await window.storage.get('animationsEnabled'); if (ae?.value) setAnimationsEnabled(JSON.parse(ae.value)); } catch {}
       try { const qv = await window.storage.get('quickValues'); if (qv?.value) { const parsed = JSON.parse(qv.value); if (Array.isArray(parsed) && parsed.length > 0) setQuickValues(parsed); } } catch {}
+      try { const kp = await window.storage.get('knownPlayers'); if (kp?.value) { const parsed = JSON.parse(kp.value); if (Array.isArray(parsed) && parsed.length > 0) setKnownPlayers(parsed); } } catch {}
       try { const t = await window.storage.get('tournaments'); if (t?.value) setTournaments(JSON.parse(t.value)); } catch {}
       try { const a = await window.storage.get('active');      if (a?.value) setActive(JSON.parse(a.value)); }       catch {}
       try { const as = await window.storage.get('adminSettings'); if (as?.value) setAdminSettings(JSON.parse(as.value)); } catch {}
@@ -666,6 +668,7 @@ export default function App() {
   }, [selectedSkin, loaded]);
   useEffect(() => { if (loaded) window.storage.set('soundsEnabled', JSON.stringify(soundsEnabled)).catch(() => {}); }, [soundsEnabled, loaded]);
   useEffect(() => { if (loaded) window.storage.set('quickValues', JSON.stringify(quickValues)).catch(() => {}); }, [quickValues, loaded]);
+  useEffect(() => { if (loaded) window.storage.set('knownPlayers', JSON.stringify(knownPlayers)).catch(() => {}); }, [knownPlayers, loaded]);
   useEffect(() => { if (loaded) window.storage.set('animationsEnabled', JSON.stringify(animationsEnabled)).catch(() => {}); }, [animationsEnabled, loaded]);
   useEffect(() => { sounds.setEnabled(soundsEnabled); }, [soundsEnabled]);
 
@@ -1555,7 +1558,7 @@ function startTournament(players, targetScore) {
           onAnimationsToggle={() => setAnimationsEnabled(v => !v)}
         />
       )}
-      {view === 'newTournament' && <NewTournament onBack={() => setView('menu')} onStart={startTournament} />}
+      {view === 'newTournament' && <NewTournament onBack={() => setView('menu')} onStart={startTournament} knownPlayers={knownPlayers} onKnownPlayersChange={setKnownPlayers} />}
       {view === 'tournament' && (active ? (
          <TournamentScreen
             tournament={active} rules={rules}
