@@ -1489,6 +1489,7 @@ function startTournament(players, targetScore) {
           onNew={() => setView('newTournament')}
           onArchive={() => { setArchiveReturnTo('menu'); setView('archive'); }}
           onStats={() => setView('playerStats')}
+          onScan={() => setView('scan')}
           onrules={() => setView('rules')}
           onSettings={() => setView('settings')}
           onOnline={() => setView('online')}

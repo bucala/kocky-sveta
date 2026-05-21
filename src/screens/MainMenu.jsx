@@ -1,6 +1,6 @@
 // src/screens/MainMenu.jsx
 import React from 'react';
-import { Play, Archive as ArchiveIcon, ScrollText, Settings, ChevronRight, Wifi, WifiOff, AlertCircle, BarChart2 } from 'lucide-react';
+import { Play, Archive as ArchiveIcon, ScrollText, Settings, ChevronRight, Wifi, WifiOff, AlertCircle, BarChart2, ScanLine } from 'lucide-react';
 import { Ornament } from '../atoms/GoldButton.jsx';
 import { useOnlineStore } from '../online/onlineStore.ts';
 
@@ -22,7 +22,7 @@ function OnlineStatusBadge({ onClick }) {
   );
 }
 
-export function MainMenu({ onNew, onArchive, onStats, onrules, onSettings, onResume, onOnline, active, tournamentCount }) {
+export function MainMenu({ onNew, onArchive, onStats, onScan, onrules, onSettings, onResume, onOnline, active, tournamentCount }) {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="px-6 pt-[max(14px,env(safe-area-inset-top))] pb-4 text-center ks-fade">
@@ -53,6 +53,7 @@ export function MainMenu({ onNew, onArchive, onStats, onrules, onSettings, onRes
           onClick={onNew} primary disabled={!!active} />
         <MenuButton icon={ArchiveIcon} title="Archív turnajov"   subtitle={`${tournamentCount || 0} uložených turnajov`} onClick={onArchive} />
         <MenuButton icon={BarChart2}   title="Štatistiky hráčov" subtitle="Výhry, úspešnosť, rekordy"          onClick={onStats} />
+        <MenuButton icon={ScanLine}    title="Sken tabuľky"      subtitle="Odfotiť ručnú tabuľku → archív"     onClick={onScan} />
         <MenuButton icon={ScrollText}  title="Pravidlá hry"      subtitle="Bodovanie a kombinácie kociek"       onClick={onrules} />
         <MenuButton icon={Settings}    title="Nastavenia"      subtitle="Pravidlá, export, editácia archívu"  onClick={onSettings} />
       </div>
