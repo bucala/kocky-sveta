@@ -3,8 +3,10 @@ import { Play, Target, Plus, X, UserPlus, Check } from 'lucide-react';
 import { GoldButton, Ornament } from '../atoms/GoldButton.jsx';
 import { Header } from '../atoms/Header.jsx';
 import { TARGET_OPTIONS } from '../constants/game.js';
+import { useT } from '../lib/i18n.js';
 
 export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlayersChange }) {
+  const t = useT();
   const [count, setCount] = useState(3);
   const [target, setTarget] = useState(10000);
   const [selected, setSelected] = useState([]); // ordered list of selected names
@@ -56,12 +58,12 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
 
   return (
     <div className="min-h-screen ks-fade pb-8">
-      <Header title="Nový turnaj" onBack={onBack} />
+      <Header title={t('newt.title')} onBack={onBack} />
       <div className="p-5 max-w-md mx-auto space-y-6">
 
         {/* Target */}
         <div>
-          <div className="ks-mono ks-gold text-xs mb-3 flex items-center gap-2"><Target size={12} /> CIEĽ HRY</div>
+          <div className="ks-mono ks-gold text-xs mb-3 flex items-center gap-2"><Target size={12} /> {t('newt.target')}</div>
           <div className="grid grid-cols-2 gap-2">
             {TARGET_OPTIONS.map(opt => (
               <button key={opt.value} onClick={() => setTarget(opt.value)}
@@ -77,7 +79,7 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
 
         {/* Player count */}
         <div>
-          <div className="ks-mono ks-gold text-xs mb-3">POČET HRÁČOV</div>
+          <div className="ks-mono ks-gold text-xs mb-3">{t('newt.count')}</div>
           <div className="grid grid-cols-5 gap-2">
             {[2,3,4,5,6].map(n => (
               <button key={n} onClick={() => { setCount(n); setSelected(prev => prev.slice(0, n)); }}
@@ -90,7 +92,7 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
 
         {/* Selected slots */}
         <div>
-          <div className="ks-mono ks-gold text-xs mb-3">VYBRANÍ HRÁČI</div>
+          <div className="ks-mono ks-gold text-xs mb-3">{t('newt.selected')}</div>
           <div className="space-y-2">
             {Array.from({ length: count }).map((_, i) => {
               const name = selected[i];
@@ -107,7 +109,7 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
                       </button>
                     </>
                   ) : (
-                    <span className="flex-1 ks-muted ks-body text-base italic">Vyber hráča nižšie…</span>
+                    <span className="flex-1 ks-muted ks-body text-base italic">{t('newt.slot.empty')}</span>
                   )}
                 </div>
               );
@@ -120,12 +122,12 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
         {/* Known players picker */}
         <div>
           <div className="ks-mono ks-gold text-xs mb-3 flex items-center justify-between">
-            <span>ZOZNAM HRÁČOV</span>
+            <span>{t('newt.list')}</span>
             <button
               onClick={() => { setShowAddInput(v => !v); setTimeout(() => inputRef.current?.focus(), 50); }}
               className="ks-press flex items-center gap-1 text-xs opacity-70 hover:opacity-100"
             >
-              <UserPlus size={12} /> Pridať
+              <UserPlus size={12} /> {t('add')}
             </button>
           </div>
 
@@ -136,7 +138,7 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleAddNew(); if (e.key === 'Escape') { setShowAddInput(false); setNewName(''); } }}
-                placeholder="Meno nového hráča"
+                placeholder={t('newt.input.placeholder')}
                 maxLength={18}
                 className="flex-1 bg-transparent ks-cream ks-body text-base outline-none placeholder:text-stone-600"
               />
@@ -170,7 +172,7 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
                   <button
                     onClick={() => removeKnown(name)}
                     className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-900 text-red-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ks-press"
-                    title="Odstrániť zo zoznamu"
+                    title={t('newt.remove.tip')}
                   >
                     <X size={9} />
                   </button>
@@ -178,13 +180,13 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
               );
             })}
             {knownPlayers.length === 0 && (
-              <span className="ks-muted text-sm italic">Žiadni hráči. Pridaj prvého hráča.</span>
+              <span className="ks-muted text-sm italic">{t('newt.no.players')}</span>
             )}
           </div>
         </div>
 
         <GoldButton onClick={handleStart} icon={Play} className="w-full text-lg">
-          Začať turnaj
+          {t('newt.start')}
         </GoldButton>
       </div>
     </div>

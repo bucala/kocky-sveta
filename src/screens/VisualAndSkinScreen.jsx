@@ -1,6 +1,7 @@
 import React from 'react';
 import { Volume2, VolumeX, Zap, ZapOff, Sparkles, Users, Star, BarChart2, Smartphone, Trophy, Hash, Layers } from 'lucide-react';
 import { Header, SkinSelector, FontSelector } from '../components/ui.jsx';
+import { useT } from '../lib/i18n.js';
 
 function Toggle({ enabled, onToggle, labelOn, labelOff, iconOn: IconOn, iconOff: IconOff }) {
   return (
@@ -47,15 +48,9 @@ function ExtToggle({ enabled, onToggle, icon: Icon, label, sub }) {
   );
 }
 
-const EXTENSIONS_CONFIG = [
-  { key: 'confetti',       icon: Sparkles,   label: 'Konfety pri výhre',       sub: 'Farebná sprcha konfiet po víťazstve' },
-  { key: 'dramaticWinner', icon: Trophy,     label: 'Dramatický výsledok',      sub: 'Animovaný nástup víťaza s efektom' },
-  { key: 'coloredAvatars', icon: Users,      label: 'Farebné avatary',          sub: 'Každý hráč má farbu a iniciálky' },
-  { key: 'leaderGlow',     icon: Star,       label: 'Pulzujúci líder',          sub: 'Zlatý glow pre hráča na 1. mieste' },
-  { key: 'progressBar',    icon: BarChart2,  label: 'Progress bar k cieľu',     sub: 'Vizuálna lišta napĺňajúca sa k cieľu' },
-  { key: 'animatedScore',  icon: Hash,       label: 'Animované skóre',          sub: 'Čísla sa rozbehajú pri každom zápise' },
-  { key: 'milestoneFlash', icon: Zap,        label: 'Záblesk míľnika',          sub: 'Flash pri prekročení 1 000, 2 000…' },
-  { key: 'haptic',         icon: Smartphone, label: 'Haptická odozva',          sub: 'Vibrácia pri zápise skóre (mobile)' },
+const LANG_OPTIONS = [
+  { value: 'sk', flag: '🇸🇰', label: 'Slovenčina' },
+  { value: 'en', flag: '🇬🇧', label: 'English' },
 ];
 
 export function VisualAndSkinScreen({
@@ -63,40 +58,73 @@ export function VisualAndSkinScreen({
   tournamentViewMode, onTournamentViewModeChange, onViewModes,
   soundsEnabled, onSoundsToggle, animationsEnabled, onAnimationsToggle,
   extensions = {}, onExtensionsChange,
+  lang = 'sk', onLangChange,
 }) {
+  const t = useT();
   const toggle = (key) => onExtensionsChange?.({ ...extensions, [key]: !extensions[key] });
+
+  const EXTENSIONS_CONFIG = [
+    { key: 'confetti',       icon: Sparkles,   label: t('ext.confetti'),       sub: t('ext.confetti.sub') },
+    { key: 'dramaticWinner', icon: Trophy,     label: t('ext.dramaticWinner'), sub: t('ext.dramaticWinner.sub') },
+    { key: 'coloredAvatars', icon: Users,      label: t('ext.coloredAvatars'), sub: t('ext.coloredAvatars.sub') },
+    { key: 'leaderGlow',     icon: Star,       label: t('ext.leaderGlow'),     sub: t('ext.leaderGlow.sub') },
+    { key: 'progressBar',    icon: BarChart2,  label: t('ext.progressBar'),    sub: t('ext.progressBar.sub') },
+    { key: 'animatedScore',  icon: Hash,       label: t('ext.animatedScore'),  sub: t('ext.animatedScore.sub') },
+    { key: 'milestoneFlash', icon: Zap,        label: t('ext.milestoneFlash'), sub: t('ext.milestoneFlash.sub') },
+    { key: 'haptic',         icon: Smartphone, label: t('ext.haptic'),         sub: t('ext.haptic.sub') },
+  ];
 
   return (
     <div className="min-h-screen ks-fade pb-8">
-      <Header title="Vizuál, Zvuky a Skiny" onBack={onBack} />
+      <Header title={t('visual.title')} onBack={onBack} />
       <div className="p-4 max-w-2xl mx-auto space-y-5">
 
+        {/* Jazyk / Language */}
+        <div className="ks-mono ks-gold text-xs px-1 pt-2">{t('visual.lang.section')}</div>
+        <div className="grid grid-cols-2 gap-2">
+          {LANG_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => onLangChange?.(opt.value)}
+              className={`ks-press flex items-center gap-2 px-4 py-3 rounded-sm border transition-colors ${
+                lang === opt.value ? 'ks-border-accent border bg-amber-950/20' : 'ks-border-sub border'
+              }`}
+            >
+              <span className="text-xl">{opt.flag}</span>
+              <span className={`ks-body text-sm font-semibold ${lang === opt.value ? 'ks-cream' : 'ks-muted'}`}>{opt.label}</span>
+              {lang === opt.value && <span className="ml-auto ks-gold text-xs">✓</span>}
+            </button>
+          ))}
+        </div>
+
         {/* Zvuky */}
-        <div className="ks-mono ks-gold text-xs px-1 pt-2">ZVUKOVÉ EFEKTY</div>
+        <div className="ks-mono ks-gold text-xs px-1 pt-2">{t('visual.sound.section')}</div>
         <Toggle
           enabled={soundsEnabled}
           onToggle={onSoundsToggle}
-          labelOn="Zvuky zapnuté"
-          labelOff="Zvuky vypnuté"
+          labelOn={t('visual.sound.on')}
+          labelOff={t('visual.sound.off')}
           iconOn={Volume2}
           iconOff={VolumeX}
         />
 
         {/* Animácie */}
-        <div className="ks-mono ks-gold text-xs px-1 pt-2">ANIMÁCIE</div>
+        <div className="ks-mono ks-gold text-xs px-1 pt-2">{t('visual.anim.section')}</div>
         <Toggle
           enabled={animationsEnabled}
           onToggle={onAnimationsToggle}
-          labelOn="Animácie zapnuté"
-          labelOff="Animácie vypnuté"
+          labelOn={t('visual.anim.on')}
+          labelOff={t('visual.anim.off')}
           iconOn={Zap}
           iconOff={ZapOff}
         />
 
-        {/* Rozšírenia */}
+        {/* Rozšírenia / Extensions */}
         <div className="ks-mono ks-gold text-xs px-1 pt-2 flex items-center gap-2">
-          <Layers size={11} /> ROZŠÍRENIA
-          <span className="ks-muted normal-case font-normal" style={{ fontFamily: 'inherit', letterSpacing: 'normal' }}>— defaultne vypnuté</span>
+          <Layers size={11} /> {t('visual.ext.section')}
+          <span className="ks-muted normal-case font-normal" style={{ fontFamily: 'inherit', letterSpacing: 'normal' }}>
+            {t('visual.ext.hint')}
+          </span>
         </div>
         <div className="space-y-2">
           {EXTENSIONS_CONFIG.map(({ key, icon, label, sub }) => (
@@ -112,11 +140,11 @@ export function VisualAndSkinScreen({
         </div>
 
         {/* Skiny */}
-        <div className="ks-mono ks-gold text-xs px-1 pt-2">SKINY</div>
+        <div className="ks-mono ks-gold text-xs px-1 pt-2">{t('visual.skins.section')}</div>
         <SkinSelector selectedSkin={selectedSkin} onSkinChange={onSkinChange} />
 
-        {/* Písma */}
-        <div className="ks-mono ks-gold text-xs px-1 pt-2">PÍSMO</div>
+        {/* Písmo / Font */}
+        <div className="ks-mono ks-gold text-xs px-1 pt-2">{t('visual.font.section')}</div>
         <FontSelector selectedFont={selectedFont} onFontChange={onFontChange} />
 
       </div>
