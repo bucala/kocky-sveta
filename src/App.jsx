@@ -20,6 +20,7 @@ import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
 import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
 import { OnlineScreen } from './screens/OnlineScreen.jsx';
 import { AdminScreen, AdminPinDialog, DEFAULT_ADMIN_SETTINGS } from './screens/AdminScreen.jsx';
+import { PlayerStatsScreen } from './screens/PlayerStatsScreen.jsx';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { createRoom } from './online/createRoom.ts';
 import { useOnlineStore } from './online/onlineStore.ts';
@@ -1480,6 +1481,7 @@ function startTournament(players, targetScore) {
         <MainMenu
           onNew={() => setView('newTournament')}
           onArchive={() => { setArchiveReturnTo('menu'); setView('archive'); }}
+          onStats={() => setView('playerStats')}
           onrules={() => setView('rules')}
           onSettings={() => setView('settings')}
           onOnline={() => setView('online')}
@@ -1595,6 +1597,9 @@ function startTournament(players, targetScore) {
       {view === 'rules' && <RulesView rules={rules} onBack={() => setView('menu')} />}
       {view === 'online' && <OnlineScreen onBack={() => setView('menu')} activeSkin={selectedSkin} activeRules={rules} defaultRoomName={adminSettings.roomName} />
       }
+      {view === 'playerStats' && (
+        <PlayerStatsScreen tournaments={tournaments} onBack={() => setView('menu')} />
+      )}
       {view === 'rulesEditor' && (
         <RulesEditor rules={rules} onSave={setrules} onBack={() => setView('settings')}
           onReset={() => { if (window.confirm('Obnoviť všetky pravidlá na pôvodné nastavenia?')) setrules(DEFAULT_RULES); }}
