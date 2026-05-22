@@ -35,6 +35,8 @@ export type RoomDocument = {
   syncedTournaments?: string | null;
   // Chat messages — JSON string of ChatMessage[] (max 100 kept)
   chatMessages?: string | null;
+  // Known players — JSON string of string[] — per-room player list
+  knownPlayers?: string | null;
 };
 
 export type LocalTournament = {

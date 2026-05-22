@@ -1,5 +1,5 @@
 import React from 'react';
-import { Volume2, VolumeX, Zap, ZapOff, Sparkles, Users, Star, BarChart2, Smartphone, Trophy, Hash, Layers } from 'lucide-react';
+import { Volume2, VolumeX, Zap, ZapOff, Sparkles, Users, Star, BarChart2, Smartphone, Trophy, Hash, Layers, Bell } from 'lucide-react';
 import { Header, SkinSelector, FontSelector } from '../components/ui.jsx';
 import { useT } from '../lib/i18n.js';
 
@@ -72,6 +72,7 @@ export function VisualAndSkinScreen({
     { key: 'animatedScore',  icon: Hash,       label: t('ext.animatedScore'),  sub: t('ext.animatedScore.sub') },
     { key: 'milestoneFlash', icon: Zap,        label: t('ext.milestoneFlash'), sub: t('ext.milestoneFlash.sub') },
     { key: 'haptic',         icon: Smartphone, label: t('ext.haptic'),         sub: t('ext.haptic.sub') },
+    { key: 'turnNotification', icon: Bell,      label: t('ext.turnNotification'), sub: t('ext.turnNotification.sub') },
   ];
 
   return (

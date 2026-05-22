@@ -116,7 +116,9 @@ const T = {
     'ext.milestoneFlash': 'Záblesk míľnika',
     'ext.milestoneFlash.sub': 'Flash pri prekročení 1 000, 2 000…',
     'ext.haptic': 'Haptická odozva',
-    'ext.haptic.sub': 'Vibrácia pri zápise skóre (mobile)',
+    'ext.haptic.sub': 'Vibrácia pri zápise skóre — Android Chrome, Firefox (iOS Safari nepodporuje)',
+    'ext.turnNotification': 'Popup "Na rade"',
+    'ext.turnNotification.sub': 'Toast správa pri zmene hráča v online hre',
 
     // Míľnik flash
     'milestone.label': 'MÍĽNIK',
@@ -240,7 +242,9 @@ const T = {
     'ext.milestoneFlash': 'Milestone flash',
     'ext.milestoneFlash.sub': 'Flash when crossing 1,000, 2,000…',
     'ext.haptic': 'Haptic feedback',
-    'ext.haptic.sub': 'Vibration on score entry (mobile)',
+    'ext.haptic.sub': 'Vibration on score entry — Android Chrome, Firefox (iOS Safari unsupported)',
+    'ext.turnNotification': '"Your turn" popup',
+    'ext.turnNotification.sub': 'Toast message on player change in online game',
 
     // Milestone flash
     'milestone.label': 'MILESTONE',

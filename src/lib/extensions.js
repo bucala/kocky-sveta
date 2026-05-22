@@ -9,6 +9,7 @@ export const DEFAULT_EXTENSIONS = {
   milestoneFlash: false,
   animatedScore: false,
   dramaticWinner: false,
+  turnNotification: false,
 };
 
 export const MILESTONE_VALUES = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000];

@@ -21,6 +21,7 @@ export async function createRoom(params: {
   selectedSkin: string;
   rules: string[];
   customRoomId?: string;
+  knownPlayers?: string[];
 }): Promise<{ roomId: string; pin: string }> {
   const roomId = params.customRoomId
     ? params.customRoomId.toUpperCase().trim()
@@ -55,6 +56,7 @@ export async function createRoom(params: {
       lastRoll: [],
       history: [],
     },
+    knownPlayers: params.knownPlayers ? JSON.stringify(params.knownPlayers) : null,
   };
 
   await setDoc(doc(db, 'rooms', roomId), roomData);

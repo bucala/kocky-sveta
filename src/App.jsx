@@ -943,6 +943,48 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSkin, onlineRoomId, loaded]);
 
+  // ── knownPlayers ↔ Firestore room sync ───────────────────────────────────
+  const lastWrittenKnownPlayersRef = useRef(null);
+  const syncKnownPlayersRef = useRef(knownPlayers);
+  useEffect(() => { syncKnownPlayersRef.current = knownPlayers; }, [knownPlayers]);
+
+  // Read from room
+  useEffect(() => {
+    if (!onlineRoomId || !onlineRoomState) return;
+    const remoteRaw = onlineRoomState.knownPlayers;
+    if (!remoteRaw || remoteRaw === lastWrittenKnownPlayersRef.current) return;
+    try {
+      const parsed = JSON.parse(remoteRaw);
+      if (Array.isArray(parsed)) {
+        lastWrittenKnownPlayersRef.current = remoteRaw;
+        setKnownPlayers(parsed);
+      }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlineRoomId, onlineRoomState]);
+
+  // Write to room
+  useEffect(() => {
+    if (!loaded || !onlineRoomId) return;
+    if (!hasSeenSnapshotRef.current) return;
+    const newJson = JSON.stringify(knownPlayers);
+    if (newJson === lastWrittenKnownPlayersRef.current) return;
+    const timer = setTimeout(() => {
+      const cur = syncKnownPlayersRef.current;
+      const curJson = JSON.stringify(cur);
+      if (curJson === lastWrittenKnownPlayersRef.current) return;
+      lastWrittenKnownPlayersRef.current = curJson;
+      import('./online/updateGameState.ts').then(({ updateGameState }) => {
+        updateGameState(onlineRoomId, { knownPlayers: curJson }).catch((e) => {
+          console.error('[sync] knownPlayers write failed:', e);
+          lastWrittenKnownPlayersRef.current = null;
+        });
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [knownPlayers, onlineRoomId, loaded]);
+
   const minWriteOff = useMemo(() => {
     const r = rules.find(x => x.id === 'r14');
     return r ? Number(r.points) || 300 : 300;
@@ -1038,6 +1080,7 @@ export default function App() {
         selectedSkin: selectedSkin || 'classic',
         rules: rules || [],
         customRoomId: customId,
+        knownPlayers,
       });
       setOnlineRoomId(rid);
       setOnlineUid(uid);
@@ -2044,10 +2087,14 @@ function TournamentScreen({
     if (currentPlayer !== prevPlayerRef.current) {
       prevPlayerRef.current = currentPlayer;
       const name = players[currentPlayer] || `Hráč ${currentPlayer + 1}`;
-      setToast({ msg: `Na rade: ${name}`, kind: 'info' });
-      const t = setTimeout(() => setToast(null), 3500);
-      sounds.playTurn();
-      return () => clearTimeout(t);
+      if (extensions.turnNotification) {
+        setToast({ msg: `Na rade: ${name}`, kind: 'info' });
+        const t = setTimeout(() => setToast(null), 3500);
+        sounds.playTurn();
+        return () => clearTimeout(t);
+      } else {
+        sounds.playTurn();
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPlayer, isOnline]);

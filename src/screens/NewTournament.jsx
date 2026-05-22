@@ -45,6 +45,7 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
   };
 
   const removeKnown = (name) => {
+    if (!window.confirm(`Odstrániť „${name}" zo zoznamu?`)) return;
     onKnownPlayersChange?.(knownPlayers.filter(n => n !== name));
     setSelected(prev => prev.filter(n => n !== name));
   };
