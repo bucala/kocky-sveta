@@ -1,6 +1,10 @@
 // Vercel serverless function — proxies image to Anthropic Claude Vision.
 // API key stays server-side, never exposed to the browser.
 
+export const config = {
+  api: { bodyParser: { sizeLimit: '20mb' } },
+};
+
 const SYSTEM = `Si expert na čítanie ručne písaných skóre-tabuliek zo stolovoej hry Kocky.
 Vráť VÝLUČNE platný JSON objekt — žiadny iný text, žiadne markdown bloky.`;
 
