@@ -6,12 +6,31 @@ import {
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-function fileToBase64(file) {
+function compressImage(file, maxPx = 1600, quality = 0.85) {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxPx || height > maxPx) {
+        if (width > height) { height = Math.round(height * maxPx / width); width = maxPx; }
+        else { width = Math.round(width * maxPx / height); height = maxPx; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => {
+        if (!blob) { reject(new Error('Canvas compression failed')); return; }
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = reject;
+    img.src = url;
   });
 }
 
@@ -21,7 +40,16 @@ async function callScanAPI(base64, mimeType) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ image: base64, mimeType }),
   });
-  const json = await res.json();
+  const text = await res.text();
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error(
+      `Skenovací server nie je dostupný (HTTP ${res.status}). ` +
+      `Skontroluj, či je app nasadená na Vercel (nie GitHub Pages).`
+    );
+  }
   if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
   return json;
 }
@@ -161,9 +189,8 @@ export function ScanImportScreen({ onBack, onImport }) {
     setPhase('scanning');
 
     try {
-      const base64 = await fileToBase64(file);
-      const mimeType = file.type || 'image/jpeg';
-      const result = await callScanAPI(base64, mimeType);
+      const base64 = await compressImage(file);
+      const result = await callScanAPI(base64, 'image/jpeg');
       setScanResult(result);
       setPlayers(result.players || []);
       setRounds(result.rounds || []);

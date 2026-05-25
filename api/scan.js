@@ -1,6 +1,9 @@
 // Vercel serverless function — proxies image to Anthropic Claude Vision.
 // API key stays server-side, never exposed to the browser.
-export const config = { runtime: 'edge' };
+
+export const config = {
+  api: { bodyParser: { sizeLimit: '20mb' } },
+};
 
 const SYSTEM = `Si expert na čítanie ručne písaných skóre-tabuliek zo stolovoej hry Kocky.
 Vráť VÝLUČNE platný JSON objekt — žiadny iný text, žiadne markdown bloky.`;
@@ -29,38 +32,28 @@ Pravidlá:
 - Ak hráč nedohral kolo, daj null
 - Nepremeniteľné: počet hodnôt v každom kole = počet hráčov`;
 
-export default async function handler(req) {
+export default async function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json');
+
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
   }
 
   let body;
   try {
-    body = await req.json();
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(400).json({ error: 'Invalid JSON body' });
   }
 
-  const { image, mimeType = 'image/jpeg' } = body;
+  const { image, mimeType = 'image/jpeg' } = body || {};
   if (!image) {
-    return new Response(JSON.stringify({ error: 'Missing image (base64)' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(400).json({ error: 'Missing image (base64)' });
   }
 
   const anthropicBody = {
@@ -89,42 +82,25 @@ export default async function handler(req) {
 
     if (!resp.ok) {
       const errText = await resp.text();
-      return new Response(JSON.stringify({ error: `Anthropic API error: ${resp.status}`, detail: errText }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return res.status(502).json({ error: `Anthropic API error: ${resp.status}`, detail: errText });
     }
 
     const data = await resp.json();
     const rawText = data.content?.[0]?.text ?? '';
 
-    // Parse JSON from Claude's response (strip any accidental markdown fences)
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return new Response(JSON.stringify({ error: 'Claude returned no JSON', raw: rawText }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return res.status(502).json({ error: 'Claude returned no JSON', raw: rawText });
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
 
-    // Basic validation
     if (!Array.isArray(parsed.players) || !Array.isArray(parsed.rounds)) {
-      return new Response(JSON.stringify({ error: 'Invalid structure from Claude', raw: rawText }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return res.status(502).json({ error: 'Invalid structure from Claude', raw: rawText });
     }
 
-    return new Response(JSON.stringify(parsed), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(200).json(parsed);
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(500).json({ error: String(e) });
   }
 }
