@@ -1,10 +1,100 @@
 // src/screens/OnlineScreen.jsx
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { getAuth, signInAnonymously } from 'firebase/auth';
-import { Wifi, WifiOff, AlertCircle, ChevronLeft, Copy, Check, LogOut, Info, User, Users } from 'lucide-react';
+import { Wifi, WifiOff, AlertCircle, ChevronLeft, Copy, Check, LogOut, Info, User, Users, MessageCircle, Send, X } from 'lucide-react';
 import { useOnlineStore } from '../online/onlineStore.ts';
 import { createRoom } from '../online/createRoom.ts';
 import { joinRoom } from '../online/joinRoom.ts';
+import { updateGameState } from '../online/updateGameState.ts';
+
+const MAX_CHAT_MESSAGES = 100;
+
+function ChatPanel({ roomId, myUid, roomState, deviceName, onClose }) {
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const bottomRef = useRef(null);
+
+  const messages = (() => {
+    const raw = roomState?.chatMessages;
+    if (!raw) return [];
+    try { return JSON.parse(raw); } catch { return []; }
+  })();
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages.length]);
+
+  const send = async () => {
+    const t = text.trim();
+    if (!t || busy) return;
+    setBusy(true);
+    setText('');
+    try {
+      const newMsg = { text: t, author: deviceName || 'hráč', uid: myUid, ts: Date.now() };
+      const next = [...messages, newMsg].slice(-MAX_CHAT_MESSAGES);
+      await updateGameState(roomId, { chatMessages: JSON.stringify(next) });
+    } catch (e) {
+      console.error('[chat] send failed:', e);
+      setText(t);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const fmt = (ts) => {
+    const d = new Date(ts);
+    return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+  };
+
+  return (
+    <div className="ks-card border ks-border-sub rounded-sm overflow-hidden flex flex-col" style={{ maxHeight: '420px' }}>
+      <div className="flex items-center gap-2 px-4 py-2 border-b ks-border-sub">
+        <MessageCircle size={14} className="ks-gold" />
+        <span className="ks-mono ks-gold text-xs font-semibold flex-1">CHAT MIESTNOSTI</span>
+        <button onClick={onClose} className="ks-press p-1"><X size={14} className="ks-muted" /></button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-[160px]">
+        {messages.length === 0 && (
+          <div className="text-center ks-muted text-xs pt-6">Ešte žiadne správy. Buď prvý!</div>
+        )}
+        {messages.map((m, i) => {
+          const isMe = m.uid === myUid;
+          return (
+            <div key={i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+              <div className={`max-w-[80%] px-3 py-1.5 rounded-sm text-sm ${
+                isMe ? 'bg-amber-900/40 ks-cream' : 'bg-stone-800 ks-cream'
+              }`}>
+                {!isMe && <div className="ks-gold text-xs ks-mono mb-0.5 font-semibold">{m.author}</div>}
+                <div className="break-words">{m.text}</div>
+              </div>
+              <div className="ks-muted text-[10px] mt-0.5 px-1">{fmt(m.ts)}</div>
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      <div className="border-t ks-border-sub px-3 py-2 flex gap-2">
+        <input
+          value={text}
+          onChange={e => setText(e.target.value.slice(0, 200))}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
+          placeholder="Napíš správu…"
+          disabled={busy}
+          className="flex-1 bg-transparent border ks-border-sub rounded-sm px-3 py-1.5 text-sm ks-cream outline-none placeholder:ks-muted"
+        />
+        <button
+          onClick={send}
+          disabled={busy || !text.trim()}
+          className="ks-press p-2 rounded-sm ks-gold-bg disabled:opacity-40"
+        >
+          <Send size={14} className="text-black" />
+        </button>
+      </div>
+    </div>
+  );
+}
 export function OnlineStatusIcon() {
   const status = useOnlineStore((s) => s.status);
   if (status === 'connected') return <Wifi size={18} className="text-green-400" />;
@@ -69,6 +159,7 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
   const [createErr, setCreateErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   const [useName, setUseName] = useState(!!defaultRoomName);
   const [name, setName] = useState(defaultRoomName || '');
@@ -284,6 +375,32 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
             </div>
 
             <ActivePlayersPanel roomState={roomState} myUid={myUid} />
+
+            {showChat
+              ? <ChatPanel
+                  roomId={roomId}
+                  myUid={myUid}
+                  roomState={roomState}
+                  deviceName={useName && name.trim() ? name.trim() : 'hráč'}
+                  onClose={() => setShowChat(false)}
+                />
+              : (
+                <button
+                  onClick={() => setShowChat(true)}
+                  className="ks-card border ks-border-sub rounded-sm px-4 py-3 flex items-center gap-3 w-full ks-press"
+                >
+                  <MessageCircle size={18} className="ks-gold" />
+                  <div className="flex-1 text-left">
+                    <div className="ks-cream text-sm font-semibold">Chat miestnosti</div>
+                    <div className="ks-muted text-xs">Správy pre všetkých v miestnosti</div>
+                  </div>
+                  {(() => {
+                    const msgs = (() => { try { return JSON.parse(roomState?.chatMessages || '[]'); } catch { return []; } })();
+                    return msgs.length > 0 && <span className="ks-mono ks-muted text-xs">{msgs.length}</span>;
+                  })()}
+                </button>
+              )
+            }
           </>
         )}
 

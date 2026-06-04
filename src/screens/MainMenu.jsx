@@ -1,32 +1,34 @@
-// src/screens/MainMenu.jsx
 import React from 'react';
-import { Play, Archive as ArchiveIcon, ScrollText, Settings, ChevronRight, Wifi, WifiOff, AlertCircle } from 'lucide-react';
+import { Play, Archive as ArchiveIcon, ScrollText, Settings, ChevronRight, Wifi, WifiOff, AlertCircle, BarChart2, ScanLine } from 'lucide-react';
 import { Ornament } from '../atoms/GoldButton.jsx';
 import { useOnlineStore } from '../online/onlineStore.ts';
+import { useT } from '../lib/i18n.js';
 
 function OnlineStatusBadge({ onClick }) {
+  const t = useT();
   const status = useOnlineStore((s) => s.status);
   const map = {
-    connected: { Icon: Wifi,          color: 'text-green-400', label: 'Online' },
-    error:     { Icon: AlertCircle,   color: 'text-red-400',   label: 'Chyba'  },
+    connected: { Icon: Wifi,        color: 'text-green-400', labelKey: 'online.connected' },
+    error:     { Icon: AlertCircle, color: 'text-red-400',   labelKey: 'online.error' },
   };
-  const { Icon, color, label } = map[status] || { Icon: WifiOff, color: 'ks-muted', label: 'Offline' };
+  const { Icon, color, labelKey } = map[status] || { Icon: WifiOff, color: 'ks-muted', labelKey: 'online.offline' };
   return (
     <button
       onClick={onClick}
       className="inline-flex items-center gap-1.5 border ks-border-sub rounded-sm px-2 py-1 mt-2 ks-press"
     >
       <Icon size={12} className={color} />
-      <span className={`ks-mono text-xs ${color}`}>{label}</span>
+      <span className={`ks-mono text-xs ${color}`}>{t(labelKey)}</span>
     </button>
   );
 }
 
-export function MainMenu({ onNew, onArchive, onrules, onSettings, onResume, onOnline, active, tournamentCount }) {
+export function MainMenu({ onNew, onArchive, onStats, onrules, onSettings, onResume, onOnline, active, tournamentCount }) {
+  const t = useT();
   return (
     <div className="min-h-screen flex flex-col">
       <div className="px-6 pt-[max(14px,env(safe-area-inset-top))] pb-4 text-center ks-fade">
-        <div className="ks-gold text-xs ks-mono mb-2">★ ZALOŽENÉ 2026 by Marcel ★</div>
+        <div className="ks-gold text-xs ks-mono mb-2">{t('menu.founded')}</div>
         <h1 className="ks-display ks-gold text-5xl sm:text-6xl font-bold leading-none">
           Kocky<br/><span className="italic font-medium">sveta</span>
         </h1>
@@ -40,20 +42,21 @@ export function MainMenu({ onNew, onArchive, onrules, onSettings, onResume, onOn
             style={{ borderLeftColor: '#d4b86a' }}>
             <Play className="ks-gold" size={24} />
             <div className="text-left flex-1">
-              <div className="ks-mono ks-gold text-sm">POKRAČOVAŤ V TURNAJI</div>
+              <div className="ks-mono ks-gold text-sm">{t('menu.resume')}</div>
               <div className="ks-body ks-cream text-sm opacity-80">
-                {active.players.length} hráčov · do {(active.targetScore || 10000).toLocaleString('sk-SK')} · kolo {active.currentRound + 1}
+                {active.players.length} {t('menu.resume').includes('CONTINUE') ? 'players' : 'hráčov'} · {t('game.target').toLowerCase()} {(active.targetScore || 10000).toLocaleString()} · {t('game.round').toLowerCase()} {active.currentRound + 1}
               </div>
             </div>
             <ChevronRight className="ks-gold" size={20} />
           </button>
         )}
-        <MenuButton icon={Play}        title="Nový turnaj"
-          subtitle={active ? 'Najprv ukonči prebiehajúci turnaj' : 'Začať novú hru až pre šesť hráčov'}
+        <MenuButton icon={Play}        title={t('menu.new')}
+          subtitle={active ? t('menu.new.disabled') : t('menu.new.sub')}
           onClick={onNew} primary disabled={!!active} />
-        <MenuButton icon={ArchiveIcon} title="Archív turnajov" subtitle={`${tournamentCount || 0} uložených turnajov`} onClick={onArchive} />
-        <MenuButton icon={ScrollText}  title="Pravidlá hry"    subtitle="Bodovanie a kombinácie kociek"       onClick={onrules} />
-        <MenuButton icon={Settings}    title="Nastavenia"      subtitle="Pravidlá, export, editácia archívu"  onClick={onSettings} />
+        <MenuButton icon={ArchiveIcon} title={t('menu.archive')} subtitle={`${tournamentCount || 0} ${tournamentCount === 1 ? (t('menu.archive').includes('Archive') ? 'saved tournament' : 'uložený turnaj') : (t('menu.archive').includes('Archive') ? 'saved tournaments' : 'uložených turnajov')}`} onClick={onArchive} />
+        <MenuButton icon={BarChart2}   title={t('menu.stats')}   subtitle={t('menu.stats.sub')}   onClick={onStats} />
+        <MenuButton icon={ScrollText}  title={t('menu.rules')}   subtitle={t('menu.rules.sub')}   onClick={onrules} />
+        <MenuButton icon={Settings}    title={t('menu.settings')} subtitle={t('menu.settings.sub')} onClick={onSettings} />
       </div>
       <div className="text-center ks-muted text-xs pb-6 ks-mono">
         <Ornament />

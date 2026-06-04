@@ -1,7 +1,7 @@
 {
   "name": "kocky-sveta",
   "private": true,
-  "version": "1.5.5",
+  "version": "1.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,6 +14,9 @@
     "android:release": "npm run build && npx cap sync android",
     "postcap-sync": "node scripts/apply-android-fixes.js",
     "build-android": "npm run build && npx cap sync android && npm run postcap-sync",
+    "sync": "node scripts/sync-android.js",
+    "sync:apk": "node scripts/sync-android.js --apk",
+    "sync:release": "node scripts/sync-android.js --release",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest --coverage"

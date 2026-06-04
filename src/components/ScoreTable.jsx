@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  Dice1, Dice2, Dice3, Dice4, Dice5, Dice6,
   Plus, Minus, Trash2, Save, X, ChevronLeft,
-  BookOpen, Archive as ArchiveIcon, Settings, Trophy, Users,
-  AlertCircle, AlertTriangle, Check, Play, RotateCcw, ScrollText, Crown,
+  AlertCircle, AlertTriangle, Check, RotateCcw, Crown,
   Calendar, ChevronRight, ListPlus, Pencil, Zap, Skull, Target,
   Download, Upload, Edit3, Clock, FileSpreadsheet, ChevronDown, TrendingUp,
   Sigma, Layers, Monitor, Bell
 } from 'lucide-react';
+import { PLAYER_COLORS, getInitials } from '../lib/extensions.js';
 
-function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, target, displayMode = 'delta', onToggleMode, hideModeToolbar = false, hideModeToggle = false, compactObserver = false }) {
-  if (!tournament || !Array.isArray(tournament.players)) return null;
+function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, target, displayMode = 'delta', onToggleMode, hideModeToolbar = false, hideModeToggle = false, compactObserver = false, extensions = {} }) {
+  if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return null;
   const { players, rounds } = tournament;
   const tableRef = useRef(null);
 
@@ -20,8 +19,6 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
 
   const numRounds = Math.max(rounds.length, (tournament.currentRound ?? 0) + 1);
 
-  // Predpočítané kumulatívne stavy pre každého hráča v každom kole.
-  // V kumul. móde zobrazíme tieto namiesto delta hodnôt.
   const cumulative = useMemo(() => {
     const result = Array.from({ length: numRounds }, () => new Array(players.length).fill(null));
     const running = new Array(players.length).fill(0);
@@ -43,9 +40,11 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
     return result;
   }, [rounds, numRounds, players.length]);
 
+  const maxTotal = Math.max(...totals, 0);
+  const leaderIdx = totals.indexOf(maxTotal);
+
   return (
     <div className="ks-card rounded-sm overflow-hidden">
-      {/* Toolbar s prepínačom módu — skrytý ak je tlačidlo už v Headeri */}
       {onToggleMode && !hideModeToolbar && (
         <div className={`flex items-center justify-between border-b border-amber-900/30 bg-stone-950/60 ${compactObserver ? 'px-3 py-1' : 'px-3 py-1.5'}`}>
           <div className={`ks-display ks-gold text-center flex-1 ${compactObserver ? 'text-xs' : 'text-sm'}`}>POZOROVATEĽ · ŽIVÝ PREHĽAD SKÓRE</div>
@@ -58,7 +57,6 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
         </div>
       )}
       <div className="overflow-x-auto ks-live-table-wrap">
-        {/* inline style pre tableLayout a minWidth odstránený — riešené cez .ks-live-table v index.css */}
         <table className="border-collapse ks-live-table">
           <colgroup>
             <col style={{ width: 36 }} />
@@ -72,7 +70,22 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
               {players.map((p, i) => (
                 <th key={i}
                     className={`ks-display py-2 px-1 text-sm font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis ${i === highlightPlayer ? 'ks-gold' : 'ks-cream'}`}>
-                  {p}
+                  {extensions.coloredAvatars ? (
+                    <div className="flex flex-col items-center gap-1">
+                      <div
+                        className="rounded-full flex items-center justify-center text-[10px] font-bold"
+                        style={{
+                          width: 26, height: 26,
+                          background: PLAYER_COLORS[i % PLAYER_COLORS.length],
+                          color: '#1a1410',
+                          boxShadow: i === leaderIdx && extensions.leaderGlow ? `0 0 10px 3px ${PLAYER_COLORS[i % PLAYER_COLORS.length]}88` : 'none',
+                        }}
+                      >
+                        {getInitials(p)}
+                      </div>
+                      <span className="text-[11px] leading-none truncate max-w-[60px] block">{p}</span>
+                    </div>
+                  ) : p}
                 </th>
               ))}
             </tr>
@@ -111,23 +124,48 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
               <td className="ks-mono ks-gold text-xs py-2 px-2 text-center sticky left-0" style={{ background: 'var(--ks-sticky-bg2, rgba(10,8,6,0.98))' }}>Σ</td>
               {totals.map((t, i) => {
                 const reached = target && t >= target;
+                const isLeader = i === leaderIdx && maxTotal > 0;
+                const color = extensions.coloredAvatars ? PLAYER_COLORS[i % PLAYER_COLORS.length] : null;
                 return (
-                  <td key={i}
-                      className={`text-center py-2 px-2 ks-display text-lg font-bold ${
+                  <td key={`${i}-${extensions.animatedScore ? t : 0}`}
+                      className={`text-center py-2 px-2 ks-display text-lg font-bold ${extensions.animatedScore ? 'ks-score-in' : ''} ${
                         t < 0 ? 'text-red-300' : reached ? 'ks-gold' : i === highlightPlayer ? 'ks-gold' : 'ks-cream'
-                      }`}>
+                      }`}
+                      style={{
+                        color: extensions.coloredAvatars ? color : undefined,
+                        textShadow: extensions.leaderGlow && isLeader && maxTotal > 0
+                          ? `0 0 12px ${color || 'rgba(212,184,106,0.8)'}, 0 0 24px ${color || 'rgba(212,184,106,0.4)'}44`
+                          : undefined,
+                      }}>
                     {t.toLocaleString('sk-SK')}
                   </td>
                 );
               })}
             </tr>
+            {extensions.progressBar && target && (
+              <tr>
+                <td style={{ background: 'var(--ks-sticky-bg2, rgba(10,8,6,0.98))' }} />
+                {totals.map((t, i) => {
+                  const pct = Math.min(100, Math.max(0, (t / target) * 100));
+                  const color = PLAYER_COLORS[i % PLAYER_COLORS.length];
+                  return (
+                    <td key={i} className="px-1 pb-1.5 pt-0.5">
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%`, background: color }}
+                        />
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            )}
           </tfoot>
         </table>
       </div>
     </div>
   );
 }
-
-// ─── Modal + tabuľka poradia ──────────────────────────────────────────────
 
 export default React.memo(ScoreTable);

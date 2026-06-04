@@ -4,7 +4,7 @@ import { Crown } from 'lucide-react';
 const PLAYER_COLORS = ['#d4b86a','#e07070','#7eb8e0','#7ede9a','#e0a870','#b07ee0','#e0d870','#70e0d4'];
 
 export function ProgressChart({ tournament, totals, target }) {
-  if (!tournament || !Array.isArray(tournament.players)) return null;
+  if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return null;
   const { players, rounds } = tournament;
   const [tooltip, setTooltip] = useState(null);
 

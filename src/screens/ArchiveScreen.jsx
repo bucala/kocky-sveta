@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { ChevronLeft, Trash2, Edit3, TrendingUp, Sigma, ChevronDown, ChevronRight, Crown, ScrollText, Clock, Calendar } from 'lucide-react';
+import { ChevronLeft, Trash2, Edit3, TrendingUp, Sigma, ChevronDown, ChevronRight, Crown, ScrollText, Clock, Calendar, ScanLine } from 'lucide-react';
 import { Header, GoldButton, StatusBanner } from '../atoms/index.js';
 import { SKIN_PRESETS } from '../constants/skins.js';
 import { formatDateTime, formatDuration } from '../lib/gameEngine.js';
 import { computeTotals, computeWinners } from './TournamentScreen.jsx';
 import ScoreTable from '../components/ScoreTable.jsx';
-export function ArchiveScreen({ tournaments, onBack, onView, onDelete, readOnly }) {
+export function ArchiveScreen({ tournaments, onBack, onView, onDelete, onScan, readOnly }) {
   return (
     <div className="min-h-screen ks-fade pb-8">
-      <Header title={readOnly ? 'Archív turnajov' : 'Editácia archívu'} onBack={onBack} />
+      <Header title={readOnly ? 'Archív turnajov' : 'Editácia archívu'} onBack={onBack}
+        right={onScan && (
+          <button onClick={onScan} className="ks-press flex items-center gap-1.5 border ks-border-sub px-2.5 py-1.5 rounded-sm ks-gold text-xs ks-mono">
+            <ScanLine size={14} /> SKEN
+          </button>
+        )}
+      />
       <div className="p-4 max-w-2xl mx-auto">
         {!readOnly && (
           <div className="ks-card rounded-sm p-3 mb-3 ks-body text-xs ks-muted italic flex items-start gap-2">

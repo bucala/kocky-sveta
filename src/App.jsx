@@ -6,7 +6,7 @@ import {
   AlertCircle, AlertTriangle, Check, Play, RotateCcw, ScrollText, Crown,
   Calendar, ChevronRight, ListPlus, Pencil, Zap, Skull, Target,
   Download, Upload, Edit3, Clock, FileSpreadsheet, ChevronDown, TrendingUp,
-  Sigma, Layers, Monitor, Bell, Wifi, Info, Shield
+  Sigma, Layers, Monitor, Bell, Wifi, Info, Shield, ScanLine
 } from 'lucide-react';
 // XLSX sa načíta lazy pri prvom použití
 import { Capacitor } from '@capacitor/core';
@@ -20,10 +20,17 @@ import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
 import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
 import { OnlineScreen } from './screens/OnlineScreen.jsx';
 import { AdminScreen, AdminPinDialog, DEFAULT_ADMIN_SETTINGS } from './screens/AdminScreen.jsx';
+import { PlayerStatsScreen } from './screens/PlayerStatsScreen.jsx';
+import { ScanImportScreen } from './screens/ScanImportScreen.jsx';
+import { getAuth, signInAnonymously } from 'firebase/auth';
+import { createRoom } from './online/createRoom.ts';
 import { useOnlineStore } from './online/onlineStore.ts';
 import { useRoomSubscription } from './online/useRoomSubscription.ts';
 import { computeWinners, computePlayerTotals as computeTotals } from './lib/tournamentEngine.js';
 import { sounds } from './lib/sounds.js';
+import { DEFAULT_EXTENSIONS, hapticFeedback, MILESTONE_VALUES } from './lib/extensions.js';
+import { LangContext, useT } from './lib/i18n.js';
+import { Confetti } from './components/Confetti.jsx';
 import { BrawlBackground } from './components/BrawlBackground.jsx';
 import './app.css';
 
@@ -231,7 +238,7 @@ function skinVarsCss(selectedSkin, selectedFont) {
   return css;
 }
 
-const QUICK_VALUES = [50, 100, 300, 400, 500, 600, 1000, 1500, 2000];
+const DEFAULT_QUICK_VALUES = [50, 100, 300, 400, 500, 600, 1000, 1500, 2000];
 const PENALTY_VALUE = -1000;
 
 const TARGET_OPTIONS = [
@@ -546,6 +553,10 @@ export default function App() {
   const [selectedFont, setSelectedFont] = useState('default');
   const [soundsEnabled, setSoundsEnabled] = useState(true);
   const [animationsEnabled, setAnimationsEnabled] = useState(true);
+  const [quickValues, setQuickValues] = useState(DEFAULT_QUICK_VALUES);
+  const [knownPlayers, setKnownPlayers] = useState(['Marcel', 'Robo', 'Tomáš', 'Jiří', 'Olino', 'Viki', 'Dedko', 'Jarka']);
+  const [extensions, setExtensions] = useState(DEFAULT_EXTENSIONS);
+  const [lang, setLang] = useState('sk');
 
   const [scoreDisplayMode, setScoreDisplayMode] = useState('delta');
   const [tournamentViewMode, setTournamentViewMode] = useState('basic');
@@ -642,6 +653,10 @@ export default function App() {
       }
       try { const se = await window.storage.get('soundsEnabled'); if (se?.value) setSoundsEnabled(JSON.parse(se.value)); } catch {}
       try { const ae = await window.storage.get('animationsEnabled'); if (ae?.value) setAnimationsEnabled(JSON.parse(ae.value)); } catch {}
+      try { const qv = await window.storage.get('quickValues'); if (qv?.value) { const parsed = JSON.parse(qv.value); if (Array.isArray(parsed) && parsed.length > 0) setQuickValues(parsed); } } catch {}
+      try { const kp = await window.storage.get('knownPlayers'); if (kp?.value) { const parsed = JSON.parse(kp.value); if (Array.isArray(parsed) && parsed.length > 0) setKnownPlayers(parsed); } } catch {}
+      try { const ex = await window.storage.get('extensions'); if (ex?.value) setExtensions(prev => ({ ...prev, ...JSON.parse(ex.value) })); } catch {}
+      try { const lg = await window.storage.get('lang'); if (lg?.value) setLang(JSON.parse(lg.value)); } catch {}
       try { const t = await window.storage.get('tournaments'); if (t?.value) setTournaments(JSON.parse(t.value)); } catch {}
       try { const a = await window.storage.get('active');      if (a?.value) setActive(JSON.parse(a.value)); }       catch {}
       try { const as = await window.storage.get('adminSettings'); if (as?.value) setAdminSettings(JSON.parse(as.value)); } catch {}
@@ -659,6 +674,10 @@ export default function App() {
     try { localStorage.setItem('ks-skin', selectedSkin); } catch {}
   }, [selectedSkin, loaded]);
   useEffect(() => { if (loaded) window.storage.set('soundsEnabled', JSON.stringify(soundsEnabled)).catch(() => {}); }, [soundsEnabled, loaded]);
+  useEffect(() => { if (loaded) window.storage.set('quickValues', JSON.stringify(quickValues)).catch(() => {}); }, [quickValues, loaded]);
+  useEffect(() => { if (loaded) window.storage.set('knownPlayers', JSON.stringify(knownPlayers)).catch(() => {}); }, [knownPlayers, loaded]);
+  useEffect(() => { if (loaded) window.storage.set('extensions', JSON.stringify(extensions)).catch(() => {}); }, [extensions, loaded]);
+  useEffect(() => { if (loaded) window.storage.set('lang', JSON.stringify(lang)).catch(() => {}); }, [lang, loaded]);
   useEffect(() => { if (loaded) window.storage.set('animationsEnabled', JSON.stringify(animationsEnabled)).catch(() => {}); }, [animationsEnabled, loaded]);
   useEffect(() => { sounds.setEnabled(soundsEnabled); }, [soundsEnabled]);
 
@@ -924,6 +943,48 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSkin, onlineRoomId, loaded]);
 
+  // ── knownPlayers ↔ Firestore room sync ───────────────────────────────────
+  const lastWrittenKnownPlayersRef = useRef(null);
+  const syncKnownPlayersRef = useRef(knownPlayers);
+  useEffect(() => { syncKnownPlayersRef.current = knownPlayers; }, [knownPlayers]);
+
+  // Read from room
+  useEffect(() => {
+    if (!onlineRoomId || !onlineRoomState) return;
+    const remoteRaw = onlineRoomState.knownPlayers;
+    if (!remoteRaw || remoteRaw === lastWrittenKnownPlayersRef.current) return;
+    try {
+      const parsed = JSON.parse(remoteRaw);
+      if (Array.isArray(parsed)) {
+        lastWrittenKnownPlayersRef.current = remoteRaw;
+        setKnownPlayers(parsed);
+      }
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlineRoomId, onlineRoomState]);
+
+  // Write to room
+  useEffect(() => {
+    if (!loaded || !onlineRoomId) return;
+    if (!hasSeenSnapshotRef.current) return;
+    const newJson = JSON.stringify(knownPlayers);
+    if (newJson === lastWrittenKnownPlayersRef.current) return;
+    const timer = setTimeout(() => {
+      const cur = syncKnownPlayersRef.current;
+      const curJson = JSON.stringify(cur);
+      if (curJson === lastWrittenKnownPlayersRef.current) return;
+      lastWrittenKnownPlayersRef.current = curJson;
+      import('./online/updateGameState.ts').then(({ updateGameState }) => {
+        updateGameState(onlineRoomId, { knownPlayers: curJson }).catch((e) => {
+          console.error('[sync] knownPlayers write failed:', e);
+          lastWrittenKnownPlayersRef.current = null;
+        });
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [knownPlayers, onlineRoomId, loaded]);
+
   const minWriteOff = useMemo(() => {
     const r = rules.find(x => x.id === 'r14');
     return r ? Number(r.points) || 300 : 300;
@@ -1010,8 +1071,6 @@ export default function App() {
     const customId = adminSettings.roomName?.toUpperCase().trim();
     if (!customId) { window.alert('Zadaj názov miestnosti.'); return; }
     try {
-      const { getAuth, signInAnonymously } = await import('firebase/auth');
-      const { createRoom } = await import('./online/createRoom.ts');
       const auth = getAuth();
       await auth.authStateReady();
       if (!auth.currentUser) await signInAnonymously(auth);
@@ -1021,6 +1080,7 @@ export default function App() {
         selectedSkin: selectedSkin || 'classic',
         rules: rules || [],
         customRoomId: customId,
+        knownPlayers,
       });
       setOnlineRoomId(rid);
       setOnlineUid(uid);
@@ -1471,6 +1531,7 @@ function startTournament(players, targetScore) {
   }
 
   return (
+    <LangContext.Provider value={lang}>
     <div className="ks-bg min-h-screen ks-cream ks-body" data-skin={selectedSkin} data-animations={animationsEnabled ? 'on' : 'off'} style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
       <style>{skinVarsCss(selectedSkin, selectedFont)}</style>
       <style>{`:root { --ks-popup-offset: ${POPUP_CONFIG.VERTICAL_OFFSET}; --ks-popup-opacity: ${POPUP_CONFIG.OPACITY}; }`}</style>
@@ -1480,6 +1541,7 @@ function startTournament(players, targetScore) {
         <MainMenu
           onNew={() => setView('newTournament')}
           onArchive={() => { setArchiveReturnTo('menu'); setView('archive'); }}
+          onStats={() => setView('playerStats')}
           onrules={() => setView('rules')}
           onSettings={() => setView('settings')}
           onOnline={() => setView('online')}
@@ -1497,6 +1559,7 @@ function startTournament(players, targetScore) {
           onImport={importFromExcel}
           onClearAll={clearAllData}
           onArchive={() => { setArchiveReturnTo('settings'); setView('archive'); }}
+          onScan={() => setView('scan')}
           tournamentCount={tournaments.length}
           selectedSkin={selectedSkin}
           onSkinChange={setSelectedSkin}
@@ -1547,9 +1610,13 @@ function startTournament(players, targetScore) {
           onSoundsToggle={() => setSoundsEnabled(v => !v)}
           animationsEnabled={animationsEnabled}
           onAnimationsToggle={() => setAnimationsEnabled(v => !v)}
+          extensions={extensions}
+          onExtensionsChange={setExtensions}
+          lang={lang}
+          onLangChange={setLang}
         />
       )}
-      {view === 'newTournament' && <NewTournament onBack={() => setView('menu')} onStart={startTournament} />}
+      {view === 'newTournament' && <NewTournament onBack={() => setView('menu')} onStart={startTournament} knownPlayers={knownPlayers} onKnownPlayersChange={setKnownPlayers} />}
       {view === 'tournament' && (active ? (
          <TournamentScreen
             tournament={active} rules={rules}
@@ -1567,6 +1634,10 @@ function startTournament(players, targetScore) {
             minWriteOffOverride={adminSettings.minWriteOffOverride}
             canUndo={undoStack.length > 0}
             onUndo={handleUndo}
+            isOnline={!!onlineRoomId}
+            quickValues={quickValues}
+            onQuickValuesChange={setQuickValues}
+            extensions={extensions}
           />
         ) : (
           <SafeTournamentFallback title="Turnaj sa nepodarilo načítať" />
@@ -1576,7 +1647,17 @@ function startTournament(players, targetScore) {
           onBack={() => setView(archiveReturnTo)}
           onView={(t) => { setViewingTournament(t); setView('archiveDetail'); }}
           onDelete={(id) => { if (window.confirm('Vymazať tento turnaj z archívu?')) setTournaments(prev => prev.filter(x => x.id !== id)); }}
+          onScan={() => setView('scan')}
           readOnly={archiveReturnTo === 'menu'}
+        />
+      )}
+      {view === 'scan' && (
+        <ScanImportScreen
+          onBack={() => setView('archive')}
+          onImport={(tournament) => {
+            setTournaments(prev => [tournament, ...(Array.isArray(prev) ? prev : [])]);
+            setView('archive');
+          }}
         />
       )}
       {view === 'archiveDetail' && (viewingTournament ? (
@@ -1595,6 +1676,9 @@ function startTournament(players, targetScore) {
       {view === 'rules' && <RulesView rules={rules} onBack={() => setView('menu')} />}
       {view === 'online' && <OnlineScreen onBack={() => setView('menu')} activeSkin={selectedSkin} activeRules={rules} defaultRoomName={adminSettings.roomName} />
       }
+      {view === 'playerStats' && (
+        <PlayerStatsScreen tournaments={tournaments} onBack={() => setView('menu')} />
+      )}
       {view === 'rulesEditor' && (
         <RulesEditor rules={rules} onSave={setrules} onBack={() => setView('settings')}
           onReset={() => { if (window.confirm('Obnoviť všetky pravidlá na pôvodné nastavenia?')) setrules(DEFAULT_RULES); }}
@@ -1655,6 +1739,7 @@ function startTournament(players, targetScore) {
         </div>
       )}
     </div>
+    </LangContext.Provider>
   );
 }
 
@@ -1666,7 +1751,8 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
 
 // ─── Vizuál, Zvuky a Skiny submenu ───────────────────────────────────────────────
 
-function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin, onShowEgg }) {
+function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, onScan, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin, onShowEgg }) {
+  const t = useT();
   const fileInputRef = useRef(null);
   const [eggClicks, setEggClicks] = useState(0);
 
@@ -1684,7 +1770,7 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
 
   return (
     <div className="min-h-screen ks-fade pb-8">
-      <Header title="Nastavenia" onBack={onBack} />
+      <Header title={t('settings.title')} onBack={onBack} />
       <div className="p-4 max-w-2xl mx-auto space-y-3">
 
         <div className="ks-mono ks-gold text-xs px-1 pt-3">ONLINE</div>
@@ -1694,33 +1780,33 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
             <Wifi size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Online miestnosť</div>
-            <div className="ks-muted text-sm">Synchronizácia hry, archívu a skinu cez Firebase</div>
+            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.online')}</div>
+            <div className="ks-muted text-sm">{t('settings.online.sub')}</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
 
-        <div className="ks-mono ks-gold text-xs px-1 pt-3">PRAVIDLÁ A HODNOTY HRY</div>
+        <div className="ks-mono ks-gold text-xs px-1 pt-3">{t('settings.rules.section')}</div>
         <button onClick={onRulesEditor}
           className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
           <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
             <Settings size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Úprava pravidiel</div>
+            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.rules')}</div>
             <div className="ks-muted text-sm">Bodové kombinácie · cieľ · prvý zápis · koncovka · potvrdenie výhry · penalizácia</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
 
-        <div className="ks-mono ks-gold text-xs px-1 pt-3">VIZUÁL, ZVUKY A SKINY</div>
+        <div className="ks-mono ks-gold text-xs px-1 pt-3">{t('settings.visual.section')}</div>
         <button onClick={onViewModes}
           className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
           <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
             <Monitor size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Režim zobrazenia hry</div>
+            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.viewmode')}</div>
             <div className="ks-muted text-sm">{tournamentViewMode === 'observer' ? 'Pozorovateľ' : tournamentViewMode === 'recorder' ? 'Zapisovateľ' : 'Klasický'}</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
@@ -1732,15 +1818,15 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
               <Bell size={22} className="ks-gold" />
             </div>
             <div className="flex-1">
-              <div className="ks-display ks-cream text-xl font-semibold">Štýl oznámení</div>
-              <div className="ks-muted text-sm">Fullscreen funny okná, malé popupy alebo potlačený režim</div>
+              <div className="ks-display ks-cream text-xl font-semibold">{t('settings.funnymode')}</div>
+              <div className="ks-muted text-sm">{t('settings.funnymode.sub')}</div>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2">
             {[
-              ['standard','Štandardný'],
-              ['simplified','Zjednodušený'],
-              ['suppressed','Potlačený']
+              ['standard', t('settings.funnymode.standard')],
+              ['simplified', t('settings.funnymode.simplified')],
+              ['suppressed', t('settings.funnymode.suppressed')]
             ].map(([value,label]) => (
               <button key={value} onClick={() => onFunnyWindowsDisplayModeChange(value)}
                 className={`ks-press px-3 py-2 rounded-sm text-sm ${funnyWindowsDisplayMode === value ? 'ks-gold-bg' : 'border ks-border-sub ks-card ks-cream'}`}>
@@ -1756,13 +1842,13 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
             <Layers size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Vizuál, Zvuky a Skiny</div>
-            <div className="ks-muted text-sm">Farby, písmo a vzhľad aplikácie</div>
+            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.visual')}</div>
+            <div className="ks-muted text-sm">{t('settings.visual.sub')}</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
 
-        <div className="ks-mono ks-gold text-xs px-1 pt-3">SPRÁVA TURNAJOV</div>
+        <div className="ks-mono ks-gold text-xs px-1 pt-3">{t('settings.archive.section')}</div>
 
         <button onClick={onExport} disabled={!tournamentCount}
           className={`ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left ${!tournamentCount ? 'opacity-40 cursor-not-allowed' : ''}`}>
@@ -1801,8 +1887,20 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
             <Edit3 size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Editácia archívu</div>
-            <div className="ks-muted text-sm">Otvor turnaj a klepni „Upraviť" — body, víťaza, kolá</div>
+            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.edit.archive')}</div>
+            <div className="ks-muted text-sm">{t('settings.edit.archive.sub')}</div>
+          </div>
+          <ChevronRight className="ks-muted" size={20} />
+        </button>
+
+        <button onClick={onScan}
+          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
+          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
+            <ScanLine size={22} className="ks-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.scan')}</div>
+            <div className="ks-muted text-sm">{t('settings.scan.sub')}</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
@@ -1813,14 +1911,14 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
             <Shield size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Admin nastavenia</div>
-            <div className="ks-muted text-sm">Interné nastavenia · debug · override · diagnostika</div>
+            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.admin')}</div>
+            <div className="ks-muted text-sm">{t('settings.admin.sub')}</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
 
         <div className="ks-mono ks-text-accent text-xs px-1 pt-4 flex items-center gap-1.5">
-          <AlertTriangle size={11} /> NEBEZPEČNÁ ZÓNA
+          <AlertTriangle size={11} /> {t('settings.danger')}
         </div>
 
         <button onClick={onClearAll}
@@ -1829,7 +1927,7 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
             <Trash2 size={22} className="ks-text-accent" />
           </div>
           <div className="flex-1">
-            <div className="ks-display ks-text-accent text-xl font-semibold">Vymazať všetky dáta</div>
+            <div className="ks-display ks-text-accent text-xl font-semibold">{t('settings.clear')}</div>
             <div className="ks-text-accent/70 text-sm">Archív, rozohraná hra, pravidlá — nenávratná akcia</div>
           </div>
           <ChevronRight className="ks-text-accent" size={20} />
@@ -1952,7 +2050,8 @@ function useFunnyQueue() {
 function TournamentScreen({
   tournament, rules, onUpdate, onFinish, onAbort, onMenu,
   scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange,
-  tournamentViewMode, funnyWindowsDisplayMode, debugMode, minWriteOffOverride
+  tournamentViewMode, funnyWindowsDisplayMode, debugMode, minWriteOffOverride,
+  isOnline, quickValues, onQuickValuesChange, extensions = {}
 }) {
   // Early null guard — before destructuring to prevent crash
   if (!tournament) return <SafeTournamentFallback />;
@@ -1966,6 +2065,9 @@ function TournamentScreen({
   const [customInput, setCustomInput] = useState('');
   const [showrules, setShowrules] = useState(false);
   const [showStandings, setShowStandings] = useState(false);
+  const [showQVEditor, setShowQVEditor] = useState(false);
+  const [qvInput, setQVInput] = useState('');
+  const qv = Array.isArray(quickValues) && quickValues.length > 0 ? quickValues : DEFAULT_QUICK_VALUES;
   const [toast, setToast] = useState(null);
   const funnyQueue = useFunnyQueue();
   const funny = funnyQueue.active;
@@ -1973,8 +2075,29 @@ function TournamentScreen({
   const [temporaryKingToken, setTemporaryKingToken] = useState(null);
   const [deferTemporaryKingUntilWinPopupCloses, setDeferTemporaryKingUntilWinPopupCloses] = useState(false);
   const [winnerCelebration, setWinnerCelebration] = useState(null);
+  const t = useT();
   const funnyCountRef = useRef(players.map(() => 0));
   const endgameNoticedRef = useRef(new Set());
+  const prevPlayerRef = useRef(currentPlayer);
+  const prevTotalsRef = useRef(players.map(() => 0));
+  const [milestoneFlash, setMilestoneFlash] = useState(null);
+
+  useEffect(() => {
+    if (!isOnline) { prevPlayerRef.current = currentPlayer; return; }
+    if (currentPlayer !== prevPlayerRef.current) {
+      prevPlayerRef.current = currentPlayer;
+      const name = players[currentPlayer] || `Hráč ${currentPlayer + 1}`;
+      if (extensions.turnNotification) {
+        setToast({ msg: `Na rade: ${name}`, kind: 'info' });
+        const t = setTimeout(() => setToast(null), 3500);
+        sounds.playTurn();
+        return () => clearTimeout(t);
+      } else {
+        sounds.playTurn();
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlayer, isOnline]);
 
   const totals = useMemo(
     () => computeTotals(rounds, players.length),
@@ -2353,6 +2476,7 @@ function TournamentScreen({
         pendingDecision: null,
       };
     });
+    if (extensions.haptic) hapticFeedback();
     setPending([]);
     setCustomInput('');
   }
@@ -2386,6 +2510,26 @@ function TournamentScreen({
     }, 400);
     return () => clearTimeout(t);
   }, [currentPlayer, currentRound, isEndgame, isConfirmationTurn, exactNeeded]);
+
+  useEffect(() => {
+    if (!extensions.milestoneFlash) { prevTotalsRef.current = [...totals]; return; }
+    let flashed = false;
+    for (let p = 0; p < players.length; p++) {
+      const prev = prevTotalsRef.current[p] ?? 0;
+      const curr = totals[p] ?? 0;
+      if (curr > prev) {
+        const crossed = MILESTONE_VALUES.filter(m => prev < m && curr >= m);
+        if (crossed.length > 0 && !flashed) {
+          flashed = true;
+          const val = crossed[crossed.length - 1];
+          setMilestoneFlash({ player: players[p], value: val });
+          setTimeout(() => setMilestoneFlash(null), 1800);
+        }
+      }
+    }
+    prevTotalsRef.current = [...totals];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totals]);
 
 const isObserverMode = tournamentViewMode === 'observer';
 const isRecorderMode = tournamentViewMode === 'recorder';
@@ -2424,7 +2568,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
                   ? <Sigma size={16} />
                   : <Layers size={16} />}
               </button>
-              <button onClick={onAbort} className="ks-press ks-text-accent px-2 py-1 text-xs ks-mono">ZRUŠIŤ</button>
+              <button onClick={onAbort} className="ks-press ks-text-accent px-2 py-1 text-xs ks-mono">{t('game.abort')}</button>
             </div>
           }
         />
@@ -2436,7 +2580,8 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
             <div className="h-full overflow-auto [font-size:clamp(18px,2.3vw,34px)]">
               <ScoreTable tournament={tournament} totals={totals} highlightPlayer={currentPlayer}
                           pendingPreview={pendingSum > 0 ? pendingSum : 0} target={target}
-                          displayMode={scoreDisplayMode} onToggleMode={onToggleScoreMode} hideModeToolbar={false} hideModeToggle={true} compactObserver={true} />
+                          displayMode={scoreDisplayMode} onToggleMode={onToggleScoreMode} hideModeToolbar={false} hideModeToggle={true} compactObserver={true}
+                          extensions={extensions} />
             </div>
           </div>
         </div>
@@ -2445,20 +2590,20 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
           <div className="flex items-center justify-between gap-2 mb-2">
             <button onClick={onMenu} className="ks-press ks-cream flex items-center gap-1 px-2 py-1"><ChevronLeft size={20} /><span className="ks-body">Späť</span></button>
             <div className="ks-display ks-gold text-lg text-center">{players[currentPlayer]}</div>
-            <button onClick={onAbort} className="ks-press ks-card px-3 py-2 rounded-sm ks-mono text-xs ks-text-accent">ZRUŠIŤ</button>
+            <button onClick={onAbort} className="ks-press ks-card px-3 py-2 rounded-sm ks-mono text-xs ks-text-accent">{t('game.abort')}</button>
           </div>
           <div className="ks-card-prom rounded-sm p-4 mb-2">
             <div className="flex items-baseline justify-between mb-2">
-              <div className="ks-mono ks-gold text-xs">NA ŤAHU · KOLO {currentRound + 1}</div>
-              <div className="ks-mono ks-muted text-xs">CIEĽ {target.toLocaleString('sk-SK')}</div>
+              <div className="ks-mono ks-gold text-xs">{t('game.turn')} · {t('game.round')} {currentRound + 1}</div>
+              <div className="ks-mono ks-muted text-xs">{t('game.target')} {target.toLocaleString('sk-SK')}</div>
             </div>
             <div className="flex items-end justify-between gap-3 mb-1">
               <div className="flex-1 min-w-0">
-                <div className="ks-mono ks-muted text-[10px] mb-0.5">HRÁČ</div>
+                <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.player')}</div>
                 <div className="ks-display text-4xl ks-cream font-bold leading-tight truncate">{players[currentPlayer]}</div>
               </div>
               <div className="text-right shrink-0">
-                <div className="ks-mono ks-muted text-[10px] mb-0.5">AKTUÁLNE SKÓRE</div>
+                <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.score')}</div>
                 <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'ks-text-accent' : 'ks-gold'}`} style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
                   {total.toLocaleString('sk-SK')}
                 </div>
@@ -2496,9 +2641,35 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
             <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">Zapísať</GoldButton>
           </div>
           <div className="ks-card-sub rounded-sm p-4 flex-1">
-            <div className="ks-mono ks-muted text-xs mb-3">PRIDAJ BODY Z HODU</div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="ks-mono ks-muted text-xs">PRIDAJ BODY Z HODU</div>
+              <button onClick={() => setShowQVEditor(v => !v)} className="ks-press ks-muted hover:ks-cream p-0.5"><Edit3 size={13} /></button>
+            </div>
+            {showQVEditor && onQuickValuesChange && (
+              <div className="mb-3 p-2.5 border ks-border-sub rounded-sm bg-stone-950/60 space-y-2">
+                <div className="ks-mono ks-muted text-xs">UPRAVIŤ TLAČIDLÁ</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {qv.map(v => (
+                    <button key={v} onClick={() => onQuickValuesChange(qv.filter(x => x !== v))}
+                      className="ks-press px-2 py-0.5 rounded-sm border ks-border-sub ks-cream text-xs flex items-center gap-1">
+                      {v} <X size={10} className="ks-muted" />
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-1.5">
+                  <input type="number" value={qvInput} onChange={e => setQVInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { const n = parseInt(qvInput, 10); if (n > 0 && !qv.includes(n)) { onQuickValuesChange([...qv, n].sort((a,b) => a-b)); setQVInput(''); } } }}
+                    placeholder="Pridaj hodnotu…" min="1" max="9999"
+                    className="flex-1 bg-transparent border ks-border-sub rounded-sm px-2 py-1 ks-cream text-xs outline-none" />
+                  <button onClick={() => { const n = parseInt(qvInput, 10); if (n > 0 && !qv.includes(n)) { onQuickValuesChange([...qv, n].sort((a,b) => a-b)); setQVInput(''); } }}
+                    className="ks-press ks-gold-bg px-2 py-1 rounded-sm text-black text-xs font-semibold">+</button>
+                  <button onClick={() => onQuickValuesChange(DEFAULT_QUICK_VALUES)}
+                    className="ks-press border ks-border-sub px-2 py-1 rounded-sm ks-muted text-xs">Reset</button>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-3 gap-2 mb-3">
-              {QUICK_VALUES.map(v => (
+              {qv.map(v => (
                 <button key={v} onClick={() => addPoints(v)} className="ks-press border ks-border-sub bg-stone-950/40 hover:bg-stone-900/60 py-2.5 rounded-sm ks-display ks-cream text-lg font-semibold">+{v}</button>
               ))}
             </div>
@@ -2522,24 +2693,25 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
       <div className="px-3 pt-3">
         <ScoreTable tournament={tournament} totals={totals} highlightPlayer={currentPlayer}
                     pendingPreview={pendingSum > 0 ? pendingSum : 0} target={target}
-                    displayMode={scoreDisplayMode} onToggleMode={onToggleScoreMode} hideModeToolbar={true} />
+                    displayMode={scoreDisplayMode} onToggleMode={onToggleScoreMode} hideModeToolbar={true}
+                    extensions={extensions} />
       </div>
 
       <div className="px-4 mt-4">
         <div className="ks-card-prom rounded-sm p-4">
           <div className="flex items-baseline justify-between mb-2">
-            <div className="ks-mono ks-gold text-xs">NA ŤAHU · KOLO {currentRound + 1}</div>
-            <div className="ks-mono ks-muted text-xs">CIEĽ {target.toLocaleString('sk-SK')}</div>
+            <div className="ks-mono ks-gold text-xs">{t('game.turn')} · {t('game.round')} {currentRound + 1}</div>
+            <div className="ks-mono ks-muted text-xs">{t('game.target')} {target.toLocaleString('sk-SK')}</div>
           </div>
           <div className="flex items-end justify-between gap-3 mb-1">
             <div className="flex-1 min-w-0">
-              <div className="ks-mono ks-muted text-[10px] mb-0.5">HRÁČ</div>
+              <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.player')}</div>
               <div className="ks-display text-4xl ks-cream font-bold leading-tight truncate">
                 {players[currentPlayer]}
               </div>
             </div>
             <div className="text-right shrink-0">
-              <div className="ks-mono ks-muted text-[10px] mb-0.5">AKTUÁLNE SKÓRE</div>
+              <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.score')}</div>
               <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'ks-text-accent' : 'ks-gold'}`}
                    style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
                 {total.toLocaleString('sk-SK')}
@@ -2614,7 +2786,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
               <div className="ks-mono ks-muted text-xs mb-3">PRIDAJ BODY Z HODU</div>
 
               <div className="grid grid-cols-3 gap-2 mb-3">
-                {QUICK_VALUES.map(v => (
+                {qv.map(v => (
                   <button key={v} onClick={() => addPoints(v)}
                     className="ks-press border ks-border-sub bg-stone-950/40 hover:bg-stone-900/60 py-2.5 rounded-sm ks-display ks-cream text-lg font-semibold">
                     +{v}
@@ -2719,25 +2891,57 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
         />
       )}
 
+      {/* Konfety */}
+      <Confetti active={!!(winnerCelebration && extensions.confetti)} />
+
+      {/* Míľnik flash */}
+      {milestoneFlash && (
+        <div className="fixed inset-0 z-[80] pointer-events-none flex items-center justify-center">
+          <div className="ks-milestone-in absolute text-center px-6 py-4 rounded-lg"
+               style={{ left: '50%', top: '38%', background: 'rgba(14,12,10,0.92)', border: '2px solid var(--ks-accent,#d4b86a)' }}>
+            <div className="text-4xl mb-1">⚡</div>
+            <div className="ks-mono ks-gold text-xs tracking-widest mb-1">{t('milestone.label')}</div>
+            <div className="ks-display text-2xl font-bold ks-cream">{milestoneFlash.player}</div>
+            <div className="ks-display ks-gold text-3xl font-bold">{milestoneFlash.value.toLocaleString('sk-SK')}</div>
+          </div>
+        </div>
+      )}
+
       {/* VÍŤAZSTVO / REMÍZA — celoobrazovkové, nezávisle na queue */}
       {winnerCelebration && funnyWindowsDisplayMode === 'standard' && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-6 ks-overlay-bg" style={{ background: 'var(--ks-overlay-dark, radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98)))' }}>
-          <div className="ks-funny relative z-10 text-center max-w-md">
-            <div className="text-7xl mb-3 ks-funny-emoji">{winnerCelebration.isDraw ? '👑👑' : '👑'}</div>
-            <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">
-              {winnerCelebration.isDraw
-                ? `REMÍZA — ${winnerCelebration.winnerArr.length} VÍŤAZI`
-                : 'VÍŤAZ'}
+          {extensions.dramaticWinner ? (
+            <div className="relative z-10 text-center max-w-md">
+              <div className="ks-dramatic-win text-8xl mb-4" style={{ display: 'inline-block' }}>
+                {winnerCelebration.isDraw ? '👑👑' : '🏆'}
+              </div>
+              <div className="ks-mono ks-gold text-sm mb-2 tracking-[0.3em]">
+                {winnerCelebration.isDraw ? `REMÍZA · ${winnerCelebration.winnerArr.length} VÍŤAZI` : '· VÍŤAZ ·'}
+              </div>
+              <div className="ks-dramatic-name ks-display font-bold ks-cream leading-tight px-2"
+                   style={{ fontSize: 'clamp(2rem, 8vw, 3.5rem)', textShadow: '0 4px 32px rgba(212,184,106,0.6), 0 0 60px rgba(212,184,106,0.3)' }}>
+                {winnerCelebration.winnerArr.map(idx => players[idx]).join(' & ')}
+              </div>
+              <div className="ks-mono ks-gold text-base mt-3 opacity-80">
+                {winnerCelebration.winnerArr.map(idx => (totals[idx] || 0).toLocaleString('sk-SK')).join(' / ')} b.
+              </div>
             </div>
-            <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2">
-              {winnerCelebration.isDraw ? 'Víťazi' : 'Víťaz'}
+          ) : (
+            <div className="ks-funny relative z-10 text-center max-w-md">
+              <div className="text-7xl mb-3 ks-funny-emoji">{winnerCelebration.isDraw ? '👑👑' : '👑'}</div>
+              <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">
+                {winnerCelebration.isDraw ? `REMÍZA — ${winnerCelebration.winnerArr.length} VÍŤAZI` : 'VÍŤAZ'}
+              </div>
+              <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2">
+                {winnerCelebration.isDraw ? 'Víťazi' : 'Víťaz'}
+              </div>
+              <div className="ks-body ks-cream text-base mb-1 leading-snug">
+                {winnerCelebration.winnerArr.map(idx =>
+                  `${players[idx]} (${(totals[idx] || 0).toLocaleString('sk-SK')})`
+                ).join(', ')}
+              </div>
             </div>
-            <div className="ks-body ks-cream text-base mb-1 leading-snug">
-              {winnerCelebration.winnerArr.map(idx =>
-                `${players[idx]} (${(totals[idx] || 0).toLocaleString('sk-SK')})`
-              ).join(', ')}
-            </div>
-          </div>
+          )}
         </div>
       )}
       {winnerCelebration && funnyWindowsDisplayMode === 'simplified' && (
