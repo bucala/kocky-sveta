@@ -57,7 +57,7 @@ export default async function handler(req, res) {
   }
 
   const anthropicBody = {
-    model: 'claude-3-haiku-20240307',
+    model: 'claude-sonnet-4-6',
     max_tokens: 2048,
     system: SYSTEM,
     messages: [{
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
 
     if (!resp.ok) {
       const errText = await resp.text();
-      return res.status(502).json({ error: `Anthropic ${resp.status}: ${errText}` });
+      return res.status(502).json({ error: `Anthropic API error: ${resp.status}`, detail: errText });
     }
 
     const data = await resp.json();
