@@ -15,14 +15,8 @@ const paths = {
   manifest: resolve(__dirname, '../android/app/src/main/AndroidManifest.xml'),
 };
 
-if (existsSync(paths.gradle)) {
-  let content = readFileSync(paths.gradle, 'utf8');
-  content = content.replace(/compileSdkVersion\s+\d+/g, 'compileSdkVersion 34');
-  content = content.replace(/targetSdkVersion\s+\d+/g, 'targetSdkVersion 34');
-  content = content.replace(/(buildTypes\s*\{[^}]*release\s*\{[^}]*)minifyEnabled\s+false/s, '$1minifyEnabled true');
-  content = content.replace(/(buildTypes\s*\{[^}]*release\s*\{[^}]*)shrinkResources\s+false/s, '$1shrinkResources true');
-  writeFileSync(paths.gradle, content);
-}
+// SDK versions (compileSdk/targetSdk/minSdk) are managed centrally in
+// android/variables.gradle — no per-file regex patching needed here.
 
 if (existsSync(paths.manifest)) {
   let content = readFileSync(paths.manifest, 'utf8');

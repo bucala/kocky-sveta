@@ -14,11 +14,21 @@ android {
     }
     signingConfigs {
         release {
-            // Set via env vars or edit directly:
-            storeFile     file(System.getenv("KEYSTORE_PATH")     ?: "release.keystore")
-            storePassword System.getenv("KEYSTORE_PASS")          ?: "CHANGE_ME"
-            keyAlias      System.getenv("KEY_ALIAS")              ?: "kockysveta"
-            keyPassword   System.getenv("KEY_PASS")               ?: "CHANGE_ME"
+            // Must be set via env vars — fail fast instead of silently
+            // producing an invalid/insecure release build.
+            def keystorePass = System.getenv("KEYSTORE_PASS")
+            def keyPass = System.getenv("KEY_PASS")
+            if (gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }) {
+                if (!keystorePass || !keyPass) {
+                    throw new GradleException(
+                        "Release signing requires KEYSTORE_PATH, KEYSTORE_PASS, KEY_ALIAS, KEY_PASS env vars to be set."
+                    )
+                }
+            }
+            storeFile     file(System.getenv("KEYSTORE_PATH") ?: "release.keystore")
+            storePassword keystorePass
+            keyAlias      System.getenv("KEY_ALIAS") ?: "kockysveta"
+            keyPassword   keyPass
         }
     }
     buildTypes {
