@@ -35,6 +35,7 @@ import { DEFAULT_EXTENSIONS, hapticFeedback, MILESTONE_VALUES } from './lib/exte
 import { LangContext, useT } from './lib/i18n.js';
 import { Confetti } from './components/Confetti.jsx';
 import { BrawlBackground } from './components/BrawlBackground.jsx';
+import { version as APP_VERSION } from '../package.json';
 import './app.css';
 
 // ─── Konštanty ────────────────────────────────────────────────────────────
@@ -1354,10 +1355,49 @@ function startTournament(players, targetScore) {
       window.alert('Natívny export zlyhal: ' + (e?.message || 'neznáma chyba') + '\n\nSkontroluj, či si po npm install spustil aj npx cap sync android.');
     }
 
+    const mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    const blob = new Blob([XLSX.write(wb, { bookType: 'xlsx', type: 'array' })], { type: mimeType });
+
+    // Web Share API (súbory) — na Android/iOS v mobilnom prehliadači otvorí
+    // natívny "zdieľať/uložiť do" dialóg (Súbory, Disk, WhatsApp…), rovnako
+    // ako natívna appka vyššie.
+    try {
+      const file = new File([blob], fileName, { type: mimeType });
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'Export Kocky sveta',
+          text: 'Exportované dáta z aplikácie Kocky sveta',
+        });
+        return;
+      }
+    } catch (e) {
+      if (e?.name === 'AbortError') return; // používateľ zrušil dialóg
+      console.error('Web Share export failed, skúšam ďalší spôsob:', e);
+    }
+
+    // File System Access API — desktop Chrome/Edge: skutočný "Uložiť ako"
+    // dialóg s výberom priečinka.
+    try {
+      if (typeof window.showSaveFilePicker === 'function') {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: fileName,
+          types: [{ description: 'Excel súbor', accept: { [mimeType]: ['.xlsx'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return;
+      }
+    } catch (e) {
+      if (e?.name === 'AbortError') return; // používateľ zrušil dialóg
+      console.error('File System Access export failed, skúšam ďalší spôsob:', e);
+    }
+
+    // Fallback — tichý download do predvoleného priečinka prehliadača.
     try {
       XLSX.writeFile(wb, fileName);
     } catch (e) {
-      const blob = new Blob([XLSX.write(wb, { bookType: 'xlsx', type: 'array' })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1648,7 +1688,7 @@ function startTournament(players, targetScore) {
           onAdminChange={setAdminSettings}
           tournaments={tournaments}
           active={active}
-          appVersion="1.5.4"
+          appVersion={APP_VERSION}
           onSimulateTurn={handleSimulateTurn}
           onExportState={handleExportState}
           onCreateRoom={handleAdminCreateRoom}
@@ -3233,11 +3273,12 @@ function RulesView({ rules, onBack }) {
             Každý zápis musí byť aspoň <strong className="ks-gold">{minWO} bodov</strong> (minimálny odpis) — alebo daj <em>čiarku</em>.
             Hru sa dá začať aj čiarkou bez bodov. Ak v hode nepadla žiadna bodujúca kocka,
             z aktuálneho skóre sa odpočíta <strong className="ks-text-accent">−{Math.abs(penalty).toLocaleString('sk-SK')} bodov</strong>.
+            Od <strong className="ks-gold">{(target - minWO).toLocaleString('sk-SK')} bodov</strong> nastáva <em className="ks-gold">koncovka</em> —
+            treba dohodiť presne do cieľa, inak sa automaticky zapíše čiarka.
           </p>
           <p className="ks-body ks-cream leading-relaxed mt-2">
-            Ak hod prekročí cieľ, body sa nezapočítajú a podľa nastavenia sa zapíše spravidla <em>čiarka</em>.
-            V závere hry treba dohrať na <em className="ks-gold">presný cieľ</em>; ak sa zapne potvrdenie víťazstva,
-            po presnom zásahu nasleduje ešte overovací ťah, v ktorom musí padnúť <em>niečohodnenie</em>.
+            Ak hod prekročí cieľ, body sa nezapočítajú a zapíše sa čiarka. Po presnom zásahu cieľa, ak sa zapne
+            potvrdenie víťazstva, nasleduje ešte overovací ťah, v ktorom musí padnúť <em>niečohodnenie</em>.
           </p>
           <p className="ks-muted ks-body text-xs italic mt-3">
             Hodnoty cieľa, minimálneho odpisu a penalizácie sa dajú upraviť v <em>Nastavenia → Úprava pravidiel</em>.

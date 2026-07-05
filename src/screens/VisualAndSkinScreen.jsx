@@ -1,52 +1,8 @@
 import React from 'react';
-import { Volume2, VolumeX, Zap, ZapOff, Sparkles, Users, Star, BarChart2, Smartphone, Trophy, Hash, Layers, Bell } from 'lucide-react';
+import { Volume2, Zap, Sparkles, Users, Star, BarChart2, Smartphone, Trophy, Hash, Layers, Bell } from 'lucide-react';
 import { Header, SkinSelector, FontSelector } from '../components/ui.jsx';
+import { ToggleRow } from '../atoms/ToggleRow.jsx';
 import { useT } from '../lib/i18n.js';
-
-function Toggle({ enabled, onToggle, labelOn, labelOff, iconOn: IconOn, iconOff: IconOff }) {
-  return (
-    <button
-      onClick={onToggle}
-      className={`ks-press flex items-center gap-3 w-full px-4 py-3 rounded-sm border transition-colors ${
-        enabled ? 'ks-border-accent border bg-amber-950/20' : 'ks-border-sub border'
-      }`}
-    >
-      <div className={`flex-shrink-0 ${enabled ? 'ks-gold' : 'ks-muted'}`}>
-        {enabled ? <IconOn size={20} /> : <IconOff size={20} />}
-      </div>
-      <div className="flex-1 text-left">
-        <div className={`text-sm font-semibold ${enabled ? 'ks-cream' : 'ks-muted'}`}>
-          {enabled ? labelOn : labelOff}
-        </div>
-      </div>
-      <div className={`w-10 h-5 rounded-full transition-colors flex-shrink-0 ${enabled ? 'ks-gold-bg' : 'bg-stone-700'}`}>
-        <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-5' : 'translate-x-0'}`} />
-      </div>
-    </button>
-  );
-}
-
-function ExtToggle({ enabled, onToggle, icon: Icon, label, sub }) {
-  return (
-    <button
-      onClick={onToggle}
-      className={`ks-press flex items-center gap-3 w-full px-3 py-2.5 rounded-sm border transition-all ${
-        enabled ? 'ks-border-accent border bg-amber-950/20' : 'ks-border-sub border opacity-60 hover:opacity-80'
-      }`}
-    >
-      <div className={`flex-shrink-0 ${enabled ? 'ks-gold' : 'ks-muted'}`}>
-        <Icon size={18} />
-      </div>
-      <div className="flex-1 text-left">
-        <div className={`text-sm font-semibold ${enabled ? 'ks-cream' : 'ks-muted'}`}>{label}</div>
-        {sub && <div className="text-xs ks-muted leading-tight">{sub}</div>}
-      </div>
-      <div className={`w-8 h-4 rounded-full transition-colors flex-shrink-0 ${enabled ? 'ks-gold-bg' : 'bg-stone-700'}`}>
-        <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0'}`} />
-      </div>
-    </button>
-  );
-}
 
 const LANG_OPTIONS = [
   { value: 'sk', flag: '🇸🇰', label: 'Slovenčina' },
@@ -100,32 +56,31 @@ export function VisualAndSkinScreen({
 
         {/* Zvuky */}
         <div className="ks-mono ks-gold text-xs px-1 pt-2">{t('visual.sound.section')}</div>
-        <Toggle
-          enabled={soundsEnabled}
-          onToggle={onSoundsToggle}
-          labelOn={t('visual.sound.on')}
-          labelOff={t('visual.sound.off')}
-          iconOn={Volume2}
-          iconOff={VolumeX}
-        />
-        <Toggle
-          enabled={hapticEnabled}
-          onToggle={onHapticToggle}
-          labelOn={t('visual.haptic.on')}
-          labelOff={t('visual.haptic.off')}
-          iconOn={Smartphone}
-          iconOff={Smartphone}
-        />
+        <div className="space-y-2">
+          <ToggleRow
+            icon={Volume2}
+            title={t('visual.sound.title')}
+            subtitle={soundsEnabled ? t('visual.sound.on') : t('visual.sound.off')}
+            enabled={soundsEnabled}
+            onToggle={onSoundsToggle}
+          />
+          <ToggleRow
+            icon={Smartphone}
+            title={t('visual.haptic.title')}
+            subtitle={hapticEnabled ? t('visual.haptic.on') : t('visual.haptic.off')}
+            enabled={hapticEnabled}
+            onToggle={onHapticToggle}
+          />
+        </div>
 
         {/* Animácie */}
         <div className="ks-mono ks-gold text-xs px-1 pt-2">{t('visual.anim.section')}</div>
-        <Toggle
+        <ToggleRow
+          icon={Zap}
+          title={t('visual.anim.title')}
+          subtitle={animationsEnabled ? t('visual.anim.on') : t('visual.anim.off')}
           enabled={animationsEnabled}
           onToggle={onAnimationsToggle}
-          labelOn={t('visual.anim.on')}
-          labelOff={t('visual.anim.off')}
-          iconOn={Zap}
-          iconOff={ZapOff}
         />
 
         {/* Rozšírenia / Extensions */}
@@ -137,13 +92,14 @@ export function VisualAndSkinScreen({
         </div>
         <div className="space-y-2">
           {EXTENSIONS_CONFIG.map(({ key, icon, label, sub }) => (
-            <ExtToggle
+            <ToggleRow
               key={key}
+              compact
               enabled={!!extensions[key]}
               onToggle={() => toggle(key)}
               icon={icon}
-              label={label}
-              sub={sub}
+              title={label}
+              subtitle={sub}
             />
           ))}
         </div>

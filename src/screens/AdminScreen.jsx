@@ -2,42 +2,11 @@
 import React, { useState, useCallback } from 'react';
 import { Shield, Bug, Wifi, Copy, Zap, Terminal, Wrench, BarChart2, RefreshCw } from 'lucide-react';
 import { Header } from '../atoms/Header.jsx';
+import { ToggleRow } from '../atoms/ToggleRow.jsx';
 
 // ─── Sekcia ──────────────────────────────────────────────────────────────────
 function Section({ label }) {
   return <div className="ks-mono ks-gold text-xs px-1 pt-4 pb-1">{label}</div>;
-}
-
-// ─── Toggle riadok ────────────────────────────────────────────────────────────
-function ToggleRow({ icon: Icon, title, subtitle, value, onChange }) {
-  return (
-    <div className="ks-card w-full p-4 rounded-sm flex items-center gap-4">
-      <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center flex-shrink-0">
-        <Icon size={22} className="ks-gold" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="ks-display ks-cream text-lg font-semibold">{title}</div>
-        <div className="ks-muted text-xs leading-relaxed">{subtitle}</div>
-      </div>
-      <button
-        onClick={() => onChange(!value)}
-        role="switch"
-        aria-checked={value}
-        style={{
-          flexShrink: 0, position: 'relative', cursor: 'pointer',
-          width: 36, height: 20, borderRadius: 10, border: 'none', padding: 0,
-          background: value ? 'var(--ks-accent, #d4b86a)' : 'rgba(82,82,91,0.8)',
-          transition: 'background 0.2s',
-        }}
-      >
-        <span style={{
-          position: 'absolute', top: 2, left: value ? 18 : 2,
-          width: 16, height: 16, borderRadius: '50%', background: '#fff',
-          transition: 'left 0.18s', boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
-        }} />
-      </button>
-    </div>
-  );
 }
 
 // ─── Input riadok ─────────────────────────────────────────────────────────────
@@ -127,7 +96,7 @@ function DiagnosticsPanel({ adminSettings, tournaments, active, appVersion }) {
   })();
 
   const rows = [
-    ['Verzia app',        appVersion || '1.5.3'],
+    ['Verzia app',        appVersion || '—'],
     ['Turnaje v archíve', `${tournaments?.length ?? 0}`],
     ['Aktívna hra',       active ? `${active.players.length} hráčov, kolo ${active.currentRound + 1}` : 'žiadna'],
     ['localStorage',      storageUsed],
@@ -200,8 +169,8 @@ export function AdminScreen({ onBack, adminSettings, onAdminChange, tournaments,
           icon={Bug}
           title="Debug mód"
           subtitle="Zobrazí overlay s interným stavom hry (currentPlayer, currentRound, pendingDecision, winner)."
-          value={!!adminSettings.debugMode}
-          onChange={(v) => update('debugMode', v)}
+          enabled={!!adminSettings.debugMode}
+          onToggle={() => update('debugMode', !adminSettings.debugMode)}
         />
         <ActionRow
           icon={Zap}
@@ -224,8 +193,8 @@ export function AdminScreen({ onBack, adminSettings, onAdminChange, tournaments,
           icon={Wrench}
           title="Override min. zápis"
           subtitle="Ak zapnuté, prepisuje pravidlo minWriteOff pre všetky turnaje v tejto session."
-          value={!!adminSettings.minWriteOffOverride}
-          onChange={(v) => update('minWriteOffOverride', v ? 50 : null)}
+          enabled={!!adminSettings.minWriteOffOverride}
+          onToggle={() => update('minWriteOffOverride', adminSettings.minWriteOffOverride ? null : 50)}
         />
         {adminSettings.minWriteOffOverride != null && (
           <NumberRow
@@ -243,8 +212,8 @@ export function AdminScreen({ onBack, adminSettings, onAdminChange, tournaments,
           icon={Terminal}
           title="Verbose Firebase logy"
           subtitle="Zapne podrobné logy Firebase operácií do konzoly prehliadača."
-          value={!!adminSettings.verboseFirebase}
-          onChange={(v) => update('verboseFirebase', v)}
+          enabled={!!adminSettings.verboseFirebase}
+          onToggle={() => update('verboseFirebase', !adminSettings.verboseFirebase)}
         />
 
         {/* DIAGNOSTICS */}
