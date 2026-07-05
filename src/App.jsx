@@ -2109,7 +2109,9 @@ function TournamentScreen({
 
   const total = totals[currentPlayer];
   const isFirstWrite = !hasFirstWrite[currentPlayer];
-  const isEndgame = total >= target - minWO && total < target;
+  // Koncovka (nutnosť presného zásahu) platí až keď hráč PREKROČIL prah (napr. > 9700 pri minWO 300),
+  // nie už na hranici (9700 presne) — tam je zvyšok (300) rovný minimálnemu zápisu, takže ide o bežné kolo.
+  const isEndgame = total > target - minWO && total < target;
   const strictMode = isStrictMode(rules);
   const confirmationPlayer = strictMode ? null : tournament.confirmationPendingPlayer;
   const isConfirmationTurn = confirmationPlayer === currentPlayer && confirmationPlayer !== null;
