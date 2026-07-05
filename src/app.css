@@ -59,9 +59,12 @@
     filter: none !important;
   }
 
-  /* Zamedzenie "overscroll" efektu (biely okraj/bounce pri prehnaní na okraj
-     obsahu) — spolu s e.preventDefault() v useDpadNavigation.js pri šípkach. */
-  html, body {
+  /* Zamedzenie "overscroll" efektu pri šípkovej (TV/klávesnicovej) navigácii —
+     spolu s e.preventDefault() v useDpadNavigation.js. Cielené LEN na
+     html.is-tv-mode: globálne na html/body (bez ohľadu na vstup) to na
+     niektorých Android WebView spôsobovalo nemožnosť dotykového scrollovania
+     na mobile, preto sa aplikuje až po detegovaní TV/klávesnicového vstupu. */
+  html.is-tv-mode {
     overscroll-behavior-y: contain;
   }
 
