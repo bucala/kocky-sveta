@@ -15,6 +15,7 @@ import { Share } from '@capacitor/share';
 import { App as CapacitorApp } from '@capacitor/app';
 import { useBackHandler, triggerBack } from './hooks/useBackHandler.js';
 import { useDpadNavigation } from './hooks/useDpadNavigation.js';
+import { useInputModality } from './hooks/useInputModality.js';
 import ScoreTable from './components/ScoreTable.jsx';
 import { ProgressChart } from './components/ProgressChart.jsx';
 import { MainMenu, MenuButton } from './screens/MainMenu.jsx';
@@ -575,6 +576,9 @@ export default function App() {
   // potreby upravovať jednotlivé screens); po zmene `view` sa focus resetuje
   // na prvý dostupný prvok danej obrazovky.
   useDpadNavigation(true, view);
+  // Rozlíši TV/klávesnicové ovládanie od dotyku/myši — riadi viditeľnosť
+  // focus ringu v app.css (nesmie rušiť bežných mobilných používateľov).
+  useInputModality();
 
   // Hardware/diaľkové "Späť" — Android back button (Capacitor), Android TV
   // remote, Escape na klávesnici. Vždy posúva presne o 1 úroveň vyššie,
