@@ -18,6 +18,20 @@
     -webkit-touch-callout: default;
   }
 
+  /* ─── Viditeľný focus ring — Android TV diaľkový ovládač / klávesnica ───
+     Prebíja aj Tailwind utility triedy typu outline-none vďaka !important,
+     keďže tie majú v komponentoch nižšiu prioritu ako táto globálna pravidlá. */
+  button:focus-visible,
+  [tabindex]:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible {
+    outline: 3px solid var(--ks-popup-accent, #d4b86a) !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 5px rgba(212, 184, 106, 0.35) !important;
+  }
+
   /* ─── Popup / notifikačný systém — globálne premenné ─────────────────
      Tieto hodnoty driví aj POPUP_CONFIG v JS, ale CSS premenné umožňujú
      override z konkrétneho komponentu alebo skinu, ak by bolo treba.    */

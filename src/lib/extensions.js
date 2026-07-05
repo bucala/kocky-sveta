@@ -5,7 +5,6 @@ export const DEFAULT_EXTENSIONS = {
   coloredAvatars: false,
   leaderGlow: false,
   progressBar: false,
-  haptic: false,
   milestoneFlash: false,
   animatedScore: false,
   dramaticWinner: false,

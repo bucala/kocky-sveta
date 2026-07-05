@@ -12,6 +12,9 @@ import {
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
+import { App as CapacitorApp } from '@capacitor/app';
+import { useBackHandler, triggerBack } from './hooks/useBackHandler.js';
+import { useDpadNavigation } from './hooks/useDpadNavigation.js';
 import ScoreTable from './components/ScoreTable.jsx';
 import { ProgressChart } from './components/ProgressChart.jsx';
 import { MainMenu, MenuButton } from './screens/MainMenu.jsx';
@@ -552,6 +555,7 @@ export default function App() {
   const [selectedSkin, setSelectedSkin] = useState('classic');
   const [selectedFont, setSelectedFont] = useState('default');
   const [soundsEnabled, setSoundsEnabled] = useState(true);
+  const [hapticEnabled, setHapticEnabled] = useState(true);
   const [animationsEnabled, setAnimationsEnabled] = useState(true);
   const [quickValues, setQuickValues] = useState(DEFAULT_QUICK_VALUES);
   const [knownPlayers, setKnownPlayers] = useState(['Marcel', 'Robo', 'Tomáš', 'Jiří', 'Olino', 'Viki', 'Dedko', 'Jarka']);
@@ -564,6 +568,66 @@ export default function App() {
   const [adminSettings, setAdminSettings] = useState(DEFAULT_ADMIN_SETTINGS);
   const [showAdminPin, setShowAdminPin] = useState(false);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
+
+  // ─── Android TV / diaľkový ovládač ────────────────────────────────────
+  // Šípky presúvajú focus naprieč celou obrazovkou (funguje globálne, bez
+  // potreby upravovať jednotlivé screens); po zmene `view` sa focus resetuje
+  // na prvý dostupný prvok danej obrazovky.
+  useDpadNavigation(true, view);
+
+  // Hardware/diaľkové "Späť" — Android back button (Capacitor), Android TV
+  // remote, Escape na klávesnici. Vždy posúva presne o 1 úroveň vyššie,
+  // rovnako ako klik na on-screen "Späť" tlačidlo danej obrazovky.
+  useEffect(() => {
+    let removeCapListener;
+    CapacitorApp.addListener('backButton', () => { triggerBack(); })
+      .then(sub => { removeCapListener = () => sub.remove(); })
+      .catch(() => {});
+
+    function onKeyDown(e) {
+      const el = document.activeElement;
+      const isEditable = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+      const isBackKey = e.key === 'Escape' || e.key === 'GoBack' || e.key === 'BrowserBack'
+        || (e.key === 'Backspace' && !isEditable);
+      if (!isBackKey) return;
+      e.preventDefault();
+      triggerBack();
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      removeCapListener?.();
+    };
+  }, []);
+
+  useBackHandler(() => {
+    if (showAdminPin) { setShowAdminPin(false); return; }
+    if (showEasterEgg) { setShowEasterEgg(false); return; }
+    switch (view) {
+      case 'settings':
+        setView('menu');
+        return;
+      case 'admin':
+      case 'viewModes':
+      case 'visual':
+      case 'rulesEditor':
+        setView('settings');
+        return;
+      case 'archive':
+        setView(archiveReturnTo);
+        return;
+      case 'scan':
+      case 'archiveDetail':
+        setView('archive');
+        return;
+      case 'menu':
+        if (Capacitor.isNativePlatform()) CapacitorApp.exitApp();
+        return;
+      default:
+        // newTournament, tournament, rules, online, playerStats
+        setView('menu');
+    }
+  }, true);
 
   const { setRoomId: setOnlineRoomId, setUid: setOnlineUid, setStatus: setOnlineStatus, setRoomState: setOnlineRoomState, roomId: onlineRoomId, uid: onlineUid, roomState: onlineRoomState } = useOnlineStore();
 
@@ -652,6 +716,7 @@ export default function App() {
         try { const legacySkin = localStorage.getItem('ks-skin'); if (legacySkin) setSelectedSkin(legacySkin); } catch {}
       }
       try { const se = await window.storage.get('soundsEnabled'); if (se?.value) setSoundsEnabled(JSON.parse(se.value)); } catch {}
+      try { const he = await window.storage.get('hapticEnabled'); if (he?.value) setHapticEnabled(JSON.parse(he.value)); } catch {}
       try { const ae = await window.storage.get('animationsEnabled'); if (ae?.value) setAnimationsEnabled(JSON.parse(ae.value)); } catch {}
       try { const qv = await window.storage.get('quickValues'); if (qv?.value) { const parsed = JSON.parse(qv.value); if (Array.isArray(parsed) && parsed.length > 0) setQuickValues(parsed); } } catch {}
       try { const kp = await window.storage.get('knownPlayers'); if (kp?.value) { const parsed = JSON.parse(kp.value); if (Array.isArray(parsed) && parsed.length > 0) setKnownPlayers(parsed); } } catch {}
@@ -674,6 +739,7 @@ export default function App() {
     try { localStorage.setItem('ks-skin', selectedSkin); } catch {}
   }, [selectedSkin, loaded]);
   useEffect(() => { if (loaded) window.storage.set('soundsEnabled', JSON.stringify(soundsEnabled)).catch(() => {}); }, [soundsEnabled, loaded]);
+  useEffect(() => { if (loaded) window.storage.set('hapticEnabled', JSON.stringify(hapticEnabled)).catch(() => {}); }, [hapticEnabled, loaded]);
   useEffect(() => { if (loaded) window.storage.set('quickValues', JSON.stringify(quickValues)).catch(() => {}); }, [quickValues, loaded]);
   useEffect(() => { if (loaded) window.storage.set('knownPlayers', JSON.stringify(knownPlayers)).catch(() => {}); }, [knownPlayers, loaded]);
   useEffect(() => { if (loaded) window.storage.set('extensions', JSON.stringify(extensions)).catch(() => {}); }, [extensions, loaded]);
@@ -1608,6 +1674,8 @@ function startTournament(players, targetScore) {
           onViewModes={() => setView('viewModes')}
           soundsEnabled={soundsEnabled}
           onSoundsToggle={() => setSoundsEnabled(v => !v)}
+          hapticEnabled={hapticEnabled}
+          onHapticToggle={() => setHapticEnabled(v => !v)}
           animationsEnabled={animationsEnabled}
           onAnimationsToggle={() => setAnimationsEnabled(v => !v)}
           extensions={extensions}
@@ -1638,6 +1706,7 @@ function startTournament(players, targetScore) {
             quickValues={quickValues}
             onQuickValuesChange={setQuickValues}
             extensions={extensions}
+            hapticEnabled={hapticEnabled}
           />
         ) : (
           <SafeTournamentFallback title="Turnaj sa nepodarilo načítať" />
@@ -2051,7 +2120,7 @@ function TournamentScreen({
   tournament, rules, onUpdate, onFinish, onAbort, onMenu,
   scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange,
   tournamentViewMode, funnyWindowsDisplayMode, debugMode, minWriteOffOverride,
-  isOnline, quickValues, onQuickValuesChange, extensions = {}
+  isOnline, quickValues, onQuickValuesChange, extensions = {}, hapticEnabled = true
 }) {
   // Early null guard — before destructuring to prevent crash
   if (!tournament) return <SafeTournamentFallback />;
@@ -2478,7 +2547,7 @@ function TournamentScreen({
         pendingDecision: null,
       };
     });
-    if (extensions.haptic) hapticFeedback();
+    if (hapticEnabled) hapticFeedback();
     setPending([]);
     setCustomInput('');
   }

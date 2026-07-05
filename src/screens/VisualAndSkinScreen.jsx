@@ -57,6 +57,7 @@ export function VisualAndSkinScreen({
   onBack, selectedSkin, onSkinChange, selectedFont, onFontChange,
   tournamentViewMode, onTournamentViewModeChange, onViewModes,
   soundsEnabled, onSoundsToggle, animationsEnabled, onAnimationsToggle,
+  hapticEnabled, onHapticToggle,
   extensions = {}, onExtensionsChange,
   lang = 'sk', onLangChange,
 }) {
@@ -71,7 +72,6 @@ export function VisualAndSkinScreen({
     { key: 'progressBar',    icon: BarChart2,  label: t('ext.progressBar'),    sub: t('ext.progressBar.sub') },
     { key: 'animatedScore',  icon: Hash,       label: t('ext.animatedScore'),  sub: t('ext.animatedScore.sub') },
     { key: 'milestoneFlash', icon: Zap,        label: t('ext.milestoneFlash'), sub: t('ext.milestoneFlash.sub') },
-    { key: 'haptic',         icon: Smartphone, label: t('ext.haptic'),         sub: t('ext.haptic.sub') },
     { key: 'turnNotification', icon: Bell,      label: t('ext.turnNotification'), sub: t('ext.turnNotification.sub') },
   ];
 
@@ -107,6 +107,14 @@ export function VisualAndSkinScreen({
           labelOff={t('visual.sound.off')}
           iconOn={Volume2}
           iconOff={VolumeX}
+        />
+        <Toggle
+          enabled={hapticEnabled}
+          onToggle={onHapticToggle}
+          labelOn={t('visual.haptic.on')}
+          labelOff={t('visual.haptic.off')}
+          iconOn={Smartphone}
+          iconOff={Smartphone}
         />
 
         {/* Animácie */}
