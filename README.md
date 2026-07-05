@@ -349,12 +349,6 @@ Skontroluj, či je `browserLocalPersistence` nastavené vo `firebase.js` a či `
 ### Online sync — červený error badge
 Firestore odmietol zápis (napr. bezpečnostné pravidlá). Skontroluj `firestore.rules` a Firebase Console → Firestore → Rules Playground.
 
-### Android TV emulátor — čierna/prázdna obrazovka po spustení
-1. **Over, že beží správny projekt.** V hornej lište Android Studia (názov modulu, run configuration `app`) a v logu Run/Debug konzoly hľadaj balík `sk.bucala.kockysveta` — ak vidíš iný `applicationId` (napr. z iného otvoreného projektu), spúšťaš inú appku, nie Kocky sveta.
-2. **Emulátor bez WebView.** Niektoré "Television" system images (najmä bez Google Play/Play Store, čisto AOSP TV) nemajú predinštalovaný Android System WebView — Capacitor appka bez neho zostane čierna, keďže celý obsah beží vo WebView. Použi TV system image **s Google Play** (v AVD Manager pri vytváraní zariadenia vyber image s ikonou Play Store), kde sa WebView dá doinštalovať/aktualizovať cez Play Store v emulátore.
-3. **Grafická akcelerácia.** Vo vlastnostiach AVD nastav **Graphics: Hardware — GLES 2.0** (nie Software) — pri Software renderingu, hlavne na 4K TV profiloch, sa WebView surface niekedy vôbec nevykreslí. Ak problém pretrváva, skús menej náročný profil (1080p namiesto 4K).
-4. **Over `android:banner`.** Android TV launcher vyžaduje `android:banner` (320×180) na `<application>` v `AndroidManifest.xml` — bez neho appka nemusí byť správne zobrazená/spustiteľná z TV launcher mriežky (`npx cap sync android` po zmene nezabudni spustiť).
-
 ---
 
 ## ✅ Manual Testing Checklist — v1.6.0
