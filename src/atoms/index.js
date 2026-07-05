@@ -1,5 +1,6 @@
 export { GoldButton } from './GoldButton.jsx';
 export { Header } from './Header.jsx';
+export { ToggleRow } from './ToggleRow.jsx';
 export { Toast } from './Toast.jsx';
 export { default as Ornament } from './Ornament.jsx';
 export { FunnyOverlay } from './FunnyOverlay.jsx';

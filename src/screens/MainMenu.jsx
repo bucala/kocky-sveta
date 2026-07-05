@@ -3,6 +3,7 @@ import { Play, Archive as ArchiveIcon, ScrollText, Settings, ChevronRight, Wifi,
 import { Ornament } from '../atoms/GoldButton.jsx';
 import { useOnlineStore } from '../online/onlineStore.ts';
 import { useT } from '../lib/i18n.js';
+import { version as APP_VERSION } from '../../package.json';
 
 function OnlineStatusBadge({ onClick }) {
   const t = useT();
@@ -61,6 +62,7 @@ export function MainMenu({ onNew, onArchive, onStats, onrules, onSettings, onRes
       <div className="text-center ks-muted text-xs pb-6 ks-mono">
         <Ornament />
         KOCKY · SVETA · KOCKY
+        <div className="mt-1 opacity-60">v{APP_VERSION}</div>
       </div>
     </div>
   );
