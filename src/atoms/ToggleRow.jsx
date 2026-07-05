@@ -1,25 +1,23 @@
 import React from 'react';
 
 // Zdieľaný, štandardizovaný prepínač — ikona vľavo, statický nadpis/popis,
-// štandardný "pill" switch vpravo. Používaný v Admin nastaveniach aj vo
-// Vizuál/Zvuky/Skiny obrazovke, aby vyzerali a správali sa jednotne.
+// štandardný "pill" switch vpravo. Karta samotná vyzerá vždy rovnako;
+// zapnutý/vypnutý stav vyjadruje iba samotný switch.
 export function ToggleRow({ icon: Icon, title, subtitle, enabled, onToggle, compact = false }) {
   return (
     <button
       onClick={onToggle}
       role="switch"
       aria-checked={enabled}
-      className={`ks-press w-full ${compact ? 'p-2.5' : 'p-4'} rounded-sm border flex items-center gap-3 text-left transition-colors ${
-        enabled ? 'ks-border-accent border bg-amber-950/20' : 'ks-border-sub border'
-      }`}
+      className={`ks-card ks-press w-full ${compact ? 'p-2.5' : 'p-4'} rounded-sm flex items-center gap-3 text-left`}
     >
       {Icon && (
         <div className={`${compact ? 'w-9 h-9' : 'w-12 h-12'} rounded-sm border ks-border-sub flex items-center justify-center flex-shrink-0`}>
-          <Icon size={compact ? 16 : 22} className={enabled ? 'ks-gold' : 'ks-muted'} />
+          <Icon size={compact ? 16 : 22} className="ks-gold" />
         </div>
       )}
       <div className="flex-1 min-w-0 text-left">
-        <div className={`ks-display font-semibold ${compact ? 'text-sm' : 'text-lg'} ${enabled ? 'ks-cream' : 'ks-muted'}`}>
+        <div className={`ks-display ks-cream font-semibold ${compact ? 'text-sm' : 'text-lg'}`}>
           {title}
         </div>
         {subtitle && <div className="ks-muted text-xs leading-relaxed">{subtitle}</div>}

@@ -2062,6 +2062,7 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
             </div>
           </div>
           <div className="space-y-2 text-xs ks-muted leading-relaxed border-t ks-border-sub pt-3">
+            <p><span className="ks-cream font-semibold">Verzia:</span> {APP_VERSION}</p>
             <p><span className="ks-cream font-semibold">Technológie:</span> React 18, Vite, Tailwind CSS, Firebase Firestore, Capacitor (Android/iOS)</p>
             <p><span className="ks-cream font-semibold">Dáta:</span> Ukladané lokálne. Online sync cez Firebase Firestore v reálnom čase.</p>
             <p><span className="ks-cream font-semibold">Exporty:</span> XLSX (SheetJS) — každý turnaj ako list + súhrnný prehľad.</p>
