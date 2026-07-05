@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.1] — 2026-07-05 — Audit Cleanup: Dead Code, Security & Build Fixes
+
+### Odstránené (Removed)
+
+- **41 zabudnutých backup súborov** (`App.jsx.bak_*`, `TournamentScreen.jsx.bak_*`/`.before_*`) — ladiace kópie z histórie vývoja
+- **Mŕtve duplicitné súbory** — `src/screens/{TournamentScreen,ArchiveScreen,SettingsMenu,RulesEditor}.jsx`, `src/components/{FunnyOverlay,SkinSelector,GameWidgets}.jsx`, `src/game/` (celý priečinok), `src/online/startGame.ts`, `src/atoms/SafeFallback.jsx`, `src/styles/appStyles.js`, `src/utils/xlsxLazy.js` — pozostatky opusteného refaktoru z 1.5.0, nikde neimportované, appka beží na vlastných kópiách vnútri `App.jsx`
+- **`recharts`** — nepoužívaná závislosť (nahradená vlastným SVG grafom už v 1.6.0)
+
+### Opravené (Fixed)
+
+- **`/api/scan` OCR endpoint** — obnovený funkčný model `claude-3-haiku-20240307` (merge omylom vrátil neplatný `claude-sonnet-4-6`, čo spôsobovalo HTTP 400)
+- **Info-leak v error hláškach** — `/api/scan` už neposiela klientovi surový text z Anthropic API alebo interné chybové hlásenia, detail sa loguje len server-side
+- **`vitest` 1.6.0 → 2.1.9** — zosúladené s nainštalovaným Vite 6 (predtým testy tichy bežali proti vnorenej Vite 5 závislosti)
+- **Android release signing** — zlyhá rýchlo pri chýbajúcich env premenných namiesto tichého `CHANGE_ME` fallbacku
+- **`apply-android-fixes.js`** — odstránená mŕtva regex logika pre `compileSdkVersion`/`targetSdkVersion`, ktorá už nesedela s aktuálnou štruktúrou `build.gradle` (SDK verzie sú centrálne vo `variables.gradle`)
+
+### Bezpečnosť (Security)
+
+- `.gitignore` doplnený o Android build artefakty a keystore súbory (`*.jks`, `*.keystore`)
+- Validácia `mimeType` allow-listu v `/api/scan`
+
+### Prístupnosť (Accessibility)
+
+- `aria-label` pridaný na icon-only tlačidlá (úprava rýchlych hodnôt, mazanie kola, pridanie/odobratie kocky, prepínač zobrazenia skóre)
+
+---
+
 ## [1.6.0] — 2026-05-21 — Online Sync Overhaul + Skins + UX
 
 ### Pridané (Added)

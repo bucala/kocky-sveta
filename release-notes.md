@@ -1,4 +1,23 @@
-﻿## Čo je nové v 1.6.0
+﻿## Čo je nové v 1.6.1
+
+### 🧹 Údržba — komplexný audit
+- Odstránených 41 zabudnutých backup súborov a ~2900 riadkov mŕtveho duplicitného kódu (opustený refaktor z 1.5.0)
+- Odstránená nepoužívaná závislosť `recharts`
+
+### 🐛 Fix
+- `/api/scan` OCR endpoint — obnovený funkčný AI model (predtým HTTP 400)
+- Error hlášky z `/api/scan` už neposielajú klientovi surový interný/upstream text
+- `vitest` zosúladený s Vite 6 (2.1.9)
+- Android release build zlyhá rýchlo pri chýbajúcom signing configu namiesto tichého nesprávneho buildu
+
+### ♿ Prístupnosť
+- `aria-label` na icon-only tlačidlách (úprava hodnôt, mazanie kola, kocky, prepínač skóre)
+
+**Full Changelog**: https://github.com/bucala/kocky-sveta/compare/v1.6.0...v1.6.1
+
+---
+
+## Čo je nové v 1.6.0
 
 ### 🌐 Online sync
 - Bidirectional sync, anti-revert ochrana, stale ghost cleanup, recorder-only writes

@@ -7,11 +7,11 @@
 ![Firebase](https://img.shields.io/badge/Firebase-12.x-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![Capacitor](https://img.shields.io/badge/Capacitor-6.x-2563eb?style=for-the-badge&logo=capacitor&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-57%2F57%20✓-22c55e?style=for-the-badge)
-![Release](https://img.shields.io/badge/release-v1.6.0-d4b86a?style=for-the-badge)
+![Release](https://img.shields.io/badge/release-v1.6.1-d4b86a?style=for-the-badge)
 
-## 📦 Status: STABILNÝ — v1.6.0
+## 📦 Status: STABILNÝ — v1.6.1
 
-> **Tag:** [`v1.6.0`](https://github.com/bucala/kocky-sveta/releases/tag/1.6.0) — Online Sync Overhaul + Skins + UX
+> **Tag:** [`v1.6.1`](https://github.com/bucala/kocky-sveta/releases/tag/1.6.1) — Audit Cleanup: Dead Code, Security & Build Fixes
 
 ---
 
@@ -32,7 +32,7 @@
 - niekoľko vizuálnych skinov (Klasik, Les, Royal, Pergamen, Orech, HP, Brawl Stars…)
 - progress chart (SVG), standings, history graf
 - Android build cez Capacitor + Android Studio
-- **modulárna architektúra** — screens, components, constants, utils, hooks, lib
+- **modulárne screens/components/lib** — časť obrazoviek a zdieľaných komponentov je extrahovaná do samostatných súborov, hlavný herný flow (turnaj, archív, nastavenia) je v `App.jsx`
 - **tournamentEngine.js** — čistá doménová knižnica (pure functions, unit testovaná)
 
 ### 🔥 Online režim
@@ -50,6 +50,17 @@
 ---
 
 ## 🆕 Changelog
+
+### v1.6.1 — Audit Cleanup: Dead Code, Security & Build Fixes *(2026-07-05)*
+
+- **Odstránené** — 41 backup súborov + ~2900 riadkov mŕtveho duplicitného kódu (opustený refaktor z 1.5.0), nepoužívaná závislosť `recharts`
+- **Fix** — `/api/scan` OCR endpoint (obnovený funkčný AI model), sanitizované error hlášky, `vitest` zosúladený s Vite 6
+- **Android** — release signing zlyhá rýchlo pri chýbajúcom kľúči namiesto tichého nesprávneho buildu
+- **A11y** — `aria-label` na icon-only tlačidlách
+
+Detaily: [`release-notes.md`](./release-notes.md), [`CHANGELOG.md`](./CHANGELOG.md)
+
+---
 
 ### v1.6.0 — Online Sync Overhaul + Skins + UX *(2026-05-21)*
 
@@ -237,54 +248,61 @@ V Android Studio: **Build → Clean Project**, potom **Build → Rebuild Project
 
 ## 🧱 Štruktúra projektu
 
+> **Pozn.:** `App.jsx` je hlavný orchestrátor a obsahuje aj inline implementácie hernej obrazovky, archívu, nastavení a editora pravidiel (routing, state, persistence, herná logika). Samostatné súbory v `src/screens/` nižšie sú tie obrazovky, ktoré `App.jsx` reálne importuje.
+
 ```
 src/
-├── App.jsx                    — orchestrátor (routing, state, persistence)
+├── App.jsx                    — orchestrátor + TournamentScreen/ArchiveScreen/
+│                                 SettingsMenu/RulesEditor (inline)
 ├── app.css                    — aplikačné štýly
 ├── index.css                  — global štýly + Google Fonts import
 ├── main.jsx                   — entry point + ErrorBoundary
 ├── atoms/
+│   ├── DiceIcon.jsx, DiceRow.jsx — kocky
 │   ├── ErrorBoundary.jsx      — React Error Boundary
+│   ├── FunnyOverlay.jsx       — funny message popup systém
+│   ├── GoldButton.jsx, Header.jsx, Ornament.jsx, Toast.jsx — zdieľané UI
+│   ├── PendingChips.jsx, StatusBanner.jsx, StrikethroughCrown.jsx
 │   ├── SimplifiedResult.jsx   — výsledkový badge
+│   ├── SkinSelector.jsx       — výber vizuálneho skinu
 │   └── index.js
 ├── components/
-│   ├── FunnyOverlay.jsx       — funny message popup systém
-│   ├── GameWidgets.jsx        — DiceIcon, DiceRow, GoldButton, Ornament…
+│   ├── BrawlBackground.jsx    — animované pozadie pre Brawl Stars skin
+│   ├── Confetti.jsx           — canvas confetti animácia
 │   ├── Modal.jsx              — modálne okno
 │   ├── ProgressChart.jsx      — vlastný SVG graf vývoja skóre
-│   ├── RulesContent.jsx       — obsah pravidiel
 │   ├── ScoreTable.jsx         — tabuľka skóre (delta / kumulatívny mód)
-│   ├── SkinSelector.jsx       — výber vizuálneho skinu
 │   └── ui.jsx                 — zdieľané UI komponenty
 ├── constants/
-│   ├── gameConfig.js          — QUICK_VALUES, TARGET_OPTIONS, POPUP_CONFIG…
-│   ├── rules.js               — pravidlá r1–r18
+│   ├── game.js                — TARGET_OPTIONS a ďalšie herné konštanty
 │   └── skins.js               — definície skinov
 ├── lib/
+│   ├── extensions.js          — voliteľné vizuálne rozšírenia (haptika, konfety…)
 │   ├── firebase.js            — Firebase konfigurácia
 │   ├── gameEngine.js          — herný engine (legacy wrapper)
-│   ├── sounds.js              — zvukový systém
+│   ├── i18n.js                — SK/EN preklady + React Context
+│   ├── sounds.js               — zvukový systém
 │   ├── storage.js             — localStorage abstrakcia
 │   ├── tournamentEngine.js    — čistá doménová knižnica (pure functions)
 │   └── tournamentEngine.test.js — 57 unit testov
 ├── online/
 │   ├── createRoom.ts          — vytvorenie Firebase miestnosti
+│   ├── deviceId.ts            — perzistentné ID zariadenia
 │   ├── hashPin.ts             — PIN hashing
 │   ├── joinRoom.ts            — pripojenie do miestnosti
 │   ├── onlineStore.ts         — Zustand store s persist middleware
 │   ├── types.ts               — TypeScript typy
 │   ├── updateGameState.ts     — Firestore write (ukladá JSON string)
+│   ├── updatePresence.ts      — heartbeat prítomnosti hráčov
 │   └── useRoomSubscription.ts — real-time Firestore listener
 └── screens/
     ├── AdminScreen.jsx        — PIN-chránený admin panel
-    ├── ArchiveScreen.jsx      — archív turnajov + detail
     ├── GameViewModesScreen.jsx
     ├── MainMenu.jsx
     ├── NewTournament.jsx
     ├── OnlineScreen.jsx       — online miestnosti (create/join)
-    ├── RulesEditor.jsx        — editor pravidiel
-    ├── SettingsMenu.jsx
-    ├── TournamentScreen.jsx   — herný flow
+    ├── PlayerStatsScreen.jsx  — štatistiky hráčov
+    ├── ScanImportScreen.jsx   — OCR import z fotky
     └── VisualAndSkinScreen.jsx
 ```
 
@@ -387,4 +405,4 @@ Firestore odmietol zápis (napr. bezpečnostné pravidlá). Skontroluj `firestor
 
 ---
 
-**Latest Release:** [v1.6.0 — Online Sync Overhaul + Skins + UX](https://github.com/bucala/kocky-sveta/releases/tag/1.6.0)
+**Latest Release:** [v1.6.1 — Audit Cleanup: Dead Code, Security & Build Fixes](https://github.com/bucala/kocky-sveta/releases/tag/1.6.1)
