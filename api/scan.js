@@ -56,8 +56,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing image (base64)' });
   }
 
+  const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+    return res.status(400).json({ error: 'Unsupported mimeType' });
+  }
+
   const anthropicBody = {
-    model: 'claude-sonnet-4-6',
+    model: 'claude-3-haiku-20240307',
     max_tokens: 2048,
     system: SYSTEM,
     messages: [{
@@ -82,7 +87,13 @@ export default async function handler(req, res) {
 
     if (!resp.ok) {
       const errText = await resp.text();
-      return res.status(502).json({ error: `Anthropic API error: ${resp.status}`, detail: errText });
+      console.error('[api/scan] Anthropic error', resp.status, errText);
+      const friendly = resp.status === 401
+        ? 'Neplatný Anthropic API kľúč'
+        : resp.status === 429
+          ? 'Prekročený limit Anthropic API — skús neskôr'
+          : 'AI server momentálne nedostupný';
+      return res.status(502).json({ error: friendly });
     }
 
     const data = await resp.json();
@@ -90,17 +101,20 @@ export default async function handler(req, res) {
 
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return res.status(502).json({ error: 'Claude returned no JSON', raw: rawText });
+      console.error('[api/scan] Claude returned no JSON:', rawText);
+      return res.status(502).json({ error: 'AI nevrátila použiteľný výsledok, skús inú fotku' });
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
 
     if (!Array.isArray(parsed.players) || !Array.isArray(parsed.rounds)) {
-      return res.status(502).json({ error: 'Invalid structure from Claude', raw: rawText });
+      console.error('[api/scan] Invalid structure from Claude:', rawText);
+      return res.status(502).json({ error: 'AI vrátila neplatnú štruktúru, skús inú fotku' });
     }
 
     return res.status(200).json(parsed);
   } catch (e) {
-    return res.status(500).json({ error: String(e) });
+    console.error('[api/scan] Unexpected error', e);
+    return res.status(500).json({ error: 'Neočakávaná chyba servera' });
   }
 }

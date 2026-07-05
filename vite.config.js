@@ -10,8 +10,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
-          'vendor-recharts': ['recharts'],
-          'vendor-xlsx': ['xlsx'],
           'vendor-lucide': ['lucide-react'],
           'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
           'vendor-zustand': ['zustand'],

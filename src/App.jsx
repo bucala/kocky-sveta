@@ -2563,6 +2563,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
                 onClick={onToggleScoreMode}
                 className="ks-press ks-gold p-1.5 rounded-sm border border-amber-700/40 hover:bg-amber-900/20"
                 title={scoreDisplayMode === 'delta' ? 'Prepnúť na kumulatívne' : 'Prepnúť na prípisy'}
+                aria-label={scoreDisplayMode === 'delta' ? 'Prepnúť na kumulatívne' : 'Prepnúť na prípisy'}
               >
                 {scoreDisplayMode === 'delta'
                   ? <Sigma size={16} />
@@ -2643,7 +2644,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
           <div className="ks-card-sub rounded-sm p-4 flex-1">
             <div className="flex items-center justify-between mb-3">
               <div className="ks-mono ks-muted text-xs">PRIDAJ BODY Z HODU</div>
-              <button onClick={() => setShowQVEditor(v => !v)} className="ks-press ks-muted hover:ks-cream p-0.5"><Edit3 size={13} /></button>
+              <button aria-label="Upraviť rýchle hodnoty" onClick={() => setShowQVEditor(v => !v)} className="ks-press ks-muted hover:ks-cream p-0.5"><Edit3 size={13} /></button>
             </div>
             {showQVEditor && onQuickValuesChange && (
               <div className="mb-3 p-2.5 border ks-border-sub rounded-sm bg-stone-950/60 space-y-2">
@@ -3513,7 +3514,7 @@ function DicePicker({ dice, onChange }) {
       <div className="flex flex-wrap items-center gap-2 min-h-[36px] p-2 rounded-sm border ks-border-sub bg-stone-950/40">
         {dice.length === 0 && <span className="ks-muted text-sm italic">Žiadne kocky</span>}
         {dice.map((d, i) => (
-          <button key={i} onClick={() => onChange(dice.filter((_, idx) => idx !== i))}
+          <button key={i} aria-label={`Odstrániť kocku ${d}`} onClick={() => onChange(dice.filter((_, idx) => idx !== i))}
             className="ks-press ks-gold relative">
             <DiceIcon value={d} size={26} />
           </button>
@@ -3521,7 +3522,7 @@ function DicePicker({ dice, onChange }) {
       </div>
       <div className="flex gap-1.5">
         {[1,2,3,4,5,6].map(v => (
-          <button key={v} onClick={() => dice.length < 6 && onChange([...dice, v])}
+          <button key={v} aria-label={`Pridať kocku ${v}`} onClick={() => dice.length < 6 && onChange([...dice, v])}
             className="ks-press ks-cream hover:text-amber-300 p-1.5 border ks-border-sub rounded-sm">
             <DiceIcon value={v} size={22} />
           </button>
@@ -3729,6 +3730,7 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
                 onClick={onToggleScoreMode}
                 className="ks-press ks-gold p-1.5 rounded-sm border border-amber-700/40 hover:bg-amber-900/20"
                 title={scoreDisplayMode === 'delta' ? 'Prepnúť na kumulatívne' : 'Prepnúť na prípisy'}
+                aria-label={scoreDisplayMode === 'delta' ? 'Prepnúť na kumulatívne' : 'Prepnúť na prípisy'}
               >
                 {scoreDisplayMode === 'delta'
                   ? <Sigma size={16} />
@@ -3931,7 +3933,7 @@ function EditableScoreTable({ players, rounds, totals, target, winner, onChangeC
                   );
                 })}
                 <td className="text-center">
-                  <button onClick={() => onRemoveRound(rIdx)}
+                  <button aria-label="Vymazať kolo" onClick={() => onRemoveRound(rIdx)}
                     className="ks-press ks-text-accent hover:ks-text-accent p-1">
                     <Trash2 size={12} />
                   </button>
