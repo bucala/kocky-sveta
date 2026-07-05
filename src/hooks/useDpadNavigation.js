@@ -8,27 +8,22 @@
 // - V textových/číselných poliach necháva vľavo/vpravo na pohyb kurzora.
 // - OK/potvrdenie a číselné klávesy fungujú natívne (fokusnuté <button>
 //   sa aktivuje na Enter, <input type="number"> prijíma číslice priamo).
+// - Keď je otvorený modal (useFocusTrap), navigácia zostáva len v jeho rámci.
+// - Rýchly sled stlačení (podržaná šípka na ovládači) je throttlovaný, aby
+//   sa slabšie Android TV WebView zariadenia nezasekli na výpočte layoutu.
 import { useEffect } from 'react';
+import { getFocusableIn, isElementVisible } from './domFocus.js';
+import { getActiveFocusScope } from './focusScope.js';
 
-const FOCUSABLE_SELECTOR = [
-  'button:not([disabled])',
-  '[tabindex]:not([tabindex="-1"]):not([disabled])',
-  'input:not([disabled]):not([type="hidden"])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
-  'a[href]',
-].join(',');
+// Minimálny odstup medzi dvoma spracovanými pohybmi (ms) — ochrana proti
+// zahlteniu pri podržanej šípke na diaľkovom ovládači.
+const MOVE_THROTTLE_MS = 90;
 
-function isVisible(el) {
-  const rect = el.getBoundingClientRect();
-  if (rect.width === 0 && rect.height === 0) return false;
-  const style = window.getComputedStyle(el);
-  return style.visibility !== 'hidden' && style.display !== 'none' && style.opacity !== '0';
-}
-
-function getFocusable() {
-  return Array.from(document.querySelectorAll(FOCUSABLE_SELECTOR)).filter(isVisible);
-}
+// Či prehliadač/WebView podporuje plynulé scrollovanie — staršie Android
+// System WebView verzie `behavior: 'smooth'` ignorujú alebo ho nemusia mať
+// konzistentné; radšej na nich scrollujeme okamžite (bez trhania/glitchov).
+const SUPPORTS_SMOOTH_SCROLL =
+  typeof document !== 'undefined' && 'scrollBehavior' in document.documentElement.style;
 
 function rectCenter(rect) {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
@@ -67,6 +62,37 @@ function findNext(current, direction, candidates) {
   return best;
 }
 
+// Vlastný "scroll into view" s okrajom — natívny scrollIntoView({block:'nearest'})
+// vie prvok nechať prilepený presne na hranu scrollovateľného kontajnera;
+// tu necháme aspoň `margin` px voľného priestoru, aby bol prvok čitateľne vidno.
+function scrollIntoViewWithMargin(el, margin = 24) {
+  let node = el.parentElement;
+  while (node && node !== document.body) {
+    const style = window.getComputedStyle(node);
+    const canScrollY = /(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight;
+    if (canScrollY) {
+      const elRect = el.getBoundingClientRect();
+      const containerRect = node.getBoundingClientRect();
+      if (elRect.top < containerRect.top + margin) {
+        node.scrollTop -= (containerRect.top + margin - elRect.top);
+      } else if (elRect.bottom > containerRect.bottom - margin) {
+        node.scrollTop += (elRect.bottom - (containerRect.bottom - margin));
+      }
+    }
+    node = node.parentElement;
+  }
+  try {
+    el.scrollIntoView(
+      SUPPORTS_SMOOTH_SCROLL
+        ? { block: 'nearest', inline: 'nearest', behavior: 'smooth' }
+        : { block: 'nearest', inline: 'nearest' }
+    );
+  } catch {
+    // Veľmi staré WebView môžu options objekt odmietnuť — skús bez neho.
+    try { el.scrollIntoView(); } catch { /* no-op */ }
+  }
+}
+
 const ARROW_TO_DIRECTION = {
   ArrowUp: 'up',
   ArrowDown: 'down',
@@ -83,9 +109,10 @@ export function useDpadNavigation(enabled = true, resetKey) {
   useEffect(() => {
     if (!enabled) return undefined;
     const id = setTimeout(() => {
-      const candidates = getFocusable();
+      const root = getActiveFocusScope() || document;
+      const candidates = getFocusableIn(root);
       const active = document.activeElement;
-      const activeIsValid = active && candidates.includes(active);
+      const activeIsValid = active && isElementVisible(active) && candidates.includes(active);
       if (!activeIsValid && candidates.length > 0) {
         candidates[0].focus();
       }
@@ -96,27 +123,40 @@ export function useDpadNavigation(enabled = true, resetKey) {
 
   useEffect(() => {
     if (!enabled) return undefined;
+    let lastMoveAt = 0;
 
     function onKeyDown(e) {
       const direction = ARROW_TO_DIRECTION[e.key];
       if (!direction) return;
 
       const active = document.activeElement;
-      const isTextInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
-      if (isTextInput && (direction === 'left' || direction === 'right')) return;
+      const tag = active?.tagName;
+      // Viacriadkový textarea potrebuje šípky (všetky smery) na pohyb kurzora
+      // medzi riadkami — tam sa do spatial navigation vôbec nezapájame.
+      if (tag === 'TEXTAREA') return;
+      // Jednoriadkový input necháva vľavo/vpravo na pohyb kurzora v texte,
+      // hore/dole napriek tomu presúva focus (viď "rolovacie menu" požiadavka).
+      if (tag === 'INPUT' && (direction === 'left' || direction === 'right')) return;
 
-      const candidates = getFocusable();
+      // Vždy potlačíme predvolené scrollovanie stránky šípkami (aby TV
+      // obrazovka "neskákala"), aj keď sa nakoniec focus nikam nepresunie.
+      e.preventDefault();
+
+      const now = Date.now();
+      if (now - lastMoveAt < MOVE_THROTTLE_MS) return;
+      lastMoveAt = now;
+
+      const root = getActiveFocusScope() || document;
+      const candidates = getFocusableIn(root);
       if (candidates.length === 0) return;
 
-      const current = candidates.includes(active) ? active : null;
+      const current = active && isElementVisible(active) && candidates.includes(active) ? active : null;
       const next = findNext(current, direction, candidates);
 
       if (next) {
-        e.preventDefault();
         next.focus();
-        next.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+        scrollIntoViewWithMargin(next);
       } else if (!current) {
-        e.preventDefault();
         candidates[0].focus();
       }
     }

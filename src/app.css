@@ -20,16 +20,49 @@
 
   /* ─── Viditeľný focus ring — Android TV diaľkový ovládač / klávesnica ───
      Prebíja aj Tailwind utility triedy typu outline-none vďaka !important,
-     keďže tie majú v komponentoch nižšiu prioritu ako táto globálna pravidlá. */
+     keďže tie majú v komponentoch nižšiu prioritu ako táto globálna pravidlá.
+     Spolieha sa primárne na natívne :focus-visible (funguje aj na dotyku —
+     browser ho pri tap/kliku sám nezapne), html.is-tv-mode (nastavuje
+     useInputModality.js) je posilnenie pre staršie Android WebView, kde
+     :focus-visible heuristika pri programovom .focus() nemusí byť konzistentná. */
   button:focus-visible,
   [tabindex]:focus-visible,
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible,
-  a:focus-visible {
+  a:focus-visible,
+  html.is-tv-mode button:focus,
+  html.is-tv-mode [tabindex]:focus,
+  html.is-tv-mode input:focus,
+  html.is-tv-mode select:focus,
+  html.is-tv-mode textarea:focus,
+  html.is-tv-mode a:focus {
     outline: 3px solid var(--ks-popup-accent, #d4b86a) !important;
     outline-offset: 2px !important;
     box-shadow: 0 0 0 5px rgba(212, 184, 106, 0.35) !important;
+    /* Zjednotenie s existujúcim hover jazykom appky (hover:brightness-110/125) —
+       focus na TV má pôsobiť rovnako výrazne ako hover na dotyku/myši. */
+    filter: brightness(1.12);
+    transform: scale(1.03);
+    transition: outline-color 0.1s ease, box-shadow 0.1s ease, transform 0.1s ease, filter 0.1s ease;
+  }
+
+  /* Na dotykových zariadeniach focus ring nerušiť (napr. po tapnutí na input,
+     kde prvok ostáva :focus, ale nie je to "TV" navigácia). */
+  html.is-touch-mode button:focus:not(:focus-visible),
+  html.is-touch-mode [tabindex]:focus:not(:focus-visible),
+  html.is-touch-mode input:focus:not(:focus-visible),
+  html.is-touch-mode a:focus:not(:focus-visible) {
+    outline: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  /* Zamedzenie "overscroll" efektu (biely okraj/bounce pri prehnaní na okraj
+     obsahu) — spolu s e.preventDefault() v useDpadNavigation.js pri šípkach. */
+  html, body {
+    overscroll-behavior-y: contain;
   }
 
   /* ─── Popup / notifikačný systém — globálne premenné ─────────────────

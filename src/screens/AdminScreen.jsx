@@ -1,8 +1,9 @@
 // src/screens/AdminScreen.jsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Shield, Bug, Wifi, Copy, Zap, Terminal, Wrench, BarChart2, RefreshCw } from 'lucide-react';
 import { Header } from '../atoms/Header.jsx';
 import { ToggleRow } from '../atoms/ToggleRow.jsx';
+import { useFocusTrap } from '../hooks/useFocusTrap.js';
 
 // ─── Sekcia ──────────────────────────────────────────────────────────────────
 function Section({ label }) {
@@ -243,6 +244,8 @@ const ADMIN_PIN = '58290347';
 export function AdminPinDialog({ onSuccess, onCancel }) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef, true);
 
   const handleSubmit = () => {
     if (pin === ADMIN_PIN) {
@@ -256,7 +259,7 @@ export function AdminPinDialog({ onSuccess, onCancel }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-6">
-      <div className="ks-card border ks-border-sub rounded-sm w-full max-w-xs p-6 space-y-4">
+      <div ref={dialogRef} className="ks-card border ks-border-sub rounded-sm w-full max-w-xs p-6 space-y-4">
         <div className="flex items-center gap-2 mb-1">
           <Shield size={18} className="ks-gold" />
           <h3 className="ks-display ks-gold text-xl font-semibold">Admin prístup</h3>
@@ -272,7 +275,6 @@ export function AdminPinDialog({ onSuccess, onCancel }) {
           onChange={(e) => { setPin(e.target.value.replace(/\D/g, '').slice(0, 8)); setError(false); }}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           placeholder="••••••••"
-          autoFocus
           className={`w-full ks-card px-3 py-3 rounded-sm bg-transparent border outline-none ks-mono text-center text-xl tracking-[0.4em] transition-colors ${error ? 'border-red-500 text-red-400' : 'ks-border-sub ks-cream'}`}
         />
         {error && <p className="text-red-400 text-xs text-center">Nesprávny kód</p>}
