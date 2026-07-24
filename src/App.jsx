@@ -18,6 +18,7 @@ import { useDpadNavigation } from './hooks/useDpadNavigation.js';
 import { useInputModality } from './hooks/useInputModality.js';
 import ScoreTable from './components/ScoreTable.jsx';
 import { ProgressChart } from './components/ProgressChart.jsx';
+import { BigScoreDisplay } from './components/BigScoreDisplay.jsx';
 import { MainMenu, MenuButton } from './screens/MainMenu.jsx';
 import { NewTournament } from './screens/NewTournament.jsx';
 import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
@@ -244,6 +245,14 @@ function skinVarsCss(selectedSkin, selectedFont) {
 }
 
 const DEFAULT_QUICK_VALUES = [50, 100, 300, 400, 500, 600, 1000, 1500, 2000];
+
+const VIEW_MODE_LABELS = {
+  basic: 'Klasický',
+  basicSimplified: 'Klasický zjednodušený',
+  observer: 'Pozorovateľ',
+  observerSimplified: 'Pozorovateľ zjednodušený',
+  recorder: 'Zapisovateľ',
+};
 const PENALTY_VALUE = -1000;
 
 const TARGET_OPTIONS = [
@@ -1920,7 +1929,7 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
           </div>
           <div className="flex-1">
             <div className="ks-display ks-cream text-xl font-semibold">{t('settings.viewmode')}</div>
-            <div className="ks-muted text-sm">{tournamentViewMode === 'observer' ? 'Pozorovateľ' : tournamentViewMode === 'recorder' ? 'Zapisovateľ' : 'Klasický'}</div>
+            <div className="ks-muted text-sm">{VIEW_MODE_LABELS[tournamentViewMode] || VIEW_MODE_LABELS.basic}</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
@@ -2648,6 +2657,8 @@ function TournamentScreen({
   }, [totals]);
 
 const isObserverMode = tournamentViewMode === 'observer';
+const isObserverSimplified = tournamentViewMode === 'observerSimplified';
+const isBasicSimplified = tournamentViewMode === 'basicSimplified';
 const isRecorderMode = tournamentViewMode === 'recorder';
 const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== null;
 
@@ -2700,6 +2711,16 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
                           displayMode={scoreDisplayMode} onToggleMode={onToggleScoreMode} hideModeToolbar={false} hideModeToggle={true} compactObserver={true}
                           extensions={extensions} />
             </div>
+          </div>
+        </div>
+      ) : isObserverSimplified ? (
+        <div className="px-3 pt-2 pb-3 h-[100dvh] flex flex-col gap-3 overflow-hidden">
+          <div className="flex-1 min-h-0 flex items-center">
+            <BigScoreDisplay players={players} totals={totals} highlightPlayer={currentPlayer}
+                              target={target} extensions={extensions} size="xl" />
+          </div>
+          <div className="flex-1 min-h-0 ks-card rounded-sm p-3 overflow-hidden">
+            <ProgressChart tournament={tournament} totals={totals} target={target} />
           </div>
         </div>
       ) : isRecorderMode ? (
@@ -2808,10 +2829,15 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
       ) : (
       <>
       <div className="px-3 pt-3">
-        <ScoreTable tournament={tournament} totals={totals} highlightPlayer={currentPlayer}
-                    pendingPreview={pendingSum > 0 ? pendingSum : 0} target={target}
-                    displayMode={scoreDisplayMode} onToggleMode={onToggleScoreMode} hideModeToolbar={true}
-                    extensions={extensions} />
+        {isBasicSimplified ? (
+          <BigScoreDisplay players={players} totals={totals} highlightPlayer={currentPlayer}
+                            target={target} extensions={extensions} size="lg" />
+        ) : (
+          <ScoreTable tournament={tournament} totals={totals} highlightPlayer={currentPlayer}
+                      pendingPreview={pendingSum > 0 ? pendingSum : 0} target={target}
+                      displayMode={scoreDisplayMode} onToggleMode={onToggleScoreMode} hideModeToolbar={true}
+                      extensions={extensions} />
+        )}
       </div>
 
       <div className="px-4 mt-4">
@@ -2956,9 +2982,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
       )}
 
       {showStandings && (
-        <Modal onClose={() => setShowStandings(false)} title="Priebeh hry">
-          <ProgressChart tournament={tournament} totals={totals} target={target} />
-        </Modal>
+        <FullscreenProgressView onClose={() => setShowStandings(false)} tournament={tournament} totals={totals} target={target} />
       )}
       {showrules && (
         <Modal onClose={() => setShowrules(false)} title="Pravidlá hry">
@@ -3196,6 +3220,25 @@ function DecisionPresenter({ playerName, target, displayMode, onConfirm, onRejec
             <div className="ks-display ks-text-accent text-base font-bold">✗ Nepotvrdil</div>
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Fullscreen Priebeh hry ────────────────────────────────────────────────
+
+function FullscreenProgressView({ onClose, tournament, totals, target }) {
+  useBackHandler(() => onClose(), true);
+  return (
+    <div className="fixed inset-0 z-40 ks-bg ks-fade flex flex-col p-4 sm:p-6">
+      <div className="flex items-center justify-between mb-4 shrink-0">
+        <h2 className="ks-display ks-gold text-3xl sm:text-4xl font-bold">Priebeh hry</h2>
+        <button aria-label="Zatvoriť" onClick={onClose} className="ks-press ks-cream p-2 border ks-border-sub rounded-sm">
+          <X size={28} />
+        </button>
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+        <ProgressChart tournament={tournament} totals={totals} target={target} fullscreen />
       </div>
     </div>
   );

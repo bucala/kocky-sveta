@@ -5,7 +5,9 @@ import { SKIN_PRESETS } from '../constants/skins.js';
 export function GameViewModesScreen({ onBack, selectedMode, onChangeMode, selectedSkin }) {
   const options = [
     { id: 'basic', title: 'Klasický', desc: 'Tabuľka hore a zapisovanie bodov pod ňou.' },
+    { id: 'basicSimplified', title: 'Klasický zjednodušený', desc: 'Iba mená a aktuálne skóre vo veľkom, bez tabuľky kôl. Zapisovanie zostáva.' },
     { id: 'observer', title: 'Pozorovateľ', desc: 'Veľký živý prehľad skóre pre obrazovku alebo TV.' },
+    { id: 'observerSimplified', title: 'Pozorovateľ zjednodušený', desc: 'Iba mená a skóre vo veľkom + graf priebehu hry. Bez tabuľky kôl.' },
     { id: 'recorder', title: 'Zapisovateľ', desc: 'Jednoduché veľké ovládanie pre rýchly zápis bodov.' },
   ];
   const skin = SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic;
@@ -31,6 +33,24 @@ export function GameViewModesScreen({ onBack, selectedMode, onChangeMode, select
                         <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.04)'}} />
                         <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.78)'}} />
                       </div>
+                    </div>
+                  ) : opt.id === 'basicSimplified' ? (
+                    <div style={{height:'100%', display:'grid', gridTemplateRows:'1fr 1fr', gap:'5px', padding:'6px'}}>
+                      <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.10)', border:'1px solid rgba(212,184,106,0.3)', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                        <div style={{width:'60%', height:'8px', borderRadius:'2px', background:'rgba(212,184,106,0.7)'}} />
+                      </div>
+                      <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(212,184,106,0.15)', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                        <div style={{width:'50%', height:'8px', borderRadius:'2px', background:'rgba(255,255,255,0.3)'}} />
+                      </div>
+                    </div>
+                  ) : opt.id === 'observerSimplified' ? (
+                    <div style={{height:'100%', display:'grid', gridTemplateRows:'1fr 22px', gap:'4px', padding:'6px'}}>
+                      <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.10)', border:'1px solid rgba(212,184,106,0.3)', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                        <div style={{width:'60%', height:'10px', borderRadius:'2px', background:'rgba(212,184,106,0.7)'}} />
+                      </div>
+                      <svg viewBox="0 0 40 20" style={{width:'100%', height:'100%'}}>
+                        <polyline points="2,16 12,10 22,12 32,4" fill="none" stroke="rgba(212,184,106,0.7)" strokeWidth="1.5" />
+                      </svg>
                     </div>
                   ) : opt.id === 'observer' ? (
                     <div style={{height:'100%', display:'grid', gridTemplateRows:'14px 1fr', gap:'4px', padding:'5px'}}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Volume2, Zap, Sparkles, Users, Star, BarChart2, Smartphone, Trophy, Hash, Layers, Bell } from 'lucide-react';
+import { Volume2, Zap, Sparkles, Users, Crown, BarChart2, Smartphone, Trophy, Hash, Layers, Bell } from 'lucide-react';
 import { Header, SkinSelector, FontSelector } from '../components/ui.jsx';
 import { ToggleRow } from '../atoms/ToggleRow.jsx';
 import { useT } from '../lib/i18n.js';
@@ -24,7 +24,7 @@ export function VisualAndSkinScreen({
     { key: 'confetti',       icon: Sparkles,   label: t('ext.confetti'),       sub: t('ext.confetti.sub') },
     { key: 'dramaticWinner', icon: Trophy,     label: t('ext.dramaticWinner'), sub: t('ext.dramaticWinner.sub') },
     { key: 'coloredAvatars', icon: Users,      label: t('ext.coloredAvatars'), sub: t('ext.coloredAvatars.sub') },
-    { key: 'leaderGlow',     icon: Star,       label: t('ext.leaderGlow'),     sub: t('ext.leaderGlow.sub') },
+    { key: 'leaderCrown',    icon: Crown,      label: t('ext.leaderCrown'),    sub: t('ext.leaderCrown.sub') },
     { key: 'progressBar',    icon: BarChart2,  label: t('ext.progressBar'),    sub: t('ext.progressBar.sub') },
     { key: 'animatedScore',  icon: Hash,       label: t('ext.animatedScore'),  sub: t('ext.animatedScore.sub') },
     { key: 'milestoneFlash', icon: Zap,        label: t('ext.milestoneFlash'), sub: t('ext.milestoneFlash.sub') },

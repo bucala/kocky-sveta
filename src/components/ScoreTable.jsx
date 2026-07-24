@@ -67,27 +67,35 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
           <thead>
             <tr className="border-b border-amber-900/40">
               <th className="ks-mono ks-muted text-xs font-normal py-3 px-2 text-center sticky left-0 backdrop-blur" style={{ width: 36, background: 'var(--ks-sticky-bg, rgba(14,12,10,0.97))' }}>K</th>
-              {players.map((p, i) => (
+              {players.map((p, i) => {
+                const showCrown = extensions.leaderCrown && i === leaderIdx && maxTotal > 0;
+                return (
                 <th key={i}
-                    className={`ks-display py-2 px-1 text-sm font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis ${i === highlightPlayer ? 'ks-gold' : 'ks-cream'}`}>
+                    className={`ks-display py-2 px-1 text-sm font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis transition-colors ${i === highlightPlayer ? 'ks-gold bg-amber-900/10' : 'ks-cream'}`}>
                   {extensions.coloredAvatars ? (
                     <div className="flex flex-col items-center gap-1">
                       <div
-                        className="rounded-full flex items-center justify-center text-[10px] font-bold"
+                        className="rounded-full flex items-center justify-center text-[10px] font-bold relative"
                         style={{
                           width: 26, height: 26,
                           background: PLAYER_COLORS[i % PLAYER_COLORS.length],
                           color: '#1a1410',
-                          boxShadow: i === leaderIdx && extensions.leaderGlow ? `0 0 10px 3px ${PLAYER_COLORS[i % PLAYER_COLORS.length]}88` : 'none',
                         }}
                       >
                         {getInitials(p)}
+                        {showCrown && <Crown size={12} className="ks-gold absolute -top-2.5 left-1/2 -translate-x-1/2" fill="currentColor" />}
                       </div>
                       <span className="text-[11px] leading-none truncate max-w-[60px] block">{p}</span>
                     </div>
-                  ) : p}
+                  ) : (
+                    <span className="inline-flex items-center gap-1">
+                      {showCrown && <Crown size={12} className="ks-gold shrink-0" fill="currentColor" />}
+                      {p}
+                    </span>
+                  )}
                 </th>
-              ))}
+                );
+              })}
             </tr>
           </thead>
           <tbody ref={tableRef}>
@@ -124,18 +132,14 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
               <td className="ks-mono ks-gold text-xs py-2 px-2 text-center sticky left-0" style={{ background: 'var(--ks-sticky-bg2, rgba(10,8,6,0.98))' }}>Σ</td>
               {totals.map((t, i) => {
                 const reached = target && t >= target;
-                const isLeader = i === leaderIdx && maxTotal > 0;
                 const color = extensions.coloredAvatars ? PLAYER_COLORS[i % PLAYER_COLORS.length] : null;
                 return (
                   <td key={`${i}-${extensions.animatedScore ? t : 0}`}
-                      className={`text-center py-2 px-2 ks-display text-lg font-bold ${extensions.animatedScore ? 'ks-score-in' : ''} ${
+                      className={`text-center py-2 px-2 ks-display text-lg font-bold transition-colors ${extensions.animatedScore ? 'ks-score-in' : ''} ${
                         t < 0 ? 'text-red-300' : reached ? 'ks-gold' : i === highlightPlayer ? 'ks-gold' : 'ks-cream'
-                      }`}
+                      } ${i === highlightPlayer ? 'bg-amber-900/10' : ''}`}
                       style={{
                         color: extensions.coloredAvatars ? color : undefined,
-                        textShadow: extensions.leaderGlow && isLeader && maxTotal > 0
-                          ? `0 0 12px ${color || 'rgba(212,184,106,0.8)'}, 0 0 24px ${color || 'rgba(212,184,106,0.4)'}44`
-                          : undefined,
                       }}>
                     {t.toLocaleString('sk-SK')}
                   </td>

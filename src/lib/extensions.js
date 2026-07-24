@@ -3,7 +3,7 @@ export const PLAYER_COLORS = ['#d4b86a', '#60a5fa', '#86efac', '#fb923c', '#c084
 export const DEFAULT_EXTENSIONS = {
   confetti: false,
   coloredAvatars: false,
-  leaderGlow: false,
+  leaderCrown: false,
   progressBar: false,
   milestoneFlash: false,
   animatedScore: false,
