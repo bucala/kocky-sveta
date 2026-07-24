@@ -1,4 +1,23 @@
-﻿## Čo je nové v 1.6.1
+﻿## Čo je nové v 1.6.2
+
+### 🎮 Nové režimy zobrazenia hry
+- **Klasický zjednodušený** — bez tabuľky kôl, iba mená a aktuálne skóre vo veľkom (3×), zapisovanie zostáva
+- **Pozorovateľ zjednodušený** — to isté v 6× fonte (pre TV) + živý graf priebehu hry pod skóre
+
+### 👑 Korunka pre lídra
+- Nahradila "Pulzujúceho lídra" — aktuálny líder má pri mene korunku namiesto glow efektu
+
+### 📊 Fullscreen "Priebeh hry"
+- Graf priebehu hry sa teraz otvára na celú obrazovku s väčším písmom a výraznejším grafom
+
+### 🎨 UX
+- Jemné odlíšenie pozadia aktuálne hrajúceho hráča vo všetkých režimoch zobrazenia
+
+**Full Changelog**: https://github.com/bucala/kocky-sveta/compare/v1.6.1...v1.6.2
+
+---
+
+## Čo je nové v 1.6.1
 
 ### 🧹 Údržba — komplexný audit
 - Odstránených 41 zabudnutých backup súborov a ~2900 riadkov mŕtveho duplicitného kódu (opustený refaktor z 1.5.0)

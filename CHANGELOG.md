@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.2] — 2026-07-05 — Korunka pre lídra, zjednodušené zobrazenia, fullscreen graf
+
+### Pridané (Added)
+
+- **Korunka pre lídra** — nahradila "Pulzujúceho lídra" (glow efekt); aktuálny líder má teraz pri svojom mene korunku (Rozšírenia, defaultne vypnuté)
+- **Klasický zjednodušený režim zobrazenia** — bez tabuľky jednotlivých kôl, iba mená hráčov a aktuálne skóre vo veľkom fonte (3× väčšie), layout sa nehýbe, menia sa len hodnoty; zapisovanie bodov zostáva rovnaké ako v klasickom režime
+- **Pozorovateľ zjednodušený režim zobrazenia** — rovnaký princíp ako vyššie, font 6× väčší (určené pre TV/väčšiu obrazovku), pod veľkým skóre navyše živý graf priebehu hry
+- **"Priebeh hry" vo fullscreen móde** — namiesto malého vyskakovacieho okna sa teraz otvára na celú obrazovku, s výrazne väčším a čitateľnejším grafom a väčším písmom mien/skóre
+
+### Zmenené (Changed)
+
+- Vo všetkých režimoch zobrazenia je teraz jemne odlíšené pozadie aktuálne hrajúceho hráča (hlavička aj súčtový riadok tabuľky skóre)
+
+---
+
 ## [1.6.1] — 2026-07-05 — Audit Cleanup: Dead Code, Security & Build Fixes
 
 ### Odstránené (Removed)

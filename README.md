@@ -7,11 +7,11 @@
 ![Firebase](https://img.shields.io/badge/Firebase-12.x-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![Capacitor](https://img.shields.io/badge/Capacitor-6.x-2563eb?style=for-the-badge&logo=capacitor&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-57%2F57%20✓-22c55e?style=for-the-badge)
-![Release](https://img.shields.io/badge/release-v1.6.1-d4b86a?style=for-the-badge)
+![Release](https://img.shields.io/badge/release-v1.6.2-d4b86a?style=for-the-badge)
 
-## 📦 Status: STABILNÝ — v1.6.1
+## 📦 Status: STABILNÝ — v1.6.2
 
-> **Tag:** [`v1.6.1`](https://github.com/bucala/kocky-sveta/releases/tag/1.6.1) — Audit Cleanup: Dead Code, Security & Build Fixes
+> **Tag:** [`v1.6.2`](https://github.com/bucala/kocky-sveta/releases/tag/1.6.2) — Korunka pre lídra, zjednodušené zobrazenia, fullscreen graf
 
 ---
 
@@ -50,6 +50,17 @@
 ---
 
 ## 🆕 Changelog
+
+### v1.6.2 — Korunka pre lídra, zjednodušené zobrazenia, fullscreen graf *(2026-07-05)*
+
+- **Korunka pre lídra** — nahradila "Pulzujúceho lídra", aktuálny líder má pri mene korunku namiesto glow efektu
+- **Klasický zjednodušený** a **Pozorovateľ zjednodušený** — nové režimy zobrazenia bez tabuľky kôl, iba veľké mená a skóre (3×/6×), pozorovateľ navyše s grafom priebehu hry
+- **Fullscreen "Priebeh hry"** — graf sa teraz otvára na celú obrazovku s väčším písmom
+- **UX** — jemné odlíšenie pozadia aktuálne hrajúceho hráča vo všetkých režimoch
+
+Detaily: [`release-notes.md`](./release-notes.md), [`CHANGELOG.md`](./CHANGELOG.md)
+
+---
 
 ### v1.6.1 — Audit Cleanup: Dead Code, Security & Build Fixes *(2026-07-05)*
 
@@ -405,4 +416,4 @@ Firestore odmietol zápis (napr. bezpečnostné pravidlá). Skontroluj `firestor
 
 ---
 
-**Latest Release:** [v1.6.1 — Audit Cleanup: Dead Code, Security & Build Fixes](https://github.com/bucala/kocky-sveta/releases/tag/1.6.1)
+**Latest Release:** [v1.6.2 — Korunka pre lídra, zjednodušené zobrazenia, fullscreen graf](https://github.com/bucala/kocky-sveta/releases/tag/1.6.2)
