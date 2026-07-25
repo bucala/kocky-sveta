@@ -1,4 +1,18 @@
-﻿## Čo je nové v 1.6.2
+﻿## Čo je nové v 1.6.3
+
+### 🎨 Farby hráčov
+- Graf priebehu hry a veľké zobrazenie skóre teraz zdieľajú presne rovnakú farebnú paletu hráčov
+
+### 📊 Pozorovateľ zjednodušený
+- Graf priebehu hry bez legendy (farby už zodpovedajú tabuľke skóre)
+- Body na grafe sa pri dlhšej hre už nestláčajú/nesplývajú — graf sa rozšíri a scrolluje
+- Poradie hráča v pravom hornom rohu karty, líder má korunku namiesto čísla
+
+**Full Changelog**: https://github.com/bucala/kocky-sveta/compare/v1.6.2...v1.6.3
+
+---
+
+## Čo je nové v 1.6.2
 
 ### 🎮 Nové režimy zobrazenia hry
 - **Klasický zjednodušený** — bez tabuľky kôl, iba mená a aktuálne skóre vo veľkom (3×), zapisovanie zostáva

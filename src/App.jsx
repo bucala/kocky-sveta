@@ -2717,10 +2717,10 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
         <div className="px-3 pt-2 pb-3 h-[100dvh] flex flex-col gap-3 overflow-hidden">
           <div className="flex-1 min-h-0 flex items-center">
             <BigScoreDisplay players={players} totals={totals} highlightPlayer={currentPlayer}
-                              target={target} extensions={extensions} size="xl" />
+                              target={target} extensions={extensions} size="xl" showRank />
           </div>
           <div className="flex-1 min-h-0 ks-card rounded-sm p-3 overflow-hidden">
-            <ProgressChart tournament={tournament} totals={totals} target={target} />
+            <ProgressChart tournament={tournament} totals={totals} target={target} hideLegend />
           </div>
         </div>
       ) : isRecorderMode ? (

@@ -1,9 +1,8 @@
 ﻿import React, { useMemo, useState, useCallback } from 'react';
 import { Crown } from 'lucide-react';
+import { PLAYER_COLORS } from '../lib/extensions.js';
 
-const PLAYER_COLORS = ['#d4b86a','#e07070','#7eb8e0','#7ede9a','#e0a870','#b07ee0','#e0d870','#70e0d4'];
-
-export function ProgressChart({ tournament, totals, target, fullscreen = false }) {
+export function ProgressChart({ tournament, totals, target, fullscreen = false, hideLegend = false }) {
   if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return null;
   const { players, rounds } = tournament;
   const [tooltip, setTooltip] = useState(null);
@@ -25,13 +24,24 @@ export function ProgressChart({ tournament, totals, target, fullscreen = false }
     .map((name, i) => ({ name, total: totals[i], i, color: PLAYER_COLORS[i % PLAYER_COLORS.length] }))
     .sort((a, b) => b.total - a.total);
 
-  const W = fullscreen ? 900 : 600, H = fullscreen ? 420 : 260;
+  const H = fullscreen ? 420 : 260;
   const ML = fullscreen ? 64 : 48, MR = fullscreen ? 24 : 16, MT = fullscreen ? 28 : 20, MB = fullscreen ? 40 : 28;
-  const gW = W - ML - MR, gH = H - MT - MB;
+  const gH = H - MT - MB;
   const yMax = Math.max(target, ...totals) + 200;
   const yMin = Math.min(0, ...totals) - 100;
   const yRange = yMax - yMin;
   const xCount = data.length - 1 || 1;
+
+  // Pri dlhšej hre (veľa kôl) sa body pri fixnej šírke stláčajú k sebe a
+  // čiary sa vizuálne splývajú. Ak by rozostup klesol pod čitateľné minimum,
+  // graf namiesto stláčania rozšírime (a kartu necháme horizontálne scrollovať).
+  const baseW = fullscreen ? 900 : 600;
+  const baseGW = baseW - ML - MR;
+  const minSpacing = fullscreen ? 42 : 28;
+  const needsScroll = xCount > 0 && (baseGW / xCount) < minSpacing;
+  const W = needsScroll ? ML + MR + xCount * minSpacing : baseW;
+  const gW = W - ML - MR;
+
   const px = (i) => ML + (i / xCount) * gW;
   const py = (v) => MT + gH - ((v - yMin) / yRange) * gH;
   const axisFont = fullscreen ? 15 : 9;
@@ -57,22 +67,25 @@ export function ProgressChart({ tournament, totals, target, fullscreen = false }
 
   return (
     <div className="space-y-4">
-      <div className={`grid ${fullscreen ? 'grid-cols-1 sm:grid-cols-2 gap-3' : 'grid-cols-2 gap-1.5'}`}>
-        {ranked.map((p, idx) => (
-          <div key={p.i} className={`flex items-center gap-2 rounded-sm border border-amber-900/25 bg-stone-950/30 min-w-0 ${fullscreen ? 'p-4' : 'p-2'}`}>
-            <div className={`rounded-full shrink-0 ${fullscreen ? 'w-4 h-4' : 'w-2.5 h-2.5'}`} style={{ background: p.color }} />
-            <div className={`ks-display ks-cream font-semibold truncate min-w-0 flex-1 ${fullscreen ? 'text-xl sm:text-3xl' : 'text-sm'}`}>
-              {idx===0 && p.total>0 && <Crown size={fullscreen ? 20 : 11} className="ks-gold inline mr-1 -mt-0.5 shrink-0" />}
-              {p.name}
+      {!hideLegend && (
+        <div className={`grid ${fullscreen ? 'grid-cols-1 sm:grid-cols-2 gap-3' : 'grid-cols-2 gap-1.5'}`}>
+          {ranked.map((p, idx) => (
+            <div key={p.i} className={`flex items-center gap-2 rounded-sm border border-amber-900/25 bg-stone-950/30 min-w-0 ${fullscreen ? 'p-4' : 'p-2'}`}>
+              <div className={`rounded-full shrink-0 ${fullscreen ? 'w-4 h-4' : 'w-2.5 h-2.5'}`} style={{ background: p.color }} />
+              <div className={`ks-display ks-cream font-semibold truncate min-w-0 flex-1 ${fullscreen ? 'text-xl sm:text-3xl' : 'text-sm'}`}>
+                {idx===0 && p.total>0 && <Crown size={fullscreen ? 20 : 11} className="ks-gold inline mr-1 -mt-0.5 shrink-0" />}
+                {p.name}
+              </div>
+              <div className={`ks-display font-bold shrink-0 ${p.total<0?'ks-text-accent':'ks-gold'} ${fullscreen ? 'text-xl sm:text-3xl' : 'text-sm'}`}>
+                {p.total.toLocaleString('sk-SK')}
+              </div>
             </div>
-            <div className={`ks-display font-bold shrink-0 ${p.total<0?'ks-text-accent':'ks-gold'} ${fullscreen ? 'text-xl sm:text-3xl' : 'text-sm'}`}>
-              {p.total.toLocaleString('sk-SK')}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
       <div className={`ks-card rounded-sm ${fullscreen ? 'p-4 sm:p-6 ks-border-accent border-2' : 'p-3'}`}>
-        <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:chartCssHeight,overflow:'visible'}}
+        <div className={needsScroll ? 'overflow-x-auto ks-scroll' : undefined}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{width: needsScroll ? W : '100%', minWidth: needsScroll ? W : undefined, height:chartCssHeight,overflow:'visible'}}
           onMouseMove={handleMouseMove} onMouseLeave={()=>setTooltip(null)}>
           {yTicks.map(v=>(
             <g key={v}>
@@ -103,6 +116,7 @@ export function ProgressChart({ tournament, totals, target, fullscreen = false }
             </>
           )}
         </svg>
+        </div>
         {tooltip&&data[tooltip.idx]&&(()=>{
           const d=data[tooltip.idx];
           const sorted=players.map((name,i)=>({name,val:d[`p${i}`],color:PLAYER_COLORS[i%PLAYER_COLORS.length]})).sort((a,b)=>b.val-a.val);
