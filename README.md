@@ -7,11 +7,11 @@
 ![Firebase](https://img.shields.io/badge/Firebase-12.x-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![Capacitor](https://img.shields.io/badge/Capacitor-6.x-2563eb?style=for-the-badge&logo=capacitor&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-57%2F57%20✓-22c55e?style=for-the-badge)
-![Release](https://img.shields.io/badge/release-v1.6.3-d4b86a?style=for-the-badge)
+![Release](https://img.shields.io/badge/release-v1.6.4-d4b86a?style=for-the-badge)
 
-## 📦 Status: STABILNÝ — v1.6.3
+## 📦 Status: STABILNÝ — v1.6.4
 
-> **Tag:** [`v1.6.3`](https://github.com/bucala/kocky-sveta/releases/tag/1.6.3) — Farby hráčov zhodné s grafom, prehľadnejší graf
+> **Tag:** [`v1.6.4`](https://github.com/bucala/kocky-sveta/releases/tag/1.6.4) — Kombinovaný režim, oprava landscape prekrytia, editácia cieľa v archíve
 
 ---
 
@@ -50,6 +50,17 @@
 ---
 
 ## 🆕 Changelog
+
+### v1.6.4 — Kombinovaný režim, oprava landscape prekrytia, editácia cieľa v archíve *(2026-07-25)*
+
+- **Kombinovaný režim zobrazenia** — veľké mená a skóre hore (ako Pozorovateľ zjednodušený) + zapisovanie bodov dole (ako Zapisovateľ), všetko na jednej obrazovke
+- **Oprava** — veľké zobrazenie skóre už nepreteká/nepekrýva obsah pod ním pri horizontálnej (landscape) orientácii; 3 hráči teraz v 3 stĺpcoch namiesto mriežky s prázdnou bunkou
+- **Pozorovateľ zjednodušený** — graf priebehu hry má už len jeden minimálny rámik (bez dvojitého orámovania) a je bližšie k tabuľkám skóre
+- **Archív** — cieľové skóre turnaja sa dá opraviť priamo v editácii detailu (napr. z 10 000 na 5 000)
+
+Detaily: [`release-notes.md`](./release-notes.md), [`CHANGELOG.md`](./CHANGELOG.md)
+
+---
 
 ### v1.6.3 — Farby hráčov zhodné s grafom, prehľadnejší graf *(2026-07-05)*
 
@@ -425,4 +436,4 @@ Firestore odmietol zápis (napr. bezpečnostné pravidlá). Skontroluj `firestor
 
 ---
 
-**Latest Release:** [v1.6.3 — Farby hráčov zhodné s grafom, prehľadnejší graf](https://github.com/bucala/kocky-sveta/releases/tag/1.6.3)
+**Latest Release:** [v1.6.4 — Kombinovaný režim, oprava landscape prekrytia, editácia cieľa v archíve](https://github.com/bucala/kocky-sveta/releases/tag/1.6.4)

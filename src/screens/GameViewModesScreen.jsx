@@ -9,6 +9,7 @@ export function GameViewModesScreen({ onBack, selectedMode, onChangeMode, select
     { id: 'observer', title: 'Pozorovateľ', desc: 'Veľký živý prehľad skóre pre obrazovku alebo TV.' },
     { id: 'observerSimplified', title: 'Pozorovateľ zjednodušený', desc: 'Iba mená a skóre vo veľkom + graf priebehu hry. Bez tabuľky kôl.' },
     { id: 'recorder', title: 'Zapisovateľ', desc: 'Jednoduché veľké ovládanie pre rýchly zápis bodov.' },
+    { id: 'combined', title: 'Kombinovaný', desc: 'Veľké skóre hore + rýchle zapisovanie bodov dole — všetko na jednej obrazovke.' },
   ];
   const skin = SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic;
 
@@ -62,7 +63,7 @@ export function GameViewModesScreen({ onBack, selectedMode, onChangeMode, select
                         <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /></div>
                       </div>
                     </div>
-                  ) : (
+                  ) : opt.id === 'recorder' ? (
                     <div style={{height:'100%', display:'grid', gridTemplateRows:'14px 22px 1fr 12px', gap:'4px', padding:'5px'}}>
                       <div style={{display:'grid', gridTemplateColumns:'1fr 18px', gap:'3px'}}>
                         <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} />
@@ -73,6 +74,17 @@ export function GameViewModesScreen({ onBack, selectedMode, onChangeMode, select
                         <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.04)'}} />
                         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.04)'}} /><div style={{borderRadius:'2px', background:'rgba(212,184,106,0.78)'}} /></div>
                       </div>
+                      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px'}}>
+                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.06)'}} />
+                        <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.06)'}} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{height:'100%', display:'grid', gridTemplateRows:'26px 20px 1fr', gap:'4px', padding:'5px'}}>
+                      <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.10)', border:'1px solid rgba(212,184,106,0.3)', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                        <div style={{width:'55%', height:'9px', borderRadius:'2px', background:'rgba(212,184,106,0.7)'}} />
+                      </div>
+                      <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.18)', border:'1px solid rgba(212,184,106,0.22)'}} />
                       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px'}}>
                         <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.06)'}} />
                         <div style={{borderRadius:'2px', background:'rgba(255,255,255,0.06)'}} />
