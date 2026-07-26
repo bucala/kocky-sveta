@@ -2682,39 +2682,42 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
 
   // Zdieľaný blok "na ťahu" / "práve pripisuješ" / "pridaj body z hodu" —
   // používaný v Zapisovateľ aj Kombinovaný režime, aby sa nemusel duplikovať.
-  const entryCards = (
-    <>
-      <div className="ks-card-prom rounded-sm p-4 mb-2">
-        <div className="flex items-baseline justify-between mb-2">
-          <div className="ks-mono ks-gold text-xs">{t('game.turn')} · {t('game.round')} {currentRound + 1}</div>
-          <div className="ks-mono ks-muted text-xs">{t('game.target')} {target.toLocaleString('sk-SK')}</div>
+  const turnCard = (
+    <div className="ks-card-prom rounded-sm p-4 mb-2">
+      <div className="flex items-baseline justify-between mb-2">
+        <div className="ks-mono ks-gold text-xs">{t('game.turn')} · {t('game.round')} {currentRound + 1}</div>
+        <div className="ks-mono ks-muted text-xs">{t('game.target')} {target.toLocaleString('sk-SK')}</div>
+      </div>
+      <div className="flex items-end justify-between gap-3 mb-1">
+        <div className="flex-1 min-w-0">
+          <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.player')}</div>
+          <div className="ks-display text-4xl ks-cream font-bold leading-tight truncate">{players[currentPlayer]}</div>
         </div>
-        <div className="flex items-end justify-between gap-3 mb-1">
-          <div className="flex-1 min-w-0">
-            <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.player')}</div>
-            <div className="ks-display text-4xl ks-cream font-bold leading-tight truncate">{players[currentPlayer]}</div>
-          </div>
-          <div className="text-right shrink-0">
-            <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.score')}</div>
-            <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'ks-text-accent' : 'ks-gold'}`} style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
-              {total.toLocaleString('sk-SK')}
-            </div>
+        <div className="text-right shrink-0">
+          <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.score')}</div>
+          <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'ks-text-accent' : 'ks-gold'}`} style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
+            {total.toLocaleString('sk-SK')}
           </div>
         </div>
       </div>
+    </div>
+  );
+
+  function pendingCard(showButton) {
+    return (
       <div className="ks-card-prom rounded-sm p-4 mb-2">
-        <div className="flex items-center justify-between mb-3">
-          <div className="ks-mono ks-gold text-xs">PRÁVE PRIPISUJEŠ</div>
-          <div className="flex items-baseline gap-2">
-            {pending.length > 0 && pending[0] !== 'dash' && Number.isFinite(newTotal) && (
-              <span className="ks-muted text-xl ks-mono leading-none">→ {newTotal.toLocaleString('sk-SK')}</span>
-            )}
+        <div className="mb-3">
+          <div className="ks-mono ks-gold text-xs mb-1">PRÁVE PRIPISUJEŠ</div>
+          <div className="flex flex-col items-end">
             {pending[0] === 'dash' ? (
               <div className="ks-display text-6xl font-bold ks-muted">—</div>
             ) : (
               <div className={`ks-display text-6xl font-bold ${pendingSum < 0 ? 'ks-text-accent' : 'ks-gold'}`}>
                 {pendingSum > 0 ? '+' : ''}{pendingSum.toLocaleString('sk-SK')}
               </div>
+            )}
+            {pending.length > 0 && pending[0] !== 'dash' && Number.isFinite(newTotal) && (
+              <span className="ks-gold text-3xl ks-mono leading-none mt-1">→ {newTotal.toLocaleString('sk-SK')}</span>
             )}
           </div>
         </div>
@@ -2730,8 +2733,17 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
         ) : (
           <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed ks-border-sub rounded-sm">Pridaj body alebo čiarku z hodu nižšie…</div>
         )}
-        <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">Zapísať</GoldButton>
+        {showButton && (
+          <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">Zapísať</GoldButton>
+        )}
       </div>
+    );
+  }
+
+  const entryCards = (
+    <>
+      {turnCard}
+      {pendingCard(true)}
       <div className="ks-card-sub rounded-sm p-4 flex-1">
         <div className="flex items-center justify-between mb-3">
           <div className="ks-mono ks-muted text-xs">PRIDAJ BODY Z HODU</div>
@@ -2782,6 +2794,13 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
     </>
   );
 
+  const combinedEntryCards = (
+    <>
+      {turnCard}
+      {pendingCard(false)}
+    </>
+  );
+
   return (
     <div className={`min-h-screen ks-fade ks-bg ${isRecorderMode || isCombinedMode ? 'pb-6' : 'pb-32'}`}>
       {!isRecorderMode && !isCombinedMode && (
@@ -2828,17 +2847,19 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
           </div>
         </div>
       ) : isCombinedMode ? (
-        <div className="min-h-[100dvh] flex flex-col px-3 pt-[max(10px,env(safe-area-inset-top))] pb-[max(10px,env(safe-area-inset-bottom))]">
-          <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="h-[100dvh] flex flex-col px-3 pt-[max(10px,env(safe-area-inset-top))] pb-[max(10px,env(safe-area-inset-bottom))] overflow-y-auto">
+          <div className="flex items-center justify-between gap-2 mb-2 shrink-0">
             <button onClick={onMenu} className="ks-press ks-cream flex items-center gap-1 px-2 py-1"><ChevronLeft size={20} /><span className="ks-body">Späť</span></button>
             <div className="ks-display ks-gold text-lg text-center">{players[currentPlayer]}</div>
             <button onClick={onAbort} className="ks-press ks-card px-3 py-2 rounded-sm ks-mono text-xs ks-text-accent">{t('game.abort')}</button>
           </div>
-          <div className="mb-2" style={{ height: '32vh', minHeight: 180 }}>
+          <div className="mb-2 flex-1" style={{ minHeight: 160 }}>
             <BigScoreDisplay players={players} totals={totals} highlightPlayer={currentPlayer}
                               target={target} extensions={extensions} size="lg" showRank />
           </div>
-          {entryCards}
+          <div className="shrink-0">
+            {combinedEntryCards}
+          </div>
         </div>
       ) : isRecorderMode ? (
         <div className="min-h-[100dvh] flex flex-col px-3 pt-[max(10px,env(safe-area-inset-top))] pb-[max(10px,env(safe-area-inset-bottom))]">

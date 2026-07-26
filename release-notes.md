@@ -1,4 +1,16 @@
-﻿## Čo je nové v 1.6.4
+﻿## Čo je nové v 1.6.5
+
+### 🎮 Kombinovaný režim — čistejší prehľad
+- Odstránené tlačidlo "Zapísať" a celá sekcia rýchleho zapisovania bodov — režim teraz slúži ako veľký prehľad bez ovládacích prvkov
+
+### 📊 Prehľadnejšie pripisovanie bodov
+- Hodnota, ktorú hráč práve dosahuje ("→ 3 350"), má väčší font a je presunutá pod pripočítavané body namiesto tesného riadku vedľa nich
+
+**Full Changelog**: https://github.com/bucala/kocky-sveta/compare/v1.6.4...v1.6.5
+
+---
+
+## Čo je nové v 1.6.4
 
 ### 🎮 Kombinovaný režim zobrazenia
 - Nový režim zobrazenia hry — veľké mená a skóre hore (ako "Pozorovateľ zjednodušený"), dole namiesto grafu rovno zapisovanie bodov ("na ťahu" + "práve pripisuješ")
