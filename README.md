@@ -7,11 +7,11 @@
 ![Firebase](https://img.shields.io/badge/Firebase-12.x-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![Capacitor](https://img.shields.io/badge/Capacitor-6.x-2563eb?style=for-the-badge&logo=capacitor&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-57%2F57%20✓-22c55e?style=for-the-badge)
-![Release](https://img.shields.io/badge/release-v1.6.5-d4b86a?style=for-the-badge)
+![Release](https://img.shields.io/badge/release-v1.6.6-d4b86a?style=for-the-badge)
 
-## 📦 Status: STABILNÝ — v1.6.5
+## 📦 Status: STABILNÝ — v1.6.6
 
-> **Tag:** [`v1.6.5`](https://github.com/bucala/kocky-sveta/releases/tag/1.6.5) — Kombinovaný režim bez zapisovania, väčší prehľad pripisovaných bodov
+> **Tag:** [`v1.6.6`](https://github.com/bucala/kocky-sveta/releases/tag/1.6.6) — Kombinovaný režim bez "práve pripisuješ", cieľové skóre pri každom hráčovi
 
 ---
 
@@ -50,6 +50,15 @@
 ---
 
 ## 🆕 Changelog
+
+### v1.6.6 — Kombinovaný režim bez "práve pripisuješ", cieľové skóre pri každom hráčovi *(2026-07-26)*
+
+- **Kombinovaný režim** — odstránená celá karta "Práve pripisuješ"; zostáva iba veľký prehľad skóre a karta "na ťahu"
+- **Cieľové skóre pri každom hráčovi** — pod skóre každého hráča sa zobrazuje aj cieľová hodnota hry ("/ 10 000" alebo "/ 5 000")
+
+Detaily: [`release-notes.md`](./release-notes.md), [`CHANGELOG.md`](./CHANGELOG.md)
+
+---
 
 ### v1.6.5 — Kombinovaný režim bez zapisovania, väčší prehľad pripisovaných bodov *(2026-07-26)*
 
@@ -445,4 +454,4 @@ Firestore odmietol zápis (napr. bezpečnostné pravidlá). Skontroluj `firestor
 
 ---
 
-**Latest Release:** [v1.6.5 — Kombinovaný režim bez zapisovania, väčší prehľad pripisovaných bodov](https://github.com/bucala/kocky-sveta/releases/tag/1.6.5)
+**Latest Release:** [v1.6.6 — Kombinovaný režim bez "práve pripisuješ", cieľové skóre pri každom hráčovi](https://github.com/bucala/kocky-sveta/releases/tag/1.6.6)

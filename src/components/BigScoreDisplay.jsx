@@ -8,7 +8,7 @@ import { PLAYER_COLORS, getInitials } from '../lib/extensions.js';
 // Layout sa nehýbe, menia sa iba hodnoty. Mená aj hodnoty sú vždy farebne
 // odlíšené presne podľa farieb hráčov v grafe priebehu hry (ProgressChart),
 // aby bolo možné hráča identifikovať bez legendy.
-export function BigScoreDisplay({ players, totals, highlightPlayer, target, extensions = {}, size = 'lg', showRank = false }) {
+export function BigScoreDisplay({ players, totals, highlightPlayer, target, extensions = {}, size = 'lg', showRank = false, showTarget = false }) {
   const maxTotal = Math.max(...totals, 0);
   const leaderIdx = totals.indexOf(maxTotal);
   const sortedDesc = [...totals].sort((a, b) => b - a);
@@ -75,6 +75,11 @@ export function BigScoreDisplay({ players, totals, highlightPlayer, target, exte
             >
               {t.toLocaleString('sk-SK')}
             </div>
+            {showTarget && (
+              <div className="ks-mono ks-muted" style={{ fontSize: size === 'xl' ? 'clamp(10px, 1.4vw, 16px)' : 'clamp(9px, 1.1vw, 13px)' }}>
+                / {target.toLocaleString('sk-SK')}
+              </div>
+            )}
           </div>
         );
       })}
