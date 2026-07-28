@@ -1,4 +1,23 @@
-﻿## Čo je nové v 1.6.3
+﻿## Čo je nové v 1.6.4
+
+### 🎮 Kombinovaný režim zobrazenia
+- Nový režim zobrazenia hry — veľké mená a skóre hore (ako "Pozorovateľ zjednodušený"), dole namiesto grafu rovno zapisovanie bodov ("na ťahu" + "práve pripisuješ")
+
+### 🐛 Oprava prekrytia pri horizontálnom zobrazení
+- Veľké zobrazenie skóre už nepreteká do sekcie pod ním pri landscape orientácii displeja
+- 3 hráči teraz zaberú 3 stĺpce v jednom riadku namiesto mriežky s prázdnou bunkou
+
+### 📊 Pozorovateľ zjednodušený
+- Graf priebehu hry má už len jeden minimálny rámik (bez dvojitého orámovania) a je bližšie k tabuľkám skóre
+
+### 📁 Archív
+- Cieľové skóre turnaja sa dá teraz opraviť priamo v editácii detailu (napr. z 10 000 na 5 000)
+
+**Full Changelog**: https://github.com/bucala/kocky-sveta/compare/v1.6.3...v1.6.4
+
+---
+
+## Čo je nové v 1.6.3
 
 ### 🎨 Farby hráčov
 - Graf priebehu hry a veľké zobrazenie skóre teraz zdieľajú presne rovnakú farebnú paletu hráčov

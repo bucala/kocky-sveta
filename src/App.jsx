@@ -252,6 +252,7 @@ const VIEW_MODE_LABELS = {
   observer: 'Pozorovateľ',
   observerSimplified: 'Pozorovateľ zjednodušený',
   recorder: 'Zapisovateľ',
+  combined: 'Kombinovaný',
 };
 const PENALTY_VALUE = -1000;
 
@@ -2660,6 +2661,7 @@ const isObserverMode = tournamentViewMode === 'observer';
 const isObserverSimplified = tournamentViewMode === 'observerSimplified';
 const isBasicSimplified = tournamentViewMode === 'basicSimplified';
 const isRecorderMode = tournamentViewMode === 'recorder';
+const isCombinedMode = tournamentViewMode === 'combined';
 const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== null;
 
 // showDecisionPopup je teraz odvodený (derived) – useEffect na setShowWinPendingPopup
@@ -2677,10 +2679,112 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
   }
 
   if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback />;
-  
+
+  // Zdieľaný blok "na ťahu" / "práve pripisuješ" / "pridaj body z hodu" —
+  // používaný v Zapisovateľ aj Kombinovaný režime, aby sa nemusel duplikovať.
+  const entryCards = (
+    <>
+      <div className="ks-card-prom rounded-sm p-4 mb-2">
+        <div className="flex items-baseline justify-between mb-2">
+          <div className="ks-mono ks-gold text-xs">{t('game.turn')} · {t('game.round')} {currentRound + 1}</div>
+          <div className="ks-mono ks-muted text-xs">{t('game.target')} {target.toLocaleString('sk-SK')}</div>
+        </div>
+        <div className="flex items-end justify-between gap-3 mb-1">
+          <div className="flex-1 min-w-0">
+            <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.player')}</div>
+            <div className="ks-display text-4xl ks-cream font-bold leading-tight truncate">{players[currentPlayer]}</div>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.score')}</div>
+            <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'ks-text-accent' : 'ks-gold'}`} style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
+              {total.toLocaleString('sk-SK')}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="ks-card-prom rounded-sm p-4 mb-2">
+        <div className="flex items-center justify-between mb-3">
+          <div className="ks-mono ks-gold text-xs">PRÁVE PRIPISUJEŠ</div>
+          <div className="flex items-baseline gap-2">
+            {pending.length > 0 && pending[0] !== 'dash' && Number.isFinite(newTotal) && (
+              <span className="ks-muted text-xl ks-mono leading-none">→ {newTotal.toLocaleString('sk-SK')}</span>
+            )}
+            {pending[0] === 'dash' ? (
+              <div className="ks-display text-6xl font-bold ks-muted">—</div>
+            ) : (
+              <div className={`ks-display text-6xl font-bold ${pendingSum < 0 ? 'ks-text-accent' : 'ks-gold'}`}>
+                {pendingSum > 0 ? '+' : ''}{pendingSum.toLocaleString('sk-SK')}
+              </div>
+            )}
+          </div>
+        </div>
+        {pending.length > 0 ? (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {pending.map((p, i) => (
+              <button key={i} onClick={() => removePending(i)} className={`ks-press group flex items-center gap-1.5 px-3 py-1.5 rounded-sm border ${p === 'dash' ? 'border-stone-600/60 bg-stone-800/40 ks-muted' : p < 0 ? 'border-red-800/60 bg-red-950/40 ks-text-accent' : 'ks-border-accent bg-stone-900/70 ks-cream'}`}>
+                <span className="ks-display font-semibold">{p === 'dash' ? '— čiarka' : (p > 0 ? `+${p}` : p)}</span>
+                <X size={14} className="opacity-60 group-hover:opacity-100" />
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed ks-border-sub rounded-sm">Pridaj body alebo čiarku z hodu nižšie…</div>
+        )}
+        <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">Zapísať</GoldButton>
+      </div>
+      <div className="ks-card-sub rounded-sm p-4 flex-1">
+        <div className="flex items-center justify-between mb-3">
+          <div className="ks-mono ks-muted text-xs">PRIDAJ BODY Z HODU</div>
+          <button aria-label="Upraviť rýchle hodnoty" onClick={() => setShowQVEditor(v => !v)} className="ks-press ks-muted hover:ks-cream p-0.5"><Edit3 size={13} /></button>
+        </div>
+        {showQVEditor && onQuickValuesChange && (
+          <div className="mb-3 p-2.5 border ks-border-sub rounded-sm bg-stone-950/60 space-y-2">
+            <div className="ks-mono ks-muted text-xs">UPRAVIŤ TLAČIDLÁ</div>
+            <div className="flex flex-wrap gap-1.5">
+              {qv.map(v => (
+                <button key={v} onClick={() => onQuickValuesChange(qv.filter(x => x !== v))}
+                  className="ks-press px-2 py-0.5 rounded-sm border ks-border-sub ks-cream text-xs flex items-center gap-1">
+                  {v} <X size={10} className="ks-muted" />
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1.5">
+              <input type="number" value={qvInput} onChange={e => setQVInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { const n = parseInt(qvInput, 10); if (n > 0 && !qv.includes(n)) { onQuickValuesChange([...qv, n].sort((a,b) => a-b)); setQVInput(''); } } }}
+                placeholder="Pridaj hodnotu…" min="1" max="9999"
+                className="flex-1 bg-transparent border ks-border-sub rounded-sm px-2 py-1 ks-cream text-xs outline-none" />
+              <button onClick={() => { const n = parseInt(qvInput, 10); if (n > 0 && !qv.includes(n)) { onQuickValuesChange([...qv, n].sort((a,b) => a-b)); setQVInput(''); } }}
+                className="ks-press ks-gold-bg px-2 py-1 rounded-sm text-black text-xs font-semibold">+</button>
+              <button onClick={() => onQuickValuesChange(DEFAULT_QUICK_VALUES)}
+                className="ks-press border ks-border-sub px-2 py-1 rounded-sm ks-muted text-xs">Reset</button>
+            </div>
+          </div>
+        )}
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {qv.map(v => (
+            <button key={v} onClick={() => addPoints(v)} className="ks-press border ks-border-sub bg-stone-950/40 hover:bg-stone-900/60 py-2.5 rounded-sm ks-display ks-cream text-lg font-semibold">+{v}</button>
+          ))}
+        </div>
+        <div className="flex gap-2 mb-3">
+          <input type="number" value={customInput} onChange={(e) => setCustomInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCustom()} placeholder="Vlastná hodnota" className="flex-1 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
+          <GoldButton onClick={addCustom} icon={Plus} variant="outline">Pridaj</GoldButton>
+        </div>
+        <div className="ks-divider my-3" />
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={addDash} className="ks-press p-3 rounded-sm border-2 border-stone-600/50 bg-gradient-to-b from-stone-900/60 to-stone-950/80 hover:brightness-125 flex items-center justify-center gap-2"><Minus size={20} className="ks-muted" /><span className="ks-mono ks-cream font-semibold">ČIARKA</span></button>
+          <button onClick={addPenalty} className="ks-press p-3 rounded-sm border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2"><Skull size={20} className="ks-text-accent" /><span className="ks-mono ks-text-accent font-semibold">−1 000</span></button>
+        </div>
+        <div className="grid grid-cols-2 gap-2 mt-4">
+          <GoldButton onClick={() => setShowStandings(true)} icon={TrendingUp} variant="ghost">Priebeh hry</GoldButton>
+          <GoldButton onClick={() => setShowrules(true)} icon={ScrollText} variant="ghost">Pravidlá</GoldButton>
+        </div>
+      </div>
+    </>
+  );
+
   return (
-    <div className={`min-h-screen ks-fade ks-bg ${isRecorderMode ? 'pb-6' : 'pb-32'}`}>
-      {!isRecorderMode && (
+    <div className={`min-h-screen ks-fade ks-bg ${isRecorderMode || isCombinedMode ? 'pb-6' : 'pb-32'}`}>
+      {!isRecorderMode && !isCombinedMode && (
         <Header
           title={`Turnaj · do ${target.toLocaleString('sk-SK')}`}
           onBack={onMenu}
@@ -2714,14 +2818,27 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
           </div>
         </div>
       ) : isObserverSimplified ? (
-        <div className="px-3 pt-2 pb-3 h-[100dvh] flex flex-col gap-3 overflow-hidden">
-          <div className="flex-1 min-h-0 flex items-center">
+        <div className="px-3 pt-2 pb-3 h-[100dvh] flex flex-col gap-2 overflow-hidden">
+          <div className="flex-1 min-h-0">
             <BigScoreDisplay players={players} totals={totals} highlightPlayer={currentPlayer}
                               target={target} extensions={extensions} size="xl" showRank />
           </div>
-          <div className="flex-1 min-h-0 ks-card rounded-sm p-3 overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <ProgressChart tournament={tournament} totals={totals} target={target} hideLegend />
           </div>
+        </div>
+      ) : isCombinedMode ? (
+        <div className="min-h-[100dvh] flex flex-col px-3 pt-[max(10px,env(safe-area-inset-top))] pb-[max(10px,env(safe-area-inset-bottom))]">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <button onClick={onMenu} className="ks-press ks-cream flex items-center gap-1 px-2 py-1"><ChevronLeft size={20} /><span className="ks-body">Späť</span></button>
+            <div className="ks-display ks-gold text-lg text-center">{players[currentPlayer]}</div>
+            <button onClick={onAbort} className="ks-press ks-card px-3 py-2 rounded-sm ks-mono text-xs ks-text-accent">{t('game.abort')}</button>
+          </div>
+          <div className="mb-2" style={{ height: '32vh', minHeight: 180 }}>
+            <BigScoreDisplay players={players} totals={totals} highlightPlayer={currentPlayer}
+                              target={target} extensions={extensions} size="lg" showRank />
+          </div>
+          {entryCards}
         </div>
       ) : isRecorderMode ? (
         <div className="min-h-[100dvh] flex flex-col px-3 pt-[max(10px,env(safe-area-inset-top))] pb-[max(10px,env(safe-area-inset-bottom))]">
@@ -2730,101 +2847,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
             <div className="ks-display ks-gold text-lg text-center">{players[currentPlayer]}</div>
             <button onClick={onAbort} className="ks-press ks-card px-3 py-2 rounded-sm ks-mono text-xs ks-text-accent">{t('game.abort')}</button>
           </div>
-          <div className="ks-card-prom rounded-sm p-4 mb-2">
-            <div className="flex items-baseline justify-between mb-2">
-              <div className="ks-mono ks-gold text-xs">{t('game.turn')} · {t('game.round')} {currentRound + 1}</div>
-              <div className="ks-mono ks-muted text-xs">{t('game.target')} {target.toLocaleString('sk-SK')}</div>
-            </div>
-            <div className="flex items-end justify-between gap-3 mb-1">
-              <div className="flex-1 min-w-0">
-                <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.player')}</div>
-                <div className="ks-display text-4xl ks-cream font-bold leading-tight truncate">{players[currentPlayer]}</div>
-              </div>
-              <div className="text-right shrink-0">
-                <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.score')}</div>
-                <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'ks-text-accent' : 'ks-gold'}`} style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
-                  {total.toLocaleString('sk-SK')}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="ks-card-prom rounded-sm p-4 mb-2">
-            <div className="flex items-center justify-between mb-3">
-              <div className="ks-mono ks-gold text-xs">PRÁVE PRIPISUJEŠ</div>
-              <div className="flex items-baseline gap-2">
-                {pending.length > 0 && pending[0] !== 'dash' && Number.isFinite(newTotal) && (
-                  <span className="ks-muted text-xl ks-mono leading-none">→ {newTotal.toLocaleString('sk-SK')}</span>
-                )}
-                {pending[0] === 'dash' ? (
-                  <div className="ks-display text-6xl font-bold ks-muted">—</div>
-                ) : (
-                  <div className={`ks-display text-6xl font-bold ${pendingSum < 0 ? 'ks-text-accent' : 'ks-gold'}`}>
-                    {pendingSum > 0 ? '+' : ''}{pendingSum.toLocaleString('sk-SK')}
-                  </div>
-                )}
-              </div>
-            </div>
-            {pending.length > 0 ? (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {pending.map((p, i) => (
-                  <button key={i} onClick={() => removePending(i)} className={`ks-press group flex items-center gap-1.5 px-3 py-1.5 rounded-sm border ${p === 'dash' ? 'border-stone-600/60 bg-stone-800/40 ks-muted' : p < 0 ? 'border-red-800/60 bg-red-950/40 ks-text-accent' : 'ks-border-accent bg-stone-900/70 ks-cream'}`}>
-                    <span className="ks-display font-semibold">{p === 'dash' ? '— čiarka' : (p > 0 ? `+${p}` : p)}</span>
-                    <X size={14} className="opacity-60 group-hover:opacity-100" />
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed ks-border-sub rounded-sm">Pridaj body alebo čiarku z hodu nižšie…</div>
-            )}
-            <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">Zapísať</GoldButton>
-          </div>
-          <div className="ks-card-sub rounded-sm p-4 flex-1">
-            <div className="flex items-center justify-between mb-3">
-              <div className="ks-mono ks-muted text-xs">PRIDAJ BODY Z HODU</div>
-              <button aria-label="Upraviť rýchle hodnoty" onClick={() => setShowQVEditor(v => !v)} className="ks-press ks-muted hover:ks-cream p-0.5"><Edit3 size={13} /></button>
-            </div>
-            {showQVEditor && onQuickValuesChange && (
-              <div className="mb-3 p-2.5 border ks-border-sub rounded-sm bg-stone-950/60 space-y-2">
-                <div className="ks-mono ks-muted text-xs">UPRAVIŤ TLAČIDLÁ</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {qv.map(v => (
-                    <button key={v} onClick={() => onQuickValuesChange(qv.filter(x => x !== v))}
-                      className="ks-press px-2 py-0.5 rounded-sm border ks-border-sub ks-cream text-xs flex items-center gap-1">
-                      {v} <X size={10} className="ks-muted" />
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-1.5">
-                  <input type="number" value={qvInput} onChange={e => setQVInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { const n = parseInt(qvInput, 10); if (n > 0 && !qv.includes(n)) { onQuickValuesChange([...qv, n].sort((a,b) => a-b)); setQVInput(''); } } }}
-                    placeholder="Pridaj hodnotu…" min="1" max="9999"
-                    className="flex-1 bg-transparent border ks-border-sub rounded-sm px-2 py-1 ks-cream text-xs outline-none" />
-                  <button onClick={() => { const n = parseInt(qvInput, 10); if (n > 0 && !qv.includes(n)) { onQuickValuesChange([...qv, n].sort((a,b) => a-b)); setQVInput(''); } }}
-                    className="ks-press ks-gold-bg px-2 py-1 rounded-sm text-black text-xs font-semibold">+</button>
-                  <button onClick={() => onQuickValuesChange(DEFAULT_QUICK_VALUES)}
-                    className="ks-press border ks-border-sub px-2 py-1 rounded-sm ks-muted text-xs">Reset</button>
-                </div>
-              </div>
-            )}
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              {qv.map(v => (
-                <button key={v} onClick={() => addPoints(v)} className="ks-press border ks-border-sub bg-stone-950/40 hover:bg-stone-900/60 py-2.5 rounded-sm ks-display ks-cream text-lg font-semibold">+{v}</button>
-              ))}
-            </div>
-            <div className="flex gap-2 mb-3">
-              <input type="number" value={customInput} onChange={(e) => setCustomInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCustom()} placeholder="Vlastná hodnota" className="flex-1 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
-              <GoldButton onClick={addCustom} icon={Plus} variant="outline">Pridaj</GoldButton>
-            </div>
-            <div className="ks-divider my-3" />
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={addDash} className="ks-press p-3 rounded-sm border-2 border-stone-600/50 bg-gradient-to-b from-stone-900/60 to-stone-950/80 hover:brightness-125 flex items-center justify-center gap-2"><Minus size={20} className="ks-muted" /><span className="ks-mono ks-cream font-semibold">ČIARKA</span></button>
-              <button onClick={addPenalty} className="ks-press p-3 rounded-sm border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2"><Skull size={20} className="ks-text-accent" /><span className="ks-mono ks-text-accent font-semibold">−1 000</span></button>
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              <GoldButton onClick={() => setShowStandings(true)} icon={TrendingUp} variant="ghost">Priebeh hry</GoldButton>
-              <GoldButton onClick={() => setShowrules(true)} icon={ScrollText} variant="ghost">Pravidlá</GoldButton>
-            </div>
-          </div>
+          {entryCards}
         </div>
       ) : (
       <>
@@ -3810,9 +3833,14 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
       players: draft.players,
       rounds: draft.rounds,
       winner: newWinner,
+      targetScore: draft.targetScore,
     });
     setEditing(false);
     setDraft(null);
+  }
+
+  function updateTargetScore(newValue) {
+    setDraft(prev => ({ ...prev, targetScore: newValue }));
   }
 
   function updateCell(roundIdx, playerIdx, newValue) {
@@ -3947,7 +3975,22 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
             )}
             <div>
               <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Target size={10} /> CIEĽ</div>
-              <div className="ks-body ks-cream text-sm mt-0.5">{target.toLocaleString('sk-SK')} b.</div>
+              {editing ? (
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={draft.targetScore}
+                  onChange={(e) => updateTargetScore(e.target.value === '' ? '' : Number(e.target.value))}
+                  onBlur={(e) => {
+                    const v = Number(e.target.value);
+                    updateTargetScore(v > 0 ? v : (tournament.targetScore || 10000));
+                  }}
+                  className="ks-body ks-cream text-sm mt-0.5 w-20 bg-transparent border-b ks-border-sub focus:outline-none focus:ks-border-accent"
+                  aria-label="Upraviť cieľové skóre"
+                />
+              ) : (
+                <div className="ks-body ks-cream text-sm mt-0.5">{target.toLocaleString('sk-SK')} b.</div>
+              )}
             </div>
             <div>
               <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Users size={10} /> HRÁČI</div>

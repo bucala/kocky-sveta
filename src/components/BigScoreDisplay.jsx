@@ -13,16 +13,21 @@ export function BigScoreDisplay({ players, totals, highlightPlayer, target, exte
   const leaderIdx = totals.indexOf(maxTotal);
   const sortedDesc = [...totals].sort((a, b) => b - a);
 
-  const nameSize = size === 'xl' ? 'clamp(22px, 4.5vw, 56px)' : 'clamp(16px, 2.6vw, 30px)';
-  const scoreSize = size === 'xl' ? 'clamp(44px, 9vw, 120px)' : 'clamp(28px, 5vw, 60px)';
+  // Font veľkosti sú capnuté aj cez vh (nielen vw) — pri landscape orientácii
+  // (široký, ale nízky viewport) by čisto vw-based clamp() vyprodukoval text
+  // vyšší než dostupná výška karty, ktorý by potom pretiekol do sekcie pod ňou.
+  const nameSize = size === 'xl' ? 'clamp(20px, min(4.5vw, 7vh), 56px)' : 'clamp(15px, min(2.6vw, 4.2vh), 30px)';
+  const scoreSize = size === 'xl' ? 'clamp(36px, min(9vw, 13vh), 120px)' : 'clamp(24px, min(5vw, 7.5vh), 60px)';
   const crownSize = size === 'xl' ? 34 : 20;
-  const cardPad = size === 'xl' ? 'p-6 sm:p-10' : 'p-4 sm:p-6';
-  const cols = players.length <= 2 ? 1 : players.length <= 4 ? 2 : 3;
+  const cardPad = size === 'xl' ? 'p-4 sm:p-8' : 'p-3 sm:p-5';
+  // Voľba počtu stĺpcov cieli na čo najmenej prázdnych buniek (3 hráči → 3
+  // stĺpce v 1 riadku namiesto 2×2 mriežky s prázdnou 4. bunkou).
+  const cols = players.length === 3 ? 3 : players.length <= 2 ? players.length : players.length === 4 ? 2 : 3;
 
   return (
     <div
-      className="grid gap-3 sm:gap-4 w-full"
-      style={{ gridTemplateColumns: `repeat(${Math.min(cols, players.length)}, minmax(0, 1fr))` }}
+      className="grid gap-2 sm:gap-3 w-full h-full"
+      style={{ gridTemplateColumns: `repeat(${Math.min(cols, players.length)}, minmax(0, 1fr))`, gridAutoRows: '1fr' }}
     >
       {players.map((p, i) => {
         const isLeader = extensions.leaderCrown && i === leaderIdx && maxTotal > 0;
@@ -33,7 +38,7 @@ export function BigScoreDisplay({ players, totals, highlightPlayer, target, exte
         return (
           <div
             key={i}
-            className={`relative ks-card rounded-sm ${cardPad} flex flex-col items-center justify-center text-center gap-2 transition-colors ${
+            className={`relative ks-card rounded-sm ${cardPad} h-full flex flex-col items-center justify-center text-center gap-1 overflow-hidden transition-colors ${
               isCurrent ? 'ks-border-accent border bg-amber-900/10' : 'border ks-border-sub'
             }`}
           >

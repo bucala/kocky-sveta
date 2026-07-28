@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.4] — 2026-07-25 — Kombinovaný režim, oprava landscape prekrytia, editácia cieľa v archíve
+
+### Pridané (Added)
+
+- **Kombinovaný režim zobrazenia hry** — vychádza z "Pozorovateľa zjednodušeného" (veľké mená a skóre hore), ale namiesto grafu priebehu hry v spodnej časti zobrazuje ovládanie zo "Zapisovateľa" ("na ťahu" + "práve pripisuješ" + rýchle zapisovanie bodov) — všetko na jednej obrazovke bez nutnosti prepínať
+- **Editácia cieľového skóre v archíve** — v režime úprav detailu turnaja (Archív → Upraviť) sa dá teraz opraviť aj cieľové skóre hry (napr. z 10 000 na 5 000), nielen jednotlivé zápisy kôl
+
+### Opravené (Fixed)
+
+- **Prekrytie obsahu pri horizontálnej (landscape) orientácii** — veľké zobrazenie skóre (`BigScoreDisplay`) používalo font veľkosti počítané čisto z šírky viewportu (`vw`), čo pri širokom a nízkom landscape displeji spôsobovalo pretečenie textu do sekcie pod kartami (napr. prekrytie grafu). Veľkosti písma sú teraz capnuté aj cez výšku viewportu (`vh`)
+- **Prázdna bunka v mriežke pri 3 hráčoch** — veľké zobrazenie skóre pre 3 hráčov teraz použije 3 stĺpce v jednom riadku namiesto 2×2 mriežky s jednou prázdnou bunkou
+
+### Zmenené (Changed)
+
+- **Pozorovateľ zjednodušený** — graf priebehu hry má teraz iba jeden (minimálny) rámik namiesto dvojitého orámovania a je posunutý bližšie k tabuľkám skóre nad ním
+
+---
+
 ## [1.6.3] — 2026-07-05 — Farby hráčov zhodné s grafom, prehľadnejší graf
 
 ### Zmenené (Changed)
