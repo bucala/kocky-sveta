@@ -1,4 +1,16 @@
-﻿## Čo je nové v 1.6.5
+﻿## Čo je nové v 1.6.6
+
+### 🎮 Kombinovaný režim — ešte čistejší
+- Odstránená celá karta "Práve pripisuješ" — režim teraz zobrazuje iba veľký prehľad skóre a kartu "na ťahu"
+
+### 🎯 Cieľové skóre pri každom hráčovi
+- Pod skóre každého hráča sa zobrazuje aj cieľová hodnota hry ("/ 10 000" alebo "/ 5 000") podľa nastavenia turnaja
+
+**Full Changelog**: https://github.com/bucala/kocky-sveta/compare/v1.6.5...v1.6.6
+
+---
+
+## Čo je nové v 1.6.5
 
 ### 🎮 Kombinovaný režim — čistejší prehľad
 - Odstránené tlačidlo "Zapísať" a celá sekcia rýchleho zapisovania bodov — režim teraz slúži ako veľký prehľad bez ovládacích prvkov

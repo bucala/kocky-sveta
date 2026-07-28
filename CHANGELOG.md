@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.6] — 2026-07-26 — Kombinovaný režim bez "práve pripisuješ", cieľové skóre pri každom hráčovi
+
+### Zmenené (Changed)
+
+- **Kombinovaný režim zobrazenia** — odstránená celá karta "Práve pripisuješ"; režim teraz zobrazuje iba veľký prehľad skóre všetkých hráčov a kartu "na ťahu"
+- **Cieľové skóre pri každom hráčovi** — v kombinovanom režime sa pod skóre každého hráča zobrazuje aj cieľová hodnota hry (napr. "/ 10 000" alebo "/ 5 000"), podľa toho, na koľko bodov sa práve hrá
+
+---
+
 ## [1.6.5] — 2026-07-26 — Kombinovaný režim bez zapisovania, väčší prehľad pripisovaných bodov
 
 ### Zmenené (Changed)

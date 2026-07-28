@@ -2797,7 +2797,6 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
   const combinedEntryCards = (
     <>
       {turnCard}
-      {pendingCard(false)}
     </>
   );
 
@@ -2855,7 +2854,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
           </div>
           <div className="mb-2 flex-1" style={{ minHeight: 160 }}>
             <BigScoreDisplay players={players} totals={totals} highlightPlayer={currentPlayer}
-                              target={target} extensions={extensions} size="lg" showRank />
+                              target={target} extensions={extensions} size="lg" showRank showTarget />
           </div>
           <div className="shrink-0">
             {combinedEntryCards}
