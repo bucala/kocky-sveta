@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.3] — 2026-07-05 — Farby hráčov zhodné s grafom, prehľadnejší graf
+
+### Zmenené (Changed)
+
+- **Zjednotená farebná paleta hráčov** — graf priebehu hry (`ProgressChart`) teraz používa presne tú istú paletu ako veľké zobrazenie skóre (`BigScoreDisplay`); mená aj hodnoty v zjednodušených režimoch sú vždy farebne odlíšené podľa hráča
+- **Pozorovateľ zjednodušený** — graf priebehu hry je bez legendy (farby sa už zhodujú s farbami v tabuľke skóre nad ním) a pri dlhšej hre sa body na grafe už nestláčajú/nesplývajú (rozšíri sa a scrolluje horizontálne namiesto stláčania)
+- **Pozorovateľ zjednodušený** — v pravom hornom rohu karty každého hráča sa teraz zobrazuje aktuálne poradie; líder má namiesto čísla korunku
+
+---
+
 ## [1.6.2] — 2026-07-05 — Korunka pre lídra, zjednodušené zobrazenia, fullscreen graf
 
 ### Pridané (Added)
