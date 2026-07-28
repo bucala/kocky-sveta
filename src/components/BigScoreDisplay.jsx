@@ -65,8 +65,8 @@ export function BigScoreDisplay({ players, totals, highlightPlayer, target, exte
               </span>
             </div>
             <div
-              className={`ks-display font-bold leading-none ${t < 0 ? 'text-red-300' : ''}`}
-              style={{ fontSize: scoreSize, color: t < 0 ? undefined : color }}
+              className="ks-display font-bold leading-none"
+              style={{ fontSize: scoreSize, color }}
             >
               {t.toLocaleString('sk-SK')}
             </div>
