@@ -27,7 +27,7 @@ export function BigScoreDisplay({ players, totals, highlightPlayer, target, exte
   return (
     <div
       className="grid gap-2 sm:gap-3 w-full h-full"
-      style={{ gridTemplateColumns: `repeat(${Math.min(cols, players.length)}, minmax(0, 1fr))`, gridAutoRows: '1fr' }}
+      style={{ gridTemplateColumns: `repeat(${Math.min(cols, players.length)}, minmax(0, 1fr))`, gridAutoRows: 'minmax(0, 1fr)' }}
     >
       {players.map((p, i) => {
         const isLeader = extensions.leaderCrown && i === leaderIdx && maxTotal > 0;

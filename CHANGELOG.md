@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.5] — 2026-07-26 — Kombinovaný režim bez zapisovania, väčší prehľad pripisovaných bodov
+
+### Zmenené (Changed)
+
+- **Kombinovaný režim zobrazenia** — odstránené tlačidlo "Zapísať" a celá sekcia rýchleho zapisovania bodov ("Pridaj body z hodu") pod ním; tento režim teraz slúži čisto na veľký prehľad — scoreboard hore a informácia o práve prebiehajúcom ťahu dole, bez ovládacích prvkov na zápis
+- **"Práve pripisuješ"** — hodnota, ktorú hráč aktuálne dosiahne (napr. "→ 3 350"), má výrazne väčší font a je presunutá pod veľké číslo pripočítavaných bodov namiesto tesného natlačenia vedľa neho na jeden riadok
+
+---
+
 ## [1.6.4] — 2026-07-25 — Kombinovaný režim, oprava landscape prekrytia, editácia cieľa v archíve
 
 ### Pridané (Added)
