@@ -1,8 +1,9 @@
 ﻿import React, { useMemo, useState, useCallback } from 'react';
 import { Crown } from 'lucide-react';
 import { PLAYER_COLORS } from '../lib/extensions.js';
+import { CurrentPlayerBadge } from './CurrentPlayerBadge.jsx';
 
-export function ProgressChart({ tournament, totals, target, fullscreen = false, hideLegend = false }) {
+export function ProgressChart({ tournament, totals, target, highlightPlayer = -1, fullscreen = false, hideLegend = false }) {
   if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return null;
   const { players, rounds } = tournament;
   const [tooltip, setTooltip] = useState(null);
@@ -23,6 +24,9 @@ export function ProgressChart({ tournament, totals, target, fullscreen = false, 
   const ranked = players
     .map((name, i) => ({ name, total: totals[i], i, color: PLAYER_COLORS[i % PLAYER_COLORS.length] }))
     .sort((a, b) => b.total - a.total);
+  const playerDrawOrder = players
+    .map((_, i) => i)
+    .sort((a, b) => Number(a === highlightPlayer) - Number(b === highlightPlayer));
 
   const H = fullscreen ? 420 : 260;
   const ML = fullscreen ? 64 : 48, MR = fullscreen ? 24 : 16, MT = fullscreen ? 28 : 20, MB = fullscreen ? 40 : 28;
@@ -62,25 +66,38 @@ export function ProgressChart({ tournament, totals, target, fullscreen = false, 
     const rect = e.currentTarget.getBoundingClientRect();
     const mx = (e.clientX-rect.left)*(W/rect.width)-ML;
     const idx = Math.round((mx/gW)*xCount);
-    if (idx>=0 && idx<data.length) setTooltip({ idx });
+    if (idx>=0 && idx<data.length) {
+      setTooltip((previous) => previous?.idx === idx ? previous : { idx });
+    }
   }, [data, xCount]);
 
   return (
     <div className="space-y-4">
       {!hideLegend && (
         <div className={`grid ${fullscreen ? 'grid-cols-1 sm:grid-cols-2 gap-3' : 'grid-cols-2 gap-1.5'}`}>
-          {ranked.map((p, idx) => (
-            <div key={p.i} className={`flex items-center gap-2 rounded-sm border border-amber-900/25 bg-stone-950/30 min-w-0 ${fullscreen ? 'p-4' : 'p-2'}`}>
-              <div className={`rounded-full shrink-0 ${fullscreen ? 'w-4 h-4' : 'w-2.5 h-2.5'}`} style={{ background: p.color }} />
-              <div className={`ks-display ks-cream font-semibold truncate min-w-0 flex-1 ${fullscreen ? 'text-xl sm:text-3xl' : 'text-sm'}`}>
-                {idx===0 && p.total>0 && <Crown size={fullscreen ? 20 : 11} className="ks-gold inline mr-1 -mt-0.5 shrink-0" />}
-                {p.name}
+          {ranked.map((p, idx) => {
+            const isCurrent = p.i === highlightPlayer;
+            return (
+              <div
+                key={p.i}
+                className={`flex items-center gap-2 rounded-sm min-w-0 ${
+                  isCurrent ? 'ks-current-player-frame' : 'border border-amber-900/25 bg-stone-950/30'
+                } ${fullscreen ? 'p-4' : 'p-2'}`}
+                style={isCurrent ? { '--ks-current-player-color': p.color } : undefined}
+                aria-current={isCurrent ? 'true' : undefined}
+              >
+                <div className={`rounded-full shrink-0 ${fullscreen ? 'w-4 h-4' : 'w-2.5 h-2.5'}`} style={{ background: p.color }} />
+                <div className={`ks-display ks-cream font-semibold truncate min-w-0 flex-1 ${fullscreen ? 'text-xl sm:text-3xl' : 'text-sm'}`}>
+                  {idx===0 && p.total>0 && <Crown size={fullscreen ? 20 : 11} className="ks-gold inline mr-1 -mt-0.5 shrink-0" />}
+                  {p.name}
+                </div>
+                {isCurrent && <CurrentPlayerBadge />}
+                <div className={`ks-display font-bold shrink-0 ${p.total<0?'ks-text-accent':'ks-gold'} ${fullscreen ? 'text-xl sm:text-3xl' : 'text-sm'}`}>
+                  {p.total.toLocaleString('sk-SK')}
+                </div>
               </div>
-              <div className={`ks-display font-bold shrink-0 ${p.total<0?'ks-text-accent':'ks-gold'} ${fullscreen ? 'text-xl sm:text-3xl' : 'text-sm'}`}>
-                {p.total.toLocaleString('sk-SK')}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       <div className={`ks-card rounded-sm ${fullscreen ? 'p-4 sm:p-6 ks-border-accent border-2' : 'p-3'}`}>
@@ -100,12 +117,40 @@ export function ProgressChart({ tournament, totals, target, fullscreen = false, 
           {yMin<0&&yMax>0&&<line x1={ML} x2={ML+gW} y1={py(0)} y2={py(0)} stroke="rgba(201,168,92,0.2)"/>}
           <line x1={ML} x2={ML+gW} y1={py(target)} y2={py(target)} stroke="#d4b86a" strokeDasharray="4 4" strokeWidth={strokeW*0.75}/>
           <text x={ML+gW-4} y={py(target)-5} textAnchor="end" fontSize={axisFont} fill="#d4b86a">Cieľ {target.toLocaleString('sk-SK')}</text>
-          {players.map((_,i)=>{
+          {playerDrawOrder.map((i)=>{
             const pts=data.map((d,j)=>`${px(j)},${py(d[`p${i}`])}`).join(' ');
+            const isCurrent = i === highlightPlayer;
+            const isDimmed = highlightPlayer >= 0 && !isCurrent;
             return (
               <g key={i}>
-                <polyline points={pts} fill="none" stroke={PLAYER_COLORS[i%PLAYER_COLORS.length]} strokeWidth={strokeW} strokeLinejoin="round"/>
-                {data.map((d,j)=>(<circle key={j} cx={px(j)} cy={py(d[`p${i}`])} r={dotR} fill={PLAYER_COLORS[i%PLAYER_COLORS.length]}/>))}
+                {isCurrent && (
+                  <polyline
+                    points={pts}
+                    fill="none"
+                    stroke={PLAYER_COLORS[i%PLAYER_COLORS.length]}
+                    strokeWidth={strokeW * 3.6}
+                    strokeLinejoin="round"
+                    opacity={0.22}
+                  />
+                )}
+                <polyline
+                  points={pts}
+                  fill="none"
+                  stroke={PLAYER_COLORS[i%PLAYER_COLORS.length]}
+                  strokeWidth={isCurrent ? strokeW * 1.8 : strokeW}
+                  strokeLinejoin="round"
+                  opacity={isDimmed ? 0.58 : 1}
+                />
+                {data.map((d,j)=>(
+                  <circle
+                    key={j}
+                    cx={px(j)}
+                    cy={py(d[`p${i}`])}
+                    r={isCurrent ? dotR * 1.45 : dotR}
+                    fill={PLAYER_COLORS[i%PLAYER_COLORS.length]}
+                    opacity={isDimmed ? 0.58 : 1}
+                  />
+                ))}
               </g>
             );
           })}

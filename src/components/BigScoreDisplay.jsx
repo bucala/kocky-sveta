@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Crown } from 'lucide-react';
 import { PLAYER_COLORS, getInitials } from '../lib/extensions.js';
+import { CurrentPlayerBadge } from './CurrentPlayerBadge.jsx';
 
 // Statické veľké zobrazenie skóre — bez riadkov jednotlivých kôl, iba mená
 // hráčov a ich aktuálne skóre vo veľkom fonte. Používané v zjednodušených
@@ -61,9 +62,12 @@ export function BigScoreDisplay({ players, totals, highlightPlayer, target, exte
           <div
             key={i}
             className={`relative ks-card rounded-sm ${cardPad} flex flex-col items-center justify-center text-center gap-2 transition-colors ${
-              isCurrent ? 'ks-border-accent border bg-amber-900/10' : 'border ks-border-sub'
+              isCurrent ? 'ks-current-player-frame' : 'border ks-border-sub'
             }`}
+            style={isCurrent ? { '--ks-current-player-color': color } : undefined}
+            aria-current={isCurrent ? 'true' : undefined}
           >
+            {isCurrent && <CurrentPlayerBadge />}
             {showRank && (
               <div className="absolute top-2 right-2 flex items-center justify-center rounded-full ks-gold-bg"
                    style={{ width: crownSize * 1.1, height: crownSize * 1.1 }}>

@@ -19,6 +19,7 @@ import { useInputModality } from './hooks/useInputModality.js';
 import ScoreTable from './components/ScoreTable.jsx';
 import { ProgressChart } from './components/ProgressChart.jsx';
 import { BigScoreDisplay } from './components/BigScoreDisplay.jsx';
+import { CurrentPlayerBadge } from './components/CurrentPlayerBadge.jsx';
 import { MainMenu, MenuButton } from './screens/MainMenu.jsx';
 import { NewTournament } from './screens/NewTournament.jsx';
 import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
@@ -33,7 +34,7 @@ import { useOnlineStore } from './online/onlineStore.ts';
 import { useRoomSubscription } from './online/useRoomSubscription.ts';
 import { computeWinners, computePlayerTotals as computeTotals } from './lib/tournamentEngine.js';
 import { sounds } from './lib/sounds.js';
-import { DEFAULT_EXTENSIONS, hapticFeedback, MILESTONE_VALUES } from './lib/extensions.js';
+import { DEFAULT_EXTENSIONS, hapticFeedback, MILESTONE_VALUES, PLAYER_COLORS } from './lib/extensions.js';
 import { LangContext, useT } from './lib/i18n.js';
 import { Confetti } from './components/Confetti.jsx';
 import { BrawlBackground } from './components/BrawlBackground.jsx';
@@ -2664,6 +2665,7 @@ const isRecorderMode = tournamentViewMode === 'recorder';
 // obsah musí presne zaplniť výšku obrazovky (dôležité najmä na Android TV).
 const isViewerMode = isObserverMode || isObserverSimplified;
 const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== null;
+const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
 
 // showDecisionPopup je teraz odvodený (derived) – useEffect na setShowWinPendingPopup
 // nie je potrebný. Popup sa zobrazí automaticky keď pendingDecision !== null alebo isConfirmationTurn.
@@ -2743,9 +2745,16 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
             <div className="ks-display ks-gold text-lg text-center">{players[currentPlayer]}</div>
             <button onClick={onAbort} className="ks-press ks-card px-3 py-2 rounded-sm ks-mono text-xs ks-text-accent">{t('game.abort')}</button>
           </div>
-          <div className="ks-card-prom rounded-sm p-4 mb-2">
+          <div
+            className="ks-card-prom ks-current-player-frame rounded-sm p-4 mb-2"
+            style={{ '--ks-current-player-color': currentPlayerColor }}
+            aria-current="true"
+          >
             <div className="flex items-baseline justify-between mb-2">
-              <div className="ks-mono ks-gold text-xs">{t('game.turn')} · {t('game.round')} {currentRound + 1}</div>
+              <div className="flex items-center gap-2">
+                <CurrentPlayerBadge />
+                <div className="ks-mono ks-gold text-xs">{t('game.round')} {currentRound + 1}</div>
+              </div>
               <div className="ks-mono ks-muted text-xs">{t('game.target')} {target.toLocaleString('sk-SK')}</div>
             </div>
             <div className="flex items-end justify-between gap-3 mb-1">
@@ -2854,9 +2863,16 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
       </div>
 
       <div className="px-4 mt-4">
-        <div className="ks-card-prom rounded-sm p-4">
+        <div
+          className="ks-card-prom ks-current-player-frame rounded-sm p-4"
+          style={{ '--ks-current-player-color': currentPlayerColor }}
+          aria-current="true"
+        >
           <div className="flex items-baseline justify-between mb-2">
-            <div className="ks-mono ks-gold text-xs">{t('game.turn')} · {t('game.round')} {currentRound + 1}</div>
+            <div className="flex items-center gap-2">
+              <CurrentPlayerBadge />
+              <div className="ks-mono ks-gold text-xs">{t('game.round')} {currentRound + 1}</div>
+            </div>
             <div className="ks-mono ks-muted text-xs">{t('game.target')} {target.toLocaleString('sk-SK')}</div>
           </div>
           <div className="flex items-end justify-between gap-3 mb-1">
@@ -2995,7 +3011,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
       )}
 
       {showStandings && (
-        <FullscreenProgressView onClose={() => setShowStandings(false)} tournament={tournament} totals={totals} target={target} />
+        <FullscreenProgressView onClose={() => setShowStandings(false)} tournament={tournament} totals={totals} target={target} highlightPlayer={currentPlayer} />
       )}
       {showrules && (
         <Modal onClose={() => setShowrules(false)} title="Pravidlá hry">
@@ -3240,7 +3256,7 @@ function DecisionPresenter({ playerName, target, displayMode, onConfirm, onRejec
 
 // ─── Fullscreen Priebeh hry ────────────────────────────────────────────────
 
-function FullscreenProgressView({ onClose, tournament, totals, target }) {
+function FullscreenProgressView({ onClose, tournament, totals, target, highlightPlayer }) {
   useBackHandler(() => onClose(), true);
   return (
     <div className="fixed inset-0 z-40 ks-bg ks-fade flex flex-col p-4 sm:p-6">
@@ -3251,7 +3267,7 @@ function FullscreenProgressView({ onClose, tournament, totals, target }) {
         </button>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
-        <ProgressChart tournament={tournament} totals={totals} target={target} fullscreen />
+        <ProgressChart tournament={tournament} totals={totals} target={target} highlightPlayer={highlightPlayer} fullscreen />
       </div>
     </div>
   );
@@ -4035,6 +4051,7 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
               tournament={{ ...display, currentRound: -1 }}
               totals={totals}
               highlightPlayer={display.winner ?? -1}
+              highlightVariant="winner"
               target={target}
               displayMode={scoreDisplayMode}
               onToggleMode={onToggleScoreMode}

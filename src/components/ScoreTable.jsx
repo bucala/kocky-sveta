@@ -7,8 +7,9 @@ import {
   Sigma, Layers, Monitor, Bell
 } from 'lucide-react';
 import { PLAYER_COLORS, getInitials } from '../lib/extensions.js';
+import { CurrentPlayerBadge } from './CurrentPlayerBadge.jsx';
 
-function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, target, displayMode = 'delta', onToggleMode, hideModeToolbar = false, hideModeToggle = false, compactObserver = false, extensions = {} }) {
+function ScoreTable({ tournament, totals, highlightPlayer, highlightVariant = 'turn', pendingPreview = 0, target, displayMode = 'delta', onToggleMode, hideModeToolbar = false, hideModeToggle = false, compactObserver = false, extensions = {} }) {
   if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return null;
   const { players, rounds } = tournament;
   const tableRef = useRef(null);
@@ -42,9 +43,16 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
 
   const maxTotal = Math.max(...totals, 0);
   const leaderIdx = totals.indexOf(maxTotal);
+  const isTurnHighlight = highlightVariant === 'turn' && highlightPlayer >= 0 && highlightPlayer < players.length;
+  const highlightColor = isTurnHighlight
+    ? PLAYER_COLORS[highlightPlayer % PLAYER_COLORS.length]
+    : undefined;
 
   return (
-    <div className="ks-card rounded-sm overflow-hidden">
+    <div
+      className="ks-card rounded-sm overflow-hidden"
+      style={isTurnHighlight ? { '--ks-current-player-color': highlightColor } : undefined}
+    >
       {onToggleMode && !hideModeToolbar && (
         <div className={`flex items-center justify-between border-b border-amber-900/30 bg-stone-950/60 ${compactObserver ? 'px-3 py-1' : 'px-3 py-1.5'}`}>
           <div className={`ks-display ks-gold text-center flex-1 ${compactObserver ? 'text-xs' : 'text-sm'}`}>POZOROVATEĽ · ŽIVÝ PREHĽAD SKÓRE</div>
@@ -69,16 +77,23 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
               <th className="ks-mono ks-muted text-xs font-normal py-3 px-2 text-center sticky left-0 backdrop-blur" style={{ width: 36, background: 'var(--ks-sticky-bg, rgba(14,12,10,0.97))' }}>K</th>
               {players.map((p, i) => {
                 const showCrown = extensions.leaderCrown && i === leaderIdx && maxTotal > 0;
+                const isCurrent = isTurnHighlight && i === highlightPlayer;
+                const playerColor = PLAYER_COLORS[i % PLAYER_COLORS.length];
                 return (
                 <th key={i}
-                    className={`ks-display py-2 px-1 text-sm font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis transition-colors ${i === highlightPlayer ? 'ks-gold bg-amber-900/10' : 'ks-cream'}`}>
+                    className={`ks-display py-2 px-1 text-sm font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis transition-colors ${
+                      isCurrent
+                        ? 'ks-current-player-column ks-current-player-column-top ks-gold'
+                        : i === highlightPlayer ? 'ks-gold bg-amber-900/10' : 'ks-cream'
+                    }`}
+                    aria-current={isCurrent ? 'true' : undefined}>
                   {extensions.coloredAvatars ? (
                     <div className="flex flex-col items-center gap-1">
                       <div
                         className="rounded-full flex items-center justify-center text-[10px] font-bold relative"
                         style={{
                           width: 26, height: 26,
-                          background: PLAYER_COLORS[i % PLAYER_COLORS.length],
+                          background: playerColor,
                           color: '#1a1410',
                         }}
                       >
@@ -86,11 +101,15 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
                         {showCrown && <Crown size={12} className="ks-gold absolute -top-2.5 left-1/2 -translate-x-1/2" fill="currentColor" />}
                       </div>
                       <span className="text-[11px] leading-none truncate max-w-[60px] block">{p}</span>
+                      {isCurrent && <CurrentPlayerBadge />}
                     </div>
                   ) : (
-                    <span className="inline-flex items-center gap-1">
-                      {showCrown && <Crown size={12} className="ks-gold shrink-0" fill="currentColor" />}
-                      {p}
+                    <span className="inline-flex flex-col items-center gap-1">
+                      <span className="inline-flex items-center gap-1">
+                        {showCrown && <Crown size={12} className="ks-gold shrink-0" fill="currentColor" />}
+                        {p}
+                      </span>
+                      {isCurrent && <CurrentPlayerBadge />}
                     </span>
                   )}
                 </th>
@@ -106,10 +125,14 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
                   const raw = rounds[rIdx]?.[pIdx];
                   const cum = cumulative[rIdx]?.[pIdx];
                   const value = displayMode === 'cumulative' ? cum : raw;
-                  const isCurrent = pIdx === highlightPlayer && rIdx === tournament.currentRound;
+                  const isCurrent = isTurnHighlight && pIdx === highlightPlayer && rIdx === tournament.currentRound;
+                  const isCurrentColumn = isTurnHighlight && pIdx === highlightPlayer;
                   return (
                     <td key={pIdx}
-                        className={`text-center py-1.5 px-1 ks-display text-base align-middle ${isCurrent ? 'bg-amber-900/20' : ''}`}>
+                        className={`text-center py-1.5 px-1 ks-display text-base align-middle ${
+                          isCurrentColumn ? 'ks-current-player-column' : isCurrent ? 'bg-amber-900/20' : ''
+                        }`}
+                    >
                       {raw === 'dash' && displayMode !== 'cumulative' && <span className="ks-muted">—</span>}
                       {typeof value === 'number' && (
                         <span className={`font-medium ${value < 0 ? 'text-red-300' : 'ks-cream'}`}>
@@ -133,11 +156,16 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
               {totals.map((t, i) => {
                 const reached = target && t >= target;
                 const color = extensions.coloredAvatars ? PLAYER_COLORS[i % PLAYER_COLORS.length] : null;
+                const isCurrent = isTurnHighlight && i === highlightPlayer;
                 return (
                   <td key={`${i}-${extensions.animatedScore ? t : 0}`}
                       className={`text-center py-2 px-2 ks-display text-lg font-bold transition-colors ${extensions.animatedScore ? 'ks-score-in' : ''} ${
                         t < 0 ? 'text-red-300' : reached ? 'ks-gold' : i === highlightPlayer ? 'ks-gold' : 'ks-cream'
-                      } ${i === highlightPlayer ? 'bg-amber-900/10' : ''}`}
+                      } ${
+                        isCurrent
+                          ? `ks-current-player-column ${extensions.progressBar ? '' : 'ks-current-player-column-bottom'}`
+                          : i === highlightPlayer ? 'bg-amber-900/10' : ''
+                      }`}
                       style={{
                         color: extensions.coloredAvatars ? color : undefined,
                       }}>
@@ -152,8 +180,14 @@ function ScoreTable({ tournament, totals, highlightPlayer, pendingPreview = 0, t
                 {totals.map((t, i) => {
                   const pct = Math.min(100, Math.max(0, (t / target) * 100));
                   const color = PLAYER_COLORS[i % PLAYER_COLORS.length];
+                  const isCurrent = isTurnHighlight && i === highlightPlayer;
                   return (
-                    <td key={i} className="px-1 pb-1.5 pt-0.5">
+                    <td
+                      key={i}
+                      className={`px-1 pb-1.5 pt-0.5 ${
+                        isCurrent ? 'ks-current-player-column ks-current-player-column-bottom' : ''
+                      }`}
+                    >
                       <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
                         <div
                           className="h-full rounded-full transition-all duration-500"

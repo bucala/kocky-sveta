@@ -125,6 +125,49 @@
   .ks-muted     { color: var(--ks-text-muted); }
   .ks-divider   { background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ks-accent) 40%, transparent), transparent); height: 1px; }
   .ks-border-accent { border-color: color-mix(in srgb, var(--ks-accent) 40%, transparent); }
+  /* Jednotné označenie hráča, ktorý je práve na rade. Farbu dodáva
+     komponent cez --ks-current-player-color; fallback rešpektuje aktívny skin. */
+  #root .ks-current-player-frame {
+    --ks-current-player-color: var(--ks-accent);
+    position: relative;
+    border: 3px solid var(--ks-current-player-color) !important;
+    background:
+      linear-gradient(135deg,
+        color-mix(in srgb, var(--ks-current-player-color) 24%, var(--ks-bg-soft)),
+        color-mix(in srgb, var(--ks-current-player-color) 8%, var(--ks-bg-soft-2)) 58%,
+        var(--ks-bg-soft-2)) !important;
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--ks-current-player-color) 38%, transparent),
+      0 0 24px color-mix(in srgb, var(--ks-current-player-color) 46%, transparent),
+      inset 0 0 28px color-mix(in srgb, var(--ks-current-player-color) 12%, transparent) !important;
+  }
+  .ks-current-player-column {
+    background: color-mix(in srgb, var(--ks-current-player-color, var(--ks-accent)) 15%, transparent) !important;
+    border-left: 3px solid var(--ks-current-player-color, var(--ks-accent)) !important;
+    border-right: 3px solid var(--ks-current-player-color, var(--ks-accent)) !important;
+  }
+  .ks-current-player-column-top {
+    border-top: 3px solid var(--ks-current-player-color, var(--ks-accent)) !important;
+  }
+  .ks-current-player-column-bottom {
+    border-bottom: 3px solid var(--ks-current-player-color, var(--ks-accent)) !important;
+  }
+  .ks-current-player-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    padding: 0.15rem 0.45rem;
+    background: color-mix(in srgb, var(--ks-current-player-color, var(--ks-accent)) 82%, white);
+    color: #17110b;
+    font-family: var(--ks-font-mono, 'Bebas Neue', sans-serif);
+    font-size: 0.6rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--ks-current-player-color, var(--ks-accent)) 42%, transparent);
+  }
   .ks-bg-danger     { background: color-mix(in srgb, var(--ks-danger) 15%, var(--ks-bg-soft)); }
   .ks-text-danger    { color: var(--ks-danger); }
   .ks-bg-overlay     { background: color-mix(in srgb, var(--ks-bg-main) 92%, transparent); }
