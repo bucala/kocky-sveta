@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Crown } from 'lucide-react';
 import { PLAYER_COLORS, getInitials } from '../lib/extensions.js';
 
@@ -14,9 +14,18 @@ export function BigScoreDisplay({ players, totals, highlightPlayer, target, exte
   const sortedDesc = [...totals].sort((a, b) => b - a);
 
   const isXl = size === 'xl';
+  // Orientácia sa sleduje reaktívne (resize/rotácia okna) — dôležité najmä
+  // na webe, kde používateľ môže zmeniť veľkosť okna alebo otočiť telefón.
+  const [isPortrait, setIsPortrait] = useState(
+    typeof window !== 'undefined' ? window.innerHeight > window.innerWidth : false
+  );
+  useEffect(() => {
+    const onResize = () => setIsPortrait(window.innerHeight > window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   // Počet stĺpcov: na výšku orientovaných zariadeniach (telefón) zostáva max 3,
   // na širokých displejoch (TV/landscape) môže ísť viac hráčov do 4 stĺpcov.
-  const isPortrait = typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
   const cols = players.length <= 2 ? 1
     : players.length <= 4 ? 2
     : (players.length <= 6 || isPortrait) ? 3

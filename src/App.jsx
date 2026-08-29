@@ -2682,7 +2682,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
   if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback />;
   
   return (
-    <div className={`min-h-screen ks-fade ks-bg ${isRecorderMode ? 'pb-6' : isViewerMode ? 'pb-4' : 'pb-32'}`}>
+    <div className={`min-h-screen ks-fade ks-bg ${isRecorderMode ? 'pb-6' : isViewerMode ? 'pb-0' : 'pb-32'}`}>
       {!isRecorderMode && (
         <Header
           title={`Turnaj · do ${target.toLocaleString('sk-SK')}`}
