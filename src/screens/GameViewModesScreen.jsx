@@ -7,7 +7,7 @@ export function GameViewModesScreen({ onBack, selectedMode, onChangeMode, select
     { id: 'basic', title: 'Klasický', desc: 'Tabuľka hore a zapisovanie bodov pod ňou.' },
     { id: 'basicSimplified', title: 'Klasický zjednodušený', desc: 'Iba mená a aktuálne skóre vo veľkom, bez tabuľky kôl. Zapisovanie zostáva.' },
     { id: 'observer', title: 'Pozorovateľ', desc: 'Veľký živý prehľad skóre pre obrazovku alebo TV.' },
-    { id: 'observerSimplified', title: 'Pozorovateľ zjednodušený', desc: 'Iba mená a skóre vo veľkom + graf priebehu hry. Bez tabuľky kôl.' },
+    { id: 'observerSimplified', title: 'Pozorovateľ zjednodušený', desc: 'Iba mená a skóre vo veľkom na celú obrazovku. Graf priebehu na vyžiadanie — tlačidlo v hornej lište.' },
     { id: 'recorder', title: 'Zapisovateľ', desc: 'Jednoduché veľké ovládanie pre rýchly zápis bodov.' },
   ];
   const skin = SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic;

@@ -382,7 +382,7 @@ function Header({ title, onBack, right }) {
         </button>
       ) : <div className="w-16" />}
       <h2 className="ks-display ks-gold text-xl font-semibold text-center">{title}</h2>
-      <div className="w-16 flex justify-end">{right}</div>
+      <div className="min-w-16 flex justify-end">{right}</div>
     </div>
   );
 }
@@ -2660,6 +2660,9 @@ const isObserverMode = tournamentViewMode === 'observer';
 const isObserverSimplified = tournamentViewMode === 'observerSimplified';
 const isBasicSimplified = tournamentViewMode === 'basicSimplified';
 const isRecorderMode = tournamentViewMode === 'recorder';
+// Pozorovateľské režimy: žiadny zapisovací panel dole → nemizne im spodná rezerva,
+// obsah musí presne zaplniť výšku obrazovky (dôležité najmä na Android TV).
+const isViewerMode = isObserverMode || isObserverSimplified;
 const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== null;
 
 // showDecisionPopup je teraz odvodený (derived) – useEffect na setShowWinPendingPopup
@@ -2679,13 +2682,23 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
   if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback />;
   
   return (
-    <div className={`min-h-screen ks-fade ks-bg ${isRecorderMode ? 'pb-6' : 'pb-32'}`}>
+    <div className={`min-h-screen ks-fade ks-bg ${isRecorderMode ? 'pb-6' : isViewerMode ? 'pb-4' : 'pb-32'}`}>
       {!isRecorderMode && (
         <Header
           title={`Turnaj · do ${target.toLocaleString('sk-SK')}`}
           onBack={onMenu}
           right={
             <div className="flex items-center gap-2">
+              {isObserverSimplified && (
+                <button
+                  onClick={() => setShowStandings(true)}
+                  className="ks-press ks-gold p-1.5 rounded-sm border border-amber-700/40 hover:bg-amber-900/20"
+                  title="Graf priebehu hry — celá obrazovka"
+                  aria-label="Graf priebehu hry — celá obrazovka"
+                >
+                  <TrendingUp size={16} />
+                </button>
+              )}
               <button
                 onClick={onToggleScoreMode}
                 className="ks-press ks-gold p-1.5 rounded-sm border border-amber-700/40 hover:bg-amber-900/20"
@@ -2703,7 +2716,7 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
       )}
 
       {isObserverMode ? (
-        <div className="px-2 pt-1 pb-3 h-[100dvh] flex flex-col">
+        <div className="px-2 pt-1 pb-3 h-[calc(100dvh-64px)] flex flex-col">
           <div className="flex-1 min-h-0 ks-card rounded-sm p-1 overflow-hidden">
             <div className="h-full overflow-auto [font-size:clamp(18px,2.3vw,34px)]">
               <ScoreTable tournament={tournament} totals={totals} highlightPlayer={currentPlayer}
@@ -2714,13 +2727,13 @@ const blockFollowupPopups = showTemporaryKingPopup && temporaryKingToken !== nul
           </div>
         </div>
       ) : isObserverSimplified ? (
-        <div className="px-3 pt-2 pb-3 h-[100dvh] flex flex-col gap-3 overflow-hidden">
-          <div className="flex-1 min-h-0 flex items-center">
+        // Pozorovateľ zjednodušený: iba veľké karty skóre na celú obrazovku.
+        // Graf priebehu nie je súčasťou layoutu — otvára sa ako dočasné
+        // celoobrazovkové prekrytie tlačidlom v hornej lište (FullscreenProgressView).
+        <div className="px-3 pt-2 pb-3 h-[calc(100dvh-64px)] flex flex-col overflow-hidden">
+          <div className="flex-1 min-h-0">
             <BigScoreDisplay players={players} totals={totals} highlightPlayer={currentPlayer}
                               target={target} extensions={extensions} size="xl" showRank />
-          </div>
-          <div className="flex-1 min-h-0 ks-card rounded-sm p-3 overflow-hidden">
-            <ProgressChart tournament={tournament} totals={totals} target={target} hideLegend />
           </div>
         </div>
       ) : isRecorderMode ? (

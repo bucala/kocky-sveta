@@ -13,15 +13,33 @@ export function BigScoreDisplay({ players, totals, highlightPlayer, target, exte
   const leaderIdx = totals.indexOf(maxTotal);
   const sortedDesc = [...totals].sort((a, b) => b - a);
 
-  const nameSize = size === 'xl' ? 'clamp(22px, 4.5vw, 56px)' : 'clamp(16px, 2.6vw, 30px)';
-  const scoreSize = size === 'xl' ? 'clamp(44px, 9vw, 120px)' : 'clamp(28px, 5vw, 60px)';
-  const crownSize = size === 'xl' ? 34 : 20;
-  const cardPad = size === 'xl' ? 'p-6 sm:p-10' : 'p-4 sm:p-6';
-  const cols = players.length <= 2 ? 1 : players.length <= 4 ? 2 : 3;
+  const isXl = size === 'xl';
+  // Počet stĺpcov: na výšku orientovaných zariadeniach (telefón) zostáva max 3,
+  // na širokých displejoch (TV/landscape) môže ísť viac hráčov do 4 stĺpcov.
+  const isPortrait = typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
+  const cols = players.length <= 2 ? 1
+    : players.length <= 4 ? 2
+    : (players.length <= 6 || isPortrait) ? 3
+    : 4;
+  const rows = Math.ceil(players.length / cols);
+
+  // Veľkosti písma sa škálajú podľa ŠÍRKY aj VÝŠKY zariadenia (min(vw, vh)).
+  // Pri viacerých riadkoch kariet sa výškový limit príslušne zmenší (delenie
+  // počtom riadkov), aby mriečka vždy zaplnila dostupný priestor bez
+  // orezávania — kľúčové pre televízory s 16:9 pomerom strán.
+  const vhPerRow = (vh) => rows > 1 ? `calc(${vh} / ${rows})` : `${vh}`;
+  const nameSize = isXl
+    ? `clamp(20px, min(4.5vw, ${vhPerRow('6.5vh')}), 56px)`
+    : 'clamp(16px, 2.6vw, 30px)';
+  const scoreSize = isXl
+    ? `clamp(36px, min(9vw, ${vhPerRow('13vh')}), 120px)`
+    : 'clamp(28px, 5vw, 60px)';
+  const crownSize = isXl ? 34 : 20;
+  const cardPad = isXl ? 'p-4 sm:p-8' : 'p-4 sm:p-6';
 
   return (
     <div
-      className="grid gap-3 sm:gap-4 w-full"
+      className={`grid gap-3 sm:gap-4 w-full ${isXl ? 'h-full' : ''}`}
       style={{ gridTemplateColumns: `repeat(${Math.min(cols, players.length)}, minmax(0, 1fr))` }}
     >
       {players.map((p, i) => {
