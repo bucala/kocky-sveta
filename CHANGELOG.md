@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.4] — 2026-10-04 — Čitateľné skiny, pozorovateľ a tematické animácie
+
+### Opravené (Fixed)
+
+- V1–V5: kontrast svetlých skinov, farebné skóre, odznaky poradia, tmavé popupy a tlačidlo zápisu.
+- Z1–Z5: veľkosť textu na TV, automatické a klávesové posúvanie tabuľky, výška a šírka pozorovateľa, fokus grafu a prepínač Δ/Σ v zjednodušených režimoch.
+- Zjednotený zdroj definícií skinov pre všetky obrazovky; predvolená paleta Klasik zachovaná.
+
+### Zmenené (Changed)
+
+- Tematické vektorové animácie alternatívnych skinov a tematické konfety s časovým krokom nezávislým od obnovovacej frekvencie.
+- Efekty rešpektujú systémové obmedzenie pohybu, vypnutie animácií a skrytú stránku.
+- Web/PWA a Android zdieľajú aktualizované assety; Android versionCode 10 a nová cache PWA.
+
+Podrobnosti a rozsah overenia: [docs/visual-fixes.md](docs/visual-fixes.md).
+
+---
+
 ## [1.6.3] — 2026-07-05 — Farby hráčov zhodné s grafom, prehľadnejší graf
 
 ### Zmenené (Changed)

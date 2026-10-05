@@ -14,6 +14,7 @@
 import { useEffect } from 'react';
 import { getFocusableIn, isElementVisible } from './domFocus.js';
 import { getActiveFocusScope } from './focusScope.js';
+import { scrollFocusedRegion } from './keyboardScroll.js';
 
 // Minimálny odstup medzi dvoma spracovanými pohybmi (ms) — ochrana proti
 // zahlteniu pri podržanej šípke na diaľkovom ovládači.
@@ -145,6 +146,7 @@ export function useDpadNavigation(enabled = true, resetKey) {
       const now = Date.now();
       if (now - lastMoveAt < MOVE_THROTTLE_MS) return;
       lastMoveAt = now;
+      if (scrollFocusedRegion(active, direction)) return;
 
       const root = getActiveFocusScope() || document;
       const candidates = getFocusableIn(root);

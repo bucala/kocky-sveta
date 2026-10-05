@@ -1,6 +1,6 @@
 ﻿import React, { useMemo, useState, useCallback } from 'react';
 import { Crown } from 'lucide-react';
-import { PLAYER_COLORS } from '../lib/extensions.js';
+import { PLAYER_COLORS, playerTextColor } from '../lib/extensions.js';
 import { CurrentPlayerBadge } from './CurrentPlayerBadge.jsx';
 
 export function ProgressChart({ tournament, totals, target, highlightPlayer = -1, fullscreen = false, hideLegend = false }) {
@@ -101,22 +101,22 @@ export function ProgressChart({ tournament, totals, target, highlightPlayer = -1
         </div>
       )}
       <div className={`ks-card rounded-sm ${fullscreen ? 'p-4 sm:p-6 ks-border-accent border-2' : 'p-3'}`}>
-        <div className={needsScroll ? 'overflow-x-auto ks-scroll' : undefined}>
+        <div data-keyboard-scroll={needsScroll ? '' : undefined} tabIndex={needsScroll ? 0 : undefined} role={needsScroll ? 'region' : undefined} aria-label={needsScroll ? 'Priebeh kôl — posúvaj vľavo a vpravo' : undefined} className={needsScroll ? 'overflow-x-auto ks-scroll' : undefined}>
         <svg viewBox={`0 0 ${W} ${H}`} style={{width: needsScroll ? W : '100%', minWidth: needsScroll ? W : undefined, height:chartCssHeight,overflow:'visible'}}
           onMouseMove={handleMouseMove} onMouseLeave={()=>setTooltip(null)}>
           {yTicks.map(v=>(
             <g key={v}>
               <line x1={ML} x2={ML+gW} y1={py(v)} y2={py(v)} stroke="rgba(201,168,92,0.12)" strokeDasharray="2 4"/>
-              <text x={ML-4} y={py(v)+4} textAnchor="end" fontSize={axisFont} fill="#a89679">{fmtY(v)}</text>
+              <text x={ML-4} y={py(v)+4} textAnchor="end" fontSize={axisFont} fill="var(--ks-text-muted)">{fmtY(v)}</text>
             </g>
           ))}
           {data.map((d,i)=>(
-            <text key={i} x={px(i)} y={MT+gH+16} textAnchor="middle" fontSize={axisFont} fill="#a89679">{d.kolo}</text>
+            <text key={i} x={px(i)} y={MT+gH+16} textAnchor="middle" fontSize={axisFont} fill="var(--ks-text-muted)">{d.kolo}</text>
           ))}
-          <text x={ML+gW/2} y={H-2} textAnchor="middle" fontSize={axisFont} fill="#a89679">Kolo</text>
+          <text x={ML+gW/2} y={H-2} textAnchor="middle" fontSize={axisFont} fill="var(--ks-text-muted)">Kolo</text>
           {yMin<0&&yMax>0&&<line x1={ML} x2={ML+gW} y1={py(0)} y2={py(0)} stroke="rgba(201,168,92,0.2)"/>}
-          <line x1={ML} x2={ML+gW} y1={py(target)} y2={py(target)} stroke="#d4b86a" strokeDasharray="4 4" strokeWidth={strokeW*0.75}/>
-          <text x={ML+gW-4} y={py(target)-5} textAnchor="end" fontSize={axisFont} fill="#d4b86a">Cieľ {target.toLocaleString('sk-SK')}</text>
+          <line x1={ML} x2={ML+gW} y1={py(target)} y2={py(target)} stroke="var(--ks-accent)" strokeDasharray="4 4" strokeWidth={strokeW*0.75}/>
+          <text x={ML+gW-4} y={py(target)-5} textAnchor="end" fontSize={axisFont} fill="var(--ks-accent)">Cieľ {target.toLocaleString('sk-SK')}</text>
           {playerDrawOrder.map((i)=>{
             const pts=data.map((d,j)=>`${px(j)},${py(d[`p${i}`])}`).join(' ');
             const isCurrent = i === highlightPlayer;
@@ -127,7 +127,7 @@ export function ProgressChart({ tournament, totals, target, highlightPlayer = -1
                   <polyline
                     points={pts}
                     fill="none"
-                    stroke={PLAYER_COLORS[i%PLAYER_COLORS.length]}
+                    stroke={playerTextColor(i)}
                     strokeWidth={strokeW * 3.6}
                     strokeLinejoin="round"
                     opacity={0.22}
@@ -136,7 +136,7 @@ export function ProgressChart({ tournament, totals, target, highlightPlayer = -1
                 <polyline
                   points={pts}
                   fill="none"
-                  stroke={PLAYER_COLORS[i%PLAYER_COLORS.length]}
+                  stroke={playerTextColor(i)}
                   strokeWidth={isCurrent ? strokeW * 1.8 : strokeW}
                   strokeLinejoin="round"
                   opacity={isDimmed ? 0.58 : 1}
@@ -147,7 +147,7 @@ export function ProgressChart({ tournament, totals, target, highlightPlayer = -1
                     cx={px(j)}
                     cy={py(d[`p${i}`])}
                     r={isCurrent ? dotR * 1.45 : dotR}
-                    fill={PLAYER_COLORS[i%PLAYER_COLORS.length]}
+                    fill={playerTextColor(i)}
                     opacity={isDimmed ? 0.58 : 1}
                   />
                 ))}
@@ -157,7 +157,7 @@ export function ProgressChart({ tournament, totals, target, highlightPlayer = -1
           {tooltip&&(
             <>
               <line x1={px(tooltip.idx)} x2={px(tooltip.idx)} y1={MT} y2={MT+gH} stroke="rgba(212,184,106,0.3)" strokeWidth={1}/>
-              {players.map((_,i)=>(<circle key={i} cx={px(tooltip.idx)} cy={py(data[tooltip.idx][`p${i}`])} r={dotR*1.8} fill={PLAYER_COLORS[i%PLAYER_COLORS.length]} stroke="#0e0c0a" strokeWidth={2}/>))}
+              {players.map((_,i)=>(<circle key={i} cx={px(tooltip.idx)} cy={py(data[tooltip.idx][`p${i}`])} r={dotR*1.8} fill={playerTextColor(i)} stroke="#0e0c0a" strokeWidth={2}/>))}
             </>
           )}
         </svg>
@@ -166,7 +166,7 @@ export function ProgressChart({ tournament, totals, target, highlightPlayer = -1
           const d=data[tooltip.idx];
           const sorted=players.map((name,i)=>({name,val:d[`p${i}`],color:PLAYER_COLORS[i%PLAYER_COLORS.length]})).sort((a,b)=>b.val-a.val);
           return (
-            <div className={`ks-card rounded-sm mt-2 ${fullscreen ? 'p-4' : 'p-2.5'}`} style={{background:'rgba(20,16,12,0.97)',maxWidth: fullscreen ? 320 : 200}}>
+            <div className={`ks-card rounded-sm mt-2 ${fullscreen ? 'p-4' : 'p-2.5'}`} style={{background:'var(--ks-chart-tooltip-bg, #14100c)',maxWidth: fullscreen ? 320 : 200}}>
               <div className={`ks-mono ks-gold mb-1.5 ${fullscreen ? 'text-base' : 'text-xs'}`}>KOLO {d.kolo}</div>
               <div className="space-y-0.5">
                 {sorted.map((e,i)=>(

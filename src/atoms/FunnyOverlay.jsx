@@ -31,7 +31,7 @@ export function FunnyOverlay({ data, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg"
+      className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg ks-dark-overlay"
       style={{ background: style.bg }}
       onClick={onClose}
     >

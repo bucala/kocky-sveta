@@ -1,4 +1,4 @@
-﻿import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6 } from 'lucide-react';
+import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6 } from 'lucide-react';
 
 // SVG background patterns (URL-encoded for CSS data URIs)
 // Brawl Stars: star/badge shape with lightning bolt
@@ -29,6 +29,7 @@ export const FONT_PRESETS = {
   arial:     { id: 'arial',     name: 'Arial',           stack: "Arial, 'Helvetica Neue', sans-serif",                  monoStack: "'Bebas Neue', sans-serif" },
   crimson:   { id: 'crimson',   name: 'Crimson Pro',     stack: "'Crimson Pro', Georgia, serif",                        monoStack: "'Bebas Neue', sans-serif" },
   comicsans: { id: 'comicsans', name: 'Comic Sans MS',   stack: "'Comic Sans MS', 'Comic Sans', cursive",               monoStack: "'Bebas Neue', sans-serif" },
+  inkfree: { id: 'inkfree', name: 'Ink Free', stack: "'Ink Free', 'Segoe Script', cursive", monoStack: "'Bebas Neue', sans-serif" },
   caveatbrush: { id: 'caveatbrush', name: 'Caveat Brush', stack: "'Caveat Brush', 'Segoe Script', cursive", monoStack: "'Bebas Neue', sans-serif" },
 };
 
@@ -93,7 +94,7 @@ export const SKIN_PRESETS = {
       '--ks-text-muted': '#c0a0d8',
       '--ks-accent': '#e070d0',
       '--ks-accent-2': '#8030b0',
-      '--ks-button-text': '#280a3a',
+      '--ks-button-text': '#ffffff',
       '--ks-danger': '#ff6090',
       '--ks-sticky-bg': 'rgba(20,6,34,0.97)',
       '--ks-sticky-bg2': 'rgba(14,4,24,0.98)',
@@ -189,22 +190,78 @@ export function skinVarsCss(selectedSkin, selectedFont) {
   }
   if (selectedSkin === 'brawlstars') {
     css += `
-.ks-gold{color:#e070d0!important}
-.ks-gold-bg{background:linear-gradient(135deg,#b030b0,#6010a0)!important;box-shadow:0 0 18px rgba(200,80,230,0.65)!important}
-.ks-card{background:rgba(44,16,68,0.90)!important;border-color:rgba(200,80,220,0.32)!important;box-shadow:0 0 12px rgba(160,60,200,0.30)!important}
-.ks-border-sub{border-color:rgba(200,80,220,0.20)!important}
+:root{
+--ks-overlay-dark:radial-gradient(circle at center,rgba(80,20,120,0.96),rgba(10,4,28,0.98));
+--ks-overlay-doubt:radial-gradient(circle at center,rgba(60,15,100,0.96),rgba(10,4,28,0.97));
+--ks-overlay-fight:radial-gradient(circle at center,rgba(100,20,140,0.96),rgba(15,5,35,0.97));
+--ks-overlay-doom:radial-gradient(circle at center,rgba(30,8,70,0.97),rgba(5,2,15,0.99));
+--ks-modal-overlay:rgba(20,6,40,0.82);
+--ks-modal-dark-overlay:rgba(10,4,28,0.94);
+--ks-popup-accent:#e070d0;
+--ks-glow-orb:rgba(180,80,220,0.50);
+--ks-toast-info-bg:rgba(44,10,68,0.92);
+--ks-toast-warn-bg:rgba(60,12,88,0.88);
+--ks-toast-info-border:rgba(200,80,220,0.70);
+--ks-toast-warn-border:rgba(230,120,255,0.60);
+}
 `;
   }
   if (selectedSkin === 'brawlblue') {
     css += `
+:root{
+--ks-overlay-dark:radial-gradient(circle at center,rgba(10,50,130,0.96),rgba(3,10,42,0.98));
+--ks-overlay-doubt:radial-gradient(circle at center,rgba(8,40,110,0.96),rgba(3,10,42,0.97));
+--ks-overlay-fight:radial-gradient(circle at center,rgba(10,70,160,0.96),rgba(3,14,54,0.97));
+--ks-overlay-doom:radial-gradient(circle at center,rgba(5,25,70,0.97),rgba(2,6,24,0.99));
+--ks-modal-overlay:rgba(3,12,42,0.82);
+--ks-modal-dark-overlay:rgba(3,10,42,0.94);
+--ks-popup-accent:#40d8f0;
+--ks-glow-orb:rgba(40,180,240,0.50);
+--ks-toast-info-bg:rgba(6,28,80,0.92);
+--ks-toast-warn-bg:rgba(8,36,100,0.88);
+--ks-toast-info-border:rgba(40,180,240,0.70);
+--ks-toast-warn-border:rgba(80,210,255,0.60);
+}
 .ks-gold{color:#40d8f0!important}
 .ks-gold-bg{background:linear-gradient(135deg,#1a96d8,#0e5cac)!important;box-shadow:0 0 18px rgba(40,180,240,0.65)!important}
 .ks-card{background:rgba(8,38,90,0.90)!important;border-color:rgba(40,180,240,0.30)!important;box-shadow:0 0 12px rgba(30,140,200,0.28)!important}
 .ks-border-sub{border-color:rgba(40,180,240,0.18)!important}
+.ks-live-row td,.ks-live-table th{border-color:rgba(40,180,240,0.14)!important}
+.ks-live-row:hover td{background:rgba(10,60,130,0.40)!important}
+`;
+  }
+  if (selectedSkin === 'harrypotter') {
+    css += `
+.ks-gold{color:#6b3e0c!important}
+.ks-cream{color:#271608!important}
+.ks-muted{color:#7a5030!important}
+.ks-gold-bg{background:linear-gradient(135deg,#8b5814,#740001)!important;color:#f8f0de!important}
+.ks-card{background:rgba(252,244,226,0.96)!important;border-color:rgba(150,95,22,0.30)!important}
+.ks-card:hover{border-color:rgba(150,95,22,0.55)!important}
+.ks-card-prom{background:rgba(248,238,210,0.97)!important;border-color:rgba(160,100,20,0.55)!important}
+.ks-border-sub{border-color:rgba(150,95,22,0.22)!important}
+.ks-live-row td,.ks-live-table th{border-color:rgba(150,95,22,0.20)!important}
+.ks-live-row:hover td{background:rgba(238,220,188,0.55)!important}
+.ks-live-pos-1{color:#6b3e0c!important;border-color:rgba(140,88,18,0.55)!important}
+.ks-live-pos-2{color:#7a5030!important}
+.ks-live-pos-3{color:#8a6040!important}
+.ks-divider{background:linear-gradient(90deg,transparent,rgba(140,88,18,0.38),transparent)!important}
+:root{
+--ks-overlay-dark:radial-gradient(circle at center,rgba(120,80,15,0.94),rgba(30,18,5,0.97));
+--ks-overlay-doubt:radial-gradient(circle at center,rgba(100,60,10,0.94),rgba(28,16,4,0.97));
+--ks-overlay-fight:radial-gradient(circle at center,rgba(140,60,10,0.95),rgba(35,18,4,0.97));
+--ks-overlay-doom:radial-gradient(circle at center,rgba(80,15,10,0.97),rgba(20,6,4,0.99));
+--ks-modal-overlay:rgba(30,18,5,0.78);
+--ks-modal-dark-overlay:rgba(25,15,4,0.94);
+--ks-popup-accent:#c49a28;
+--ks-glow-orb:rgba(196,154,40,0.45);
+--ks-toast-info-bg:rgba(44,28,6,0.94);
+--ks-toast-warn-bg:rgba(55,30,4,0.90);
+--ks-toast-info-border:rgba(160,100,20,0.70);
+--ks-toast-warn-border:rgba(200,140,30,0.60);
+}
 `;
   }
   return css;
 }
-
-
 

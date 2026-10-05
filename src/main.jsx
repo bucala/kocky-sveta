@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import { ErrorBoundary } from './atoms/ErrorBoundary.jsx';
 import './index.css';
+import './skin-effects.css';
 
 // ─── window.storage polyfill — namapovanie na localStorage ──────────────
 if (typeof window !== 'undefined' && !window.storage) {

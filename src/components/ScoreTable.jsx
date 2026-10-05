@@ -1,12 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import {
-  Plus, Minus, Trash2, Save, X, ChevronLeft,
-  AlertCircle, AlertTriangle, Check, RotateCcw, Crown,
-  Calendar, ChevronRight, ListPlus, Pencil, Zap, Skull, Target,
-  Download, Upload, Edit3, Clock, FileSpreadsheet, ChevronDown, TrendingUp,
-  Sigma, Layers, Monitor, Bell
-} from 'lucide-react';
-import { PLAYER_COLORS, getInitials } from '../lib/extensions.js';
+import React, { useLayoutEffect, useMemo, useRef } from 'react';
+import { RotateCcw, Crown } from 'lucide-react';
+import { PLAYER_COLORS, getInitials, playerTextColor } from '../lib/extensions.js';
 import { CurrentPlayerBadge } from './CurrentPlayerBadge.jsx';
 
 function ScoreTable({ tournament, totals, highlightPlayer, highlightVariant = 'turn', pendingPreview = 0, target, displayMode = 'delta', onToggleMode, hideModeToolbar = false, hideModeToggle = false, compactObserver = false, extensions = {} }) {
@@ -14,9 +8,21 @@ function ScoreTable({ tournament, totals, highlightPlayer, highlightVariant = 't
   const { players, rounds } = tournament;
   const tableRef = useRef(null);
 
-  useEffect(() => {
-    if (tableRef.current) tableRef.current.scrollTop = tableRef.current.scrollHeight;
-  }, [rounds.length]);
+  useLayoutEffect(() => {
+    if (!compactObserver) return;
+    const body = tableRef.current;
+    const viewport = body?.closest('.ks-observer-scroll');
+    if (viewport) viewport.scrollTop = viewport.scrollHeight;
+    const table = body?.closest('table');
+    const header = table?.querySelectorAll('thead th')[highlightPlayer + 1];
+    const horizontal = [viewport, table, table?.parentElement].find(el => el && el.scrollWidth > el.clientWidth);
+    if (horizontal && header) {
+      const cell = header.getBoundingClientRect();
+      const bounds = horizontal.getBoundingClientRect();
+      if (cell.right > bounds.right) horizontal.scrollLeft += cell.right - bounds.right + 8;
+      else if (cell.left < bounds.left + 36) horizontal.scrollLeft -= bounds.left + 36 - cell.left;
+    }
+  }, [compactObserver, rounds, tournament.currentRound, tournament.currentPlayer, highlightPlayer]);
 
   const numRounds = Math.max(rounds.length, (tournament.currentRound ?? 0) + 1);
 
@@ -50,11 +56,11 @@ function ScoreTable({ tournament, totals, highlightPlayer, highlightVariant = 't
 
   return (
     <div
-      className="ks-card rounded-sm overflow-hidden"
-      style={isTurnHighlight ? { '--ks-current-player-color': highlightColor } : undefined}
+      className={`ks-card rounded-sm overflow-hidden ${compactObserver ? 'ks-observer-table' : ''}`}
+      style={{ ...(isTurnHighlight ? { '--ks-current-player-color': highlightColor } : {}), ...(compactObserver ? { '--ks-observer-min-width': `${players.length * 96 + 36}px` } : {}) }}
     >
       {onToggleMode && !hideModeToolbar && (
-        <div className={`flex items-center justify-between border-b border-amber-900/30 bg-stone-950/60 ${compactObserver ? 'px-3 py-1' : 'px-3 py-1.5'}`}>
+        <div className={`ks-observer-toolbar flex items-center justify-between border-b border-amber-900/30 bg-stone-950/60 ${compactObserver ? 'px-3 py-1' : 'px-3 py-1.5'}`}>
           <div className={`ks-display ks-gold text-center flex-1 ${compactObserver ? 'text-xs' : 'text-sm'}`}>POZOROVATEĽ · ŽIVÝ PREHĽAD SKÓRE</div>
           {!hideModeToggle && (
             <button onClick={onToggleMode} className={`ks-press ks-mono ks-gold flex items-center gap-1 rounded-sm hover:bg-amber-900/20 ${compactObserver ? 'text-[10px] px-2 py-0.5' : 'text-[10px] px-2 py-0.5'}`}>
@@ -80,7 +86,7 @@ function ScoreTable({ tournament, totals, highlightPlayer, highlightVariant = 't
                 const isCurrent = isTurnHighlight && i === highlightPlayer;
                 const playerColor = PLAYER_COLORS[i % PLAYER_COLORS.length];
                 return (
-                <th key={i}
+                <th key={i} title={p}
                     className={`ks-display py-2 px-1 text-sm font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis transition-colors ${
                       isCurrent
                         ? 'ks-current-player-column ks-current-player-column-top ks-gold'
@@ -135,7 +141,7 @@ function ScoreTable({ tournament, totals, highlightPlayer, highlightVariant = 't
                     >
                       {raw === 'dash' && displayMode !== 'cumulative' && <span className="ks-muted">—</span>}
                       {typeof value === 'number' && (
-                        <span className={`font-medium ${value < 0 ? 'text-red-300' : 'ks-cream'}`}>
+                        <span className={`font-medium ${value < 0 ? 'ks-score-negative text-red-300' : 'ks-cream'}`}>
                           {value.toLocaleString('sk-SK')}
                         </span>
                       )}
@@ -160,14 +166,14 @@ function ScoreTable({ tournament, totals, highlightPlayer, highlightVariant = 't
                 return (
                   <td key={`${i}-${extensions.animatedScore ? t : 0}`}
                       className={`text-center py-2 px-2 ks-display text-lg font-bold transition-colors ${extensions.animatedScore ? 'ks-score-in' : ''} ${
-                        t < 0 ? 'text-red-300' : reached ? 'ks-gold' : i === highlightPlayer ? 'ks-gold' : 'ks-cream'
+                        t < 0 ? 'ks-score-negative text-red-300' : reached ? 'ks-gold' : i === highlightPlayer ? 'ks-gold' : 'ks-cream'
                       } ${
                         isCurrent
                           ? `ks-current-player-column ${extensions.progressBar ? '' : 'ks-current-player-column-bottom'}`
                           : i === highlightPlayer ? 'bg-amber-900/10' : ''
                       }`}
                       style={{
-                        color: extensions.coloredAvatars ? color : undefined,
+                        color: extensions.coloredAvatars ? playerTextColor(i) : undefined,
                       }}>
                     {t.toLocaleString('sk-SK')}
                   </td>

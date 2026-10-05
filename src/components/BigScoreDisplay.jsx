@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Crown } from 'lucide-react';
-import { PLAYER_COLORS, getInitials } from '../lib/extensions.js';
+import { PLAYER_COLORS, getInitials, playerTextColor } from '../lib/extensions.js';
 import { CurrentPlayerBadge } from './CurrentPlayerBadge.jsx';
 
 // Statické veľké zobrazenie skóre — bez riadkov jednotlivých kôl, iba mená
@@ -72,9 +72,9 @@ export function BigScoreDisplay({ players, totals, highlightPlayer, target, exte
               <div className="absolute top-2 right-2 flex items-center justify-center rounded-full ks-gold-bg"
                    style={{ width: crownSize * 1.1, height: crownSize * 1.1 }}>
                 {rank === 1 ? (
-                  <Crown size={crownSize * 0.6} className="text-black" fill="currentColor" />
+                  <Crown size={crownSize * 0.6} className="ks-rank-ink" fill="currentColor" />
                 ) : (
-                  <span className="ks-display font-bold text-black" style={{ fontSize: crownSize * 0.5 }}>{rank}</span>
+                  <span className="ks-display font-bold ks-rank-ink" style={{ fontSize: crownSize * 0.5 }}>{rank}</span>
                 )}
               </div>
             )}
@@ -90,14 +90,15 @@ export function BigScoreDisplay({ players, totals, highlightPlayer, target, exte
               )}
               <span
                 className="ks-display font-semibold truncate"
-                style={{ fontSize: nameSize, lineHeight: 1.1, color }}
+                title={p}
+                style={{ fontSize: nameSize, lineHeight: 1.1, color: playerTextColor(i) }}
               >
                 {p}
               </span>
             </div>
             <div
               className="ks-display font-bold leading-none"
-              style={{ fontSize: scoreSize, color }}
+              style={{ fontSize: scoreSize, color: playerTextColor(i) }}
             >
               {t.toLocaleString('sk-SK')}
             </div>

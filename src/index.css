@@ -74,64 +74,6 @@ html, body, #root { width: 100%; overflow-x: hidden; }
   background: url('/hp-hp-parchment.jpg') center/cover no-repeat !important;
 }
 
-/* ── Harry Potter floating elements ──────────────────────────────────── */
-.ks-hp-float {
-  position: fixed;
-  pointer-events: none;
-  z-index: 0;
-  user-select: none;
-  font-size: 1.6rem;
-  opacity: 0;
-  animation: hpFloat 12s ease-in-out infinite;
-}
-@keyframes hpFloat {
-  0%   { opacity: 0;    transform: translateY(100vh) translateX(0) rotate(-5deg); }
-  12%  { opacity: 0.28; }
-  50%  { transform: translateY(45vh) translateX(18px) rotate(8deg); }
-  88%  { opacity: 0.22; }
-  100% { opacity: 0;    transform: translateY(-15vh) translateX(-8px) rotate(-5deg); }
-}
-
-/* ── Brawl Stars skin ─────────────────────────────────────────────────── */
-[data-skin="brawlstars"] {
-  --brawl-glow: 0 0 12px rgba(140,80,255,0.55), 0 0 28px rgba(100,50,220,0.30);
-  --brawl-glow-strong: 0 0 16px rgba(180,100,255,0.75), 0 0 40px rgba(120,60,240,0.45);
-}
-[data-skin="brawlstars"] .ks-card {
-  background: rgba(20,8,55,0.88) !important;
-  border-color: rgba(150,80,255,0.38) !important;
-  box-shadow: var(--brawl-glow) !important;
-}
-[data-skin="brawlstars"] .ks-gold {
-  color: #c8a0ff !important;
-}
-[data-skin="brawlstars"] .ks-gold-bg {
-  background: linear-gradient(135deg, #7040e0, #4020a0) !important;
-  box-shadow: var(--brawl-glow-strong) !important;
-}
-[data-skin="brawlstars"] .ks-press:active {
-  transform: scale(0.94) !important;
-  filter: brightness(1.2) !important;
-}
-
-/* ── Floating BG elements (Brawl Stars + animations on) ──────────────── */
-.ks-brawl-float {
-  position: fixed;
-  pointer-events: none;
-  z-index: 0;
-  user-select: none;
-  font-size: 1.8rem;
-  opacity: 0;
-  animation: brawlFloat 8s ease-in-out infinite;
-  filter: blur(0.5px);
-}
-@keyframes brawlFloat {
-  0%   { opacity: 0;    transform: translateY(100vh) rotate(0deg); }
-  10%  { opacity: 0.55; }
-  90%  { opacity: 0.45; }
-  100% { opacity: 0;    transform: translateY(-15vh) rotate(360deg); }
-}
-
 /* ── Button press animation ──────────────────────────────────────────── */
 [data-animations="on"] .ks-press {
   transition: transform 0.08s ease, filter 0.08s ease !important;
@@ -145,7 +87,6 @@ html, body, #root { width: 100%; overflow-x: hidden; }
 [data-animations="off"] *,
 [data-animations="off"] *::before,
 [data-animations="off"] *::after {
-  animation-duration: 0.001ms !important;
-  animation-delay: 0.001ms !important;
-  transition-duration: 0.001ms !important;
+  animation: none !important;
+  transition: none !important;
 }

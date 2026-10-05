@@ -1,5 +1,10 @@
 export const PLAYER_COLORS = ['#d4b86a', '#60a5fa', '#86efac', '#fb923c', '#c084fc', '#f87171'];
 
+export function playerTextColor(index) {
+  const i = index % PLAYER_COLORS.length;
+  return `var(--ks-player-text-${i}, ${PLAYER_COLORS[i]})`;
+}
+
 export const DEFAULT_EXTENSIONS = {
   confetti: false,
   coloredAvatars: false,

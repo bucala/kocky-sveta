@@ -1,0 +1,97 @@
+/* Skin-specific corrections keep the classic palette and control surfaces intact. */
+.ks-app-shell { position: relative; isolation: isolate; }
+.ks-app-content { position: relative; z-index: 1; }
+.ks-app-viewer { min-height: 0 !important; }
+.ks-viewer-screen { height: calc(100dvh - env(safe-area-inset-bottom, 0px)); min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+.ks-viewer-screen > * { min-width: 0; }
+.ks-viewer-screen > .ks-header { gap: 0.5rem; }
+.ks-viewer-screen > .ks-header h2 { flex: 1; min-width: 0; }
+.ks-viewer-screen > .ks-header > :last-child { width: auto; flex-shrink: 0; }
+.ks-rank-ink { color: var(--ks-rank-ink, #000); }
+
+/* One viewport for both axes makes sticky names/totals and D-pad work together. */
+.ks-observer-table { overflow: visible; min-width: var(--ks-observer-min-width, 380px); }
+.ks-observer-table .ks-live-table-wrap { overflow: visible; }
+.ks-observer-table table { display: table; overflow: visible; }
+.ks-observer-table th { font-size: clamp(18px, 1.8vw, 30px); }
+.ks-observer-table tbody td { font-size: clamp(18px, 2vw, 34px); }
+.ks-observer-table tfoot td { font-size: clamp(22px, 2.4vw, 40px); }
+.ks-observer-table tr > :first-child { font-size: clamp(12px, 1.2vw, 20px); }
+.ks-observer-table thead th { position: sticky; top: 0; z-index: 2; background: var(--ks-sticky-bg, rgba(14,12,10,0.97)); }
+.ks-observer-table tfoot td { position: sticky; bottom: 0; z-index: 2; background: var(--ks-sticky-bg2, rgba(10,8,6,0.98)); }
+.ks-observer-table thead th:first-child, .ks-observer-table tfoot td:first-child { left: 0; z-index: 3; }
+.ks-observer-table :is(thead, tfoot) .ks-current-player-column { background: color-mix(in srgb, var(--ks-current-player-color) 15%, var(--ks-bg-soft-2)) !important; }
+.ks-observer-toolbar { position: sticky; left: 0; width: min(100%, calc(100vw - 24px)); }
+.ks-observer-toolbar > .ks-display { font-size: clamp(12px, 1.2vw, 20px); }
+.ks-observer-scroll:focus-visible { outline-offset: -4px !important; transform: none !important; }
+
+:is([data-skin="parchment"], [data-skin="whiteblack"], [data-skin="harrypotter"]) {
+  --ks-player-text-0: #795116; --ks-player-text-1: #174ca1; --ks-player-text-2: #176438;
+  --ks-player-text-3: #a53c10; --ks-player-text-4: #7132a4; --ks-player-text-5: #ad2639;
+  --ks-rank-ink: #fff; --ks-overlay-text: #fff7e7; --ks-overlay-accent: #ffdc91; --ks-overlay-muted: #e5d6bf; --ks-overlay-doom-label: #ffaaaa;
+  --ks-control-bg: #fffaf0; --ks-control-hover: #eadac0; --ks-control-border: #ad8755;
+  --ks-negative-bg: #fbe9e5; --ks-negative-ink: #92262e;
+}
+[data-skin="parchment"] { --ks-action-bg: linear-gradient(135deg, #724919, #52330e); }
+[data-skin="whiteblack"] { --ks-control-bg: #fff; --ks-control-hover: #e3e3e3; --ks-control-border: #777; --ks-action-bg: #111; --ks-negative-bg: #fff0f0; }
+[data-skin="harrypotter"] { --ks-control-bg: #fff6df; --ks-control-hover: #ecddbc; --ks-action-bg: linear-gradient(135deg, #73420d, #640b18); }
+:is([data-skin="parchment"], [data-skin="whiteblack"], [data-skin="harrypotter"]) :is(.ks-quick-value, .ks-custom-value, .ks-pending-positive, .ks-pending-dash, .ks-dash-button, .ks-value-editor, .ks-observer-toolbar) {
+  background: var(--ks-control-bg) !important; color: var(--ks-text) !important; border-color: var(--ks-control-border) !important;
+}
+:is([data-skin="parchment"], [data-skin="whiteblack"], [data-skin="harrypotter"]) :is(.ks-quick-value, .ks-dash-button):hover { background: var(--ks-control-hover) !important; }
+:is([data-skin="parchment"], [data-skin="whiteblack"], [data-skin="harrypotter"]) .ks-custom-value::placeholder { color: var(--ks-text-muted); opacity: 1; }
+:is([data-skin="parchment"], [data-skin="whiteblack"], [data-skin="harrypotter"]) :is(.ks-penalty-button, .ks-pending-negative) { background: var(--ks-negative-bg) !important; border-color: var(--ks-negative-ink) !important; color: var(--ks-negative-ink) !important; }
+:is([data-skin="parchment"], [data-skin="whiteblack"], [data-skin="harrypotter"]) :is(.ks-penalty-button, .ks-pending-negative) .ks-text-accent,
+:is([data-skin="parchment"], [data-skin="whiteblack"], [data-skin="harrypotter"]) .ks-score-negative { color: var(--ks-negative-ink) !important; }
+:is([data-skin="parchment"], [data-skin="whiteblack"], [data-skin="harrypotter"]) .ks-gold-bg { background: var(--ks-action-bg) !important; color: #fff !important; }
+/* Dark overlays, dark toasts and milestone cards use a separate text palette. */
+:is([data-skin="parchment"], [data-skin="whiteblack"], [data-skin="harrypotter"]) .ks-dark-overlay .ks-cream { color: var(--ks-overlay-text) !important; }
+:is([data-skin="parchment"], [data-skin="whiteblack"], [data-skin="harrypotter"]) .ks-dark-overlay :is(.ks-gold, .ks-text-accent) { color: var(--ks-overlay-accent) !important; }
+:is([data-skin="parchment"], [data-skin="whiteblack"], [data-skin="harrypotter"]) .ks-dark-overlay :is(.ks-muted, [class~="ks-text-accent/60"]) { color: var(--ks-overlay-muted) !important; }
+:is([data-skin="parchment"], [data-skin="whiteblack"], [data-skin="harrypotter"]) .ks-dark-overlay .ks-bg-reject { background: #72252c; border-color: #ffb9b9; }
+:is([data-skin="parchment"], [data-skin="whiteblack"], [data-skin="harrypotter"]) .ks-dark-overlay .ks-bg-confirm { background: #49341b; border-color: var(--ks-overlay-accent); }
+
+/* Brawl overrides live here only; white text stays readable across the gradient. */
+[data-skin="brawlstars"] { --ks-rank-ink: #fff; }
+[data-skin="brawlstars"] .ks-card { background: rgba(20,8,55,0.94) !important; border-color: rgba(170,115,255,0.45) !important; box-shadow: 0 0 12px rgba(100,50,220,0.25); }
+[data-skin="brawlstars"] .ks-gold { color: #d6b7ff !important; }
+[data-skin="brawlstars"] .ks-gold-bg { background: linear-gradient(135deg, #6533c9, #402080) !important; color: #fff !important; box-shadow: 0 0 16px rgba(140,80,255,0.35); }
+[data-skin="brawlstars"] .ks-header { background: rgba(22,8,48,0.94); }
+[data-skin="brawlblue"] .ks-header { background: rgba(3,18,54,0.94); }
+
+.ks-app-shell:not([data-skin="classic"]) { --ks-chart-tooltip-bg: var(--ks-bg-soft-2); }
+
+/* A bounded, non-interactive scene stays below the foreground cards. */
+.ks-app-shell:not([data-skin="classic"]) .ks-app-content > .ks-bg:not(.fixed) { background: transparent !important; }
+.ks-theme-background { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; user-select: none; contain: strict; color: var(--ks-accent); --ks-scene-opacity: 0.18; }
+.ks-scene-magic { color: #855015; --ks-scene-opacity: 0.22; }
+.ks-scene-brawl { color: #c8a0ff; --ks-scene-opacity: 0.3; }
+.ks-scene-energy { color: #a1f4ff; --ks-scene-opacity: 0.32; }
+.ks-theme-particle { position: absolute; top: 100%; width: var(--ks-particle-size); height: var(--ks-particle-size); opacity: 0; animation: ks-theme-rise var(--ks-particle-duration) var(--ks-particle-delay) linear infinite; }
+.ks-theme-glyph { display: block; width: 100%; height: 100%; animation: ks-glyph-drift 6s ease-in-out infinite alternate; }
+.ks-theme-glyph svg { width: 100%; height: 100%; }
+.ks-theme-particle:nth-child(3n) .ks-theme-glyph { animation-delay: -2s; }
+.ks-theme-particle:nth-child(3n + 1) .ks-theme-glyph { animation-delay: -4s; }
+.ks-theme-aura { position: absolute; width: min(65vw, 700px); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, currentColor, transparent 66%); opacity: 0.045; animation: ks-aura-breathe 12s ease-in-out infinite alternate; }
+.ks-theme-aura-first { left: -18%; top: 8%; }
+.ks-theme-aura-second { right: -18%; bottom: -15%; animation-delay: -6s; }
+.ks-theme-orbit { display: none; }
+.ks-scene-magic .ks-theme-orbit, .ks-scene-energy .ks-theme-orbit, .ks-scene-brawl .ks-theme-orbit { display: block; position: absolute; left: 50%; top: 34%; width: min(85vw, 640px); aspect-ratio: 1; border: 1px dashed currentColor; border-radius: 50%; opacity: 0.07; animation: ks-orbit-turn 55s linear infinite; }
+.ks-scene-brawl .ks-theme-orbit { border-radius: 24%; border-style: solid; }
+.ks-theme-owl { --ks-particle-duration: 28s !important; }
+.ks-owl-wing { transform-box: view-box; transform-origin: 32px 30px; }
+.ks-owl-wing-left { animation: ks-wing-left 1.8s ease-in-out infinite alternate; }
+.ks-owl-wing-right { animation: ks-wing-right 1.8s ease-in-out infinite alternate; }
+.ks-theme-background[data-paused="true"] * { animation-play-state: paused !important; }
+@keyframes ks-theme-rise { 0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0); } 12%, 80% { opacity: var(--ks-scene-opacity); } 100% { opacity: 0; transform: translate3d(var(--ks-particle-drift), -120vh, 0) rotate(var(--ks-particle-turn)); } }
+@keyframes ks-glyph-drift { from { transform: translateX(-8px) rotate(-8deg); } to { transform: translateX(8px) rotate(8deg); } }
+@keyframes ks-aura-breathe { from { transform: scale(0.85); opacity: 0.035; } to { transform: scale(1.08); opacity: 0.07; } }
+@keyframes ks-orbit-turn { from { transform: translate(-50%, -50%) rotate(0); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes ks-wing-left { from { transform: rotate(-10deg); } to { transform: rotate(10deg); } }
+@keyframes ks-wing-right { from { transform: rotate(10deg); } to { transform: rotate(-10deg); } }
+@media (max-width: 600px) { .ks-theme-particle:nth-of-type(n + 9) { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .ks-theme-background { display: none; }
+  [data-animations] *, [data-animations] *::before, [data-animations] *::after { animation: none !important; transition: none !important; }
+}
+[data-animations="off"] .ks-milestone-in { transform: translate(-50%, -50%); }

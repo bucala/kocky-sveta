@@ -1,104 +1,11 @@
-﻿## Čo je nové v 1.6.3
+## Čo je nové v 1.6.4
 
-### 🎨 Farby hráčov
-- Graf priebehu hry a veľké zobrazenie skóre teraz zdieľajú presne rovnakú farebnú paletu hráčov
+- Opravená čitateľnosť svetlých skinov, skóre, poradia a rozhodovacích popupov.
+- Pozorovateľ využíva výšku obrazovky, má väčšie čísla na TV a správne posúvanie posledného kola aj šípkami.
+- Graf na celej obrazovke drží fokus; zjednodušené režimy skrývajú neúčinný prepínač Δ/Σ.
+- Alternatívne skiny majú tematické animácie a konfety. Klasik zachováva pôvodnú paletu.
+- Animácie rešpektujú vypnutie efektov a systémové obmedzenie pohybu.
 
-### 📊 Pozorovateľ zjednodušený
-- Graf priebehu hry bez legendy (farby už zodpovedajú tabuľke skóre)
-- Body na grafe sa pri dlhšej hre už nestláčajú/nesplývajú — graf sa rozšíri a scrolluje
-- Poradie hráča v pravom hornom rohu karty, líder má korunku namiesto čísla
+Podrobnosti: [Vizuálne opravy a overenie](docs/visual-fixes.md).
 
-**Full Changelog**: https://github.com/bucala/kocky-sveta/compare/v1.6.2...v1.6.3
-
----
-
-## Čo je nové v 1.6.2
-
-### 🎮 Nové režimy zobrazenia hry
-- **Klasický zjednodušený** — bez tabuľky kôl, iba mená a aktuálne skóre vo veľkom (3×), zapisovanie zostáva
-- **Pozorovateľ zjednodušený** — to isté v 6× fonte (pre TV) + živý graf priebehu hry pod skóre
-
-### 👑 Korunka pre lídra
-- Nahradila "Pulzujúceho lídra" — aktuálny líder má pri mene korunku namiesto glow efektu
-
-### 📊 Fullscreen "Priebeh hry"
-- Graf priebehu hry sa teraz otvára na celú obrazovku s väčším písmom a výraznejším grafom
-
-### 🎨 UX
-- Jemné odlíšenie pozadia aktuálne hrajúceho hráča vo všetkých režimoch zobrazenia
-
-**Full Changelog**: https://github.com/bucala/kocky-sveta/compare/v1.6.1...v1.6.2
-
----
-
-## Čo je nové v 1.6.1
-
-### 🧹 Údržba — komplexný audit
-- Odstránených 41 zabudnutých backup súborov a ~2900 riadkov mŕtveho duplicitného kódu (opustený refaktor z 1.5.0)
-- Odstránená nepoužívaná závislosť `recharts`
-
-### 🐛 Fix
-- `/api/scan` OCR endpoint — obnovený funkčný AI model (predtým HTTP 400)
-- Error hlášky z `/api/scan` už neposielajú klientovi surový interný/upstream text
-- `vitest` zosúladený s Vite 6 (2.1.9)
-- Android release build zlyhá rýchlo pri chýbajúcom signing configu namiesto tichého nesprávneho buildu
-
-### ♿ Prístupnosť
-- `aria-label` na icon-only tlačidlách (úprava hodnôt, mazanie kola, kocky, prepínač skóre)
-
-**Full Changelog**: https://github.com/bucala/kocky-sveta/compare/v1.6.0...v1.6.1
-
----
-
-## Čo je nové v 1.6.0
-
-### 🌐 Online sync
-- Bidirectional sync, anti-revert ochrana, stale ghost cleanup, recorder-only writes
-- Error badge pri zlyhaní Firestore zápisu
-
-### 🎨 Skiny & vizuál
-- Harry Potter a Brawl Stars skiny s vlastnými ikonami a pozadiami
-- Comprehensive skinning cez CSS custom properties
-
-### 🔊 Zvuky, animácie & i18n
-- Herný zvukový systém, konfigurovateľné animácie, funny windows mode
-- Slovenčina / English prepínač jazyka
-- Rozšírenia submenu — 8+ voliteľných vizuálnych vylepšení (defaultne vypnuté)
-
-### 🧩 UX & herné funkcie
-- Vlastný SVG Progress Chart (náhrada Recharts, −529 KB)
-- Delta/Kumulatívny prepínač zobrazenia skóre
-- OCR sken skóre-tabuľky z fotky → priamy import do archívu (Anthropic Vision API)
-- Predvolený zoznam hráčov s výberom cez chipy
-
-### 🐛 Fix
-- Firestore nested arrays serializované ako JSON string
-- Ghost hráči po odpojení opravení cez deviceId dedup
-
-**Full Changelog**: https://github.com/bucala/kocky-sveta/compare/v1.5.0...v1.6.0
-
----
-
-## Čo je nové v 1.5.0
-
-### ♻️ Refaktor — modularizácia
-- Extrakcia obrazoviek z App.jsx → src/screens/ (TournamentScreen, ArchiveScreen, RulesEditor, GameViewModesScreen, VisualAndSkinScreen)
-- Extrakcia komponentov → src/components/ (FunnyOverlay, GameWidgets, ProgressChart, SkinSelector)
-
-### ⚡ Performance
-- Lazy load XLSX (~430 KB chunk) — načíta sa len pri prvom exporte/importe
-- Vite manual chunks: vendor-xlsx, vendor-recharts, vendor-react, vendor-lucide
-- dvance() — shallow copy len aktívneho riadku (slice namiesto map)
-
-### 🎨 Style & A11y
-- CSS extrahovaný z JS STYLES konštanty → src/app.css
-- Google Fonts s ont-display:swap + preconnect hinty
-- ria-label na icon-only tlačidlá (Zatvoriť ×2, Upraviť)
-
-### 🐛 Fix
-- Mojibake v SimplifiedResult.jsx — opravená slovenská diakritika
-
-### 🧹 Chore
-- Odstránených 38 dočasných Python skriptov z root adresára
-
-**Full Changelog**: https://github.com/bucala/kocky-sveta/compare/v1.4.1...v1.5.0
+Lokálna príprava verzie 1.6.4; release ešte nebol publikovaný.

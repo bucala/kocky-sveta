@@ -9,7 +9,7 @@ export function Toast({ msg, kind, onClose }) {
   };
   const Icon = kind === 'overshoot' ? AlertTriangle : kind === 'warn' ? AlertCircle : Check;
   return (
-    <div className="fixed top-2 left-3 right-3 z-50 ks-slide-down ks-popup-anchor" style={{ pointerEvents: 'none' }}>
+    <div className="ks-dark-overlay fixed top-2 left-3 right-3 z-50 ks-slide-down ks-popup-anchor" style={{ pointerEvents: 'none' }}>
       <div
         className={`max-w-md mx-auto p-3 rounded-sm border ${colorMap[kind] || colorMap.info} flex items-start gap-2 shadow-2xl`}
         style={{ pointerEvents: 'auto', opacity: 'var(--ks-popup-opacity, 0.92)' }}

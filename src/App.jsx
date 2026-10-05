@@ -39,212 +39,14 @@ import { LangContext, useT } from './lib/i18n.js';
 import { Confetti } from './components/Confetti.jsx';
 import { BrawlBackground } from './components/BrawlBackground.jsx';
 import { version as APP_VERSION } from '../package.json';
+import { SKIN_PRESETS, FONT_PRESETS, skinVarsCss } from './constants/skins.js';
+import { useFocusTrap } from './hooks/useFocusTrap.js';
+import { useReducedMotion } from './hooks/useReducedMotion.js';
 import './app.css';
 
 // ─── Konštanty ────────────────────────────────────────────────────────────
 
 const DICE_ICONS = { 1: Dice1, 2: Dice2, 3: Dice3, 4: Dice4, 5: Dice5, 6: Dice6 };
-const SKIN_PRESETS = {
-  classic: {
-    id:'classic', name:'Klasik',
-    bg:'radial-gradient(circle at top, rgba(120,76,24,0.10), transparent 38%), linear-gradient(180deg,#120f0c 0%,#0d0a08 100%)',
-    vars: { '--ks-bg-main':'#0e0c0a','--ks-bg-soft':'rgba(28,22,16,0.85)','--ks-bg-soft-2':'rgba(18,14,10,0.92)','--ks-card-sub':'rgba(20,16,12,0.6)','--ks-border':'rgba(201,168,92,0.18)','--ks-border-strong':'rgba(212,184,106,0.55)','--ks-text':'#f3ead4','--ks-text-muted':'#a89679','--ks-accent':'#d4b86a','--ks-accent-2':'#b8954a','--ks-button-text':'#1a1410','--ks-danger':'#efb0b0' }
-  },
-  forest: {
-    id:'forest', name:'Les',
-    bg:'radial-gradient(circle at top, rgba(40,110,70,0.18), transparent 42%), linear-gradient(180deg,#0b1611 0%,#0a0d0b 100%)',
-    vars: { '--ks-bg-main':'#09110d','--ks-bg-soft':'rgba(17,34,24,0.84)','--ks-bg-soft-2':'rgba(10,21,14,0.94)','--ks-card-sub':'rgba(12,23,16,0.62)','--ks-border':'rgba(175,160,95,0.22)','--ks-border-strong':'rgba(200,188,116,0.52)','--ks-text':'#eef0d8','--ks-text-muted':'#aeb495','--ks-accent':'#d7c56d','--ks-accent-2':'#7e9e56','--ks-button-text':'#152013','--ks-danger':'#f0b3b3' }
-  },
-  royal: {
-    id:'royal', name:'Royal',
-    bg:'radial-gradient(circle at top, rgba(74,52,148,0.18), transparent 42%), linear-gradient(180deg,#0d0b17 0%,#09080d 100%)',
-    vars: { '--ks-bg-main':'#0d0918','--ks-bg-soft':'rgba(24,18,45,0.86)','--ks-bg-soft-2':'rgba(14,10,28,0.95)','--ks-card-sub':'rgba(22,16,40,0.62)','--ks-border':'rgba(196,167,255,0.24)','--ks-border-strong':'rgba(214,183,106,0.46)','--ks-text':'#f2eaff','--ks-text-muted':'#b6a6d8','--ks-accent':'#d4b86a','--ks-accent-2':'#8e66d9','--ks-button-text':'#170f25','--ks-danger':'#ffc0d9' }
-  },
-  parchment: {
-      id:'parchment', name:'Pergamen',
-      bg:'linear-gradient(180deg,#f3ead7 0%,#eadfcb 100%)',
-      vars: { '--ks-bg-main':'#f7f0e0','--ks-bg-soft':'rgba(255,252,246,0.98)','--ks-bg-soft-2':'rgba(251,245,235,1.0)','--ks-card-sub':'rgba(244,236,223,0.98)','--ks-border':'rgba(174,140,88,0.34)','--ks-border-strong':'rgba(160,120,60,0.72)','--ks-text':'#6b5235','--ks-text-muted':'#8e7150','--ks-accent':'#7a4f1f','--ks-accent-2':'#d8b684','--ks-button-text':'#f9f2e6','--ks-danger':'#8f3a3a','--ks-sticky-bg':'rgba(247,240,224,0.97)','--ks-sticky-bg2':'rgba(241,233,216,0.98)' }
-  },
-  walnut: {
-    id:'walnut', name:'Orech',
-    bg:'linear-gradient(180deg,#24150c 0%,#140d09 100%)',
-    vars: { '--ks-bg-main':'#1a100b','--ks-bg-soft':'rgba(45,25,14,0.85)','--ks-bg-soft-2':'rgba(26,15,9,0.95)','--ks-card-sub':'rgba(33,19,12,0.66)','--ks-border':'rgba(205,155,94,0.23)','--ks-border-strong':'rgba(224,184,123,0.55)','--ks-text':'#f4e2c8','--ks-text-muted':'#be9f78','--ks-accent':'#dfb06b','--ks-accent-2':'#8c4f21','--ks-button-text':'#24150c','--ks-danger':'#f0b9a2' ,'--ks-sticky-bg':'rgba(14,12,10,0.97)','--ks-sticky-bg2':'rgba(10,8,6,0.98)'}
-  },
-  rosered: {
-    id:'rosered', name:'Rose Red',
-    bg:'radial-gradient(circle at top, rgba(180,40,72,0.22), transparent 42%), linear-gradient(180deg,#2a0812 0%,#12060b 100%)',
-    vars: { '--ks-bg-main':'#1a0710','--ks-bg-soft':'rgba(46,12,24,0.86)','--ks-bg-soft-2':'rgba(28,10,18,0.95)','--ks-card-sub':'rgba(36,11,20,0.64)','--ks-border':'rgba(236,128,152,0.26)','--ks-border-strong':'rgba(255,170,191,0.56)','--ks-text':'#ffe7ec','--ks-text-muted':'#d2a2af','--ks-accent':'#f2a0b3','--ks-accent-2':'#c24569','--ks-button-text':'#2b0b15','--ks-danger':'#ffb4c2','--ks-sticky-bg':'rgba(24,8,14,0.97)','--ks-sticky-bg2':'rgba(18,6,10,0.98)' }
-  },
-  ruby: {
-    id:'ruby', name:'Rubín',
-    bg:'radial-gradient(circle at top, rgba(220,30,60,0.18), transparent 42%), linear-gradient(180deg,#22070d 0%,#10050a 100%)',
-    vars: { '--ks-bg-main':'#15060b','--ks-bg-soft':'rgba(44,10,18,0.86)','--ks-bg-soft-2':'rgba(24,8,14,0.95)','--ks-card-sub':'rgba(34,10,17,0.66)','--ks-border':'rgba(234,115,132,0.26)','--ks-border-strong':'rgba(255,166,180,0.58)','--ks-text':'#ffe9ec','--ks-text-muted':'#d7aab2','--ks-accent':'#ff6f86','--ks-accent-2':'#b92e4a','--ks-button-text':'#2a0810','--ks-danger':'#ffb4c2','--ks-sticky-bg':'rgba(24,8,14,0.97)','--ks-sticky-bg2':'rgba(18,6,10,0.98)' }
-  },
-  blackwhite: {
-    id:'blackwhite', name:'Čierno-biely',
-    bg:'#000000',
-    vars: { '--ks-bg-main':'#000000','--ks-bg-soft':'rgba(18,18,18,0.98)','--ks-bg-soft-2':'rgba(24,24,24,1.0)','--ks-card-sub':'rgba(28,28,28,0.98)','--ks-border':'rgba(255,255,255,0.22)','--ks-border-strong':'rgba(255,255,255,0.55)','--ks-text':'#ffffff','--ks-text-muted':'#aaaaaa','--ks-accent':'#ffffff','--ks-accent-2':'#444444','--ks-button-text':'#000000','--ks-danger':'#ff4444','--ks-sticky-bg':'rgba(6,6,6,0.99)','--ks-sticky-bg2':'rgba(0,0,0,1.0)' }
-  },
-  whiteblack: {
-    id:'whiteblack', name:'Bielo-čierny',
-    bg:'linear-gradient(180deg,#f0f0f0 0%,#e4e4e4 100%)',
-    vars: { '--ks-bg-main':'#f5f5f5','--ks-bg-soft':'rgba(255,255,255,0.98)','--ks-bg-soft-2':'rgba(250,250,250,1.0)','--ks-card-sub':'rgba(245,245,245,0.98)','--ks-border':'rgba(0,0,0,0.15)','--ks-border-strong':'rgba(0,0,0,0.40)','--ks-text':'#111111','--ks-text-muted':'#555555','--ks-accent':'#111111','--ks-accent-2':'#cccccc','--ks-button-text':'#ffffff','--ks-danger':'#cc0000','--ks-sticky-bg':'rgba(240,240,240,0.99)','--ks-sticky-bg2':'rgba(230,230,230,1.0)' }
-  },
-  brawlstars: {
-    id:'brawlstars', name:'Brawl Stars',
-    bg:'radial-gradient(ellipse at 50% 35%, #6030a0 0%, #38155a 48%, #1a0830 100%)',
-    vars: { '--ks-bg-main':'#1a0830','--ks-bg-soft':'rgba(52,18,80,0.92)','--ks-bg-soft-2':'rgba(28,10,45,0.96)','--ks-card-sub':'rgba(40,14,62,0.74)','--ks-border':'rgba(200,80,220,0.28)','--ks-border-strong':'rgba(230,120,255,0.62)','--ks-text':'#f8e8ff','--ks-text-muted':'#c0a0d8','--ks-accent':'#e070d0','--ks-accent-2':'#8030b0','--ks-button-text':'#280a3a','--ks-danger':'#ff6090','--ks-sticky-bg':'rgba(20,6,34,0.97)','--ks-sticky-bg2':'rgba(14,4,24,0.98)' }
-  },
-  brawlblue: {
-    id:'brawlblue', name:'Brawl Blue',
-    bg:'radial-gradient(ellipse at 50% 40%, #1a96d8 0%, #0e62ac 46%, #061e54 100%)',
-    vars: { '--ks-bg-main':'#061e54','--ks-bg-soft':'rgba(10,48,110,0.92)','--ks-bg-soft-2':'rgba(6,26,65,0.96)','--ks-card-sub':'rgba(8,36,88,0.74)','--ks-border':'rgba(40,180,240,0.28)','--ks-border-strong':'rgba(80,210,255,0.62)','--ks-text':'#e8f4ff','--ks-text-muted':'#90b8d8','--ks-accent':'#40d8f0','--ks-accent-2':'#2878c8','--ks-button-text':'#030e28','--ks-danger':'#ff6090','--ks-sticky-bg':'rgba(4,14,44,0.97)','--ks-sticky-bg2':'rgba(3,10,32,0.98)' }
-  },
-  harrypotter: {
-    id:'harrypotter', name:'Harry Potter',
-    bg:'radial-gradient(ellipse at 25% 45%, rgba(160,110,40,0.22), transparent 55%), linear-gradient(160deg,#f8ecd4 0%,#efe0b8 40%,#e8d6a4 70%,#f2e8c8 100%)',
-    vars: { '--ks-bg-main':'#f0e2c0','--ks-bg-soft':'rgba(252,244,226,0.97)','--ks-bg-soft-2':'rgba(248,238,215,1.0)','--ks-card-sub':'rgba(244,232,206,0.98)','--ks-border':'rgba(140,88,18,0.30)','--ks-border-strong':'rgba(160,100,20,0.62)','--ks-text':'#271608','--ks-text-muted':'#7a5030','--ks-accent':'#8b5814','--ks-accent-2':'#740001','--ks-button-text':'#f8f0de','--ks-danger':'#aa2020','--ks-sticky-bg':'rgba(244,232,202,0.97)','--ks-sticky-bg2':'rgba(238,224,192,0.98)' }
-  },
-};
-
-const FONT_PRESETS = {
-  default:   { id: 'default',   name: 'Default',        stack: "'Cormorant Garamond', 'Crimson Pro', Georgia, serif",   monoStack: "'Bebas Neue', sans-serif" },
-  calibri:   { id: 'calibri',   name: 'Calibri',         stack: "'Calibri', 'Segoe UI', sans-serif",                    monoStack: "'Bebas Neue', sans-serif" },
-  arial:     { id: 'arial',     name: 'Arial',           stack: "Arial, 'Helvetica Neue', sans-serif",                  monoStack: "'Bebas Neue', sans-serif" },
-  crimson:   { id: 'crimson',   name: 'Crimson Pro',     stack: "'Crimson Pro', Georgia, serif",                        monoStack: "'Bebas Neue', sans-serif" },
-  comicsans: { id: 'comicsans', name: 'Comic Sans MS',   stack: "'Comic Sans MS', 'Comic Sans', cursive",               monoStack: "'Bebas Neue', sans-serif" },
-  inkfree:   { id: 'inkfree',   name: 'Ink Free',        stack: "'Ink Free', 'Segoe Script', cursive",                  monoStack: "'Bebas Neue', sans-serif" },
-  caveatbrush: { id: 'caveatbrush', name: 'Caveat Brush', stack: "'Caveat Brush', 'Segoe Script', cursive",             monoStack: "'Bebas Neue', sans-serif" },
-};
-
-function skinVarsCss(selectedSkin, selectedFont) {
-  const font = FONT_PRESETS[selectedFont] || FONT_PRESETS.default;
-  const skin = SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic;
-  const vars = skin.vars;
-  let css = ':root{' + Object.entries(vars).map(([k,v]) => `${k}:${v}`).join(';')
-    + `;--ks-font-display:${font.stack};--ks-font-body:${font.stack};--ks-font-mono:${font.monoStack}}`;
-  if (selectedSkin === 'blackwhite') {
-    css += `
-.ks-gold{color:#fff!important}
-.ks-cream{color:#fff!important}
-.ks-muted{color:#aaa!important}
-.ks-gold-bg{background:#fff!important;color:#000!important}
-.ks-card{background:rgba(16,16,16,0.98)!important;border-color:rgba(255,255,255,0.20)!important}
-.ks-card:hover{border-color:rgba(255,255,255,0.42)!important}
-.ks-live-row td,.ks-live-table th{border-color:rgba(255,255,255,0.10)!important}
-.ks-live-pos-1{color:#fff!important;border-color:rgba(255,255,255,0.6)!important}
-.ks-live-pos-2{color:#ccc!important}
-.ks-live-pos-3{color:#999!important}
-`;
-  }
-  if (selectedSkin === 'parchment') {
-    css += `
-.ks-card{background:rgba(248,241,226,0.96)!important;border-color:rgba(195,165,112,0.36)!important}
-.ks-card:hover{border-color:rgba(200,165,95,0.60)!important}
-.ks-live-row td,.ks-live-table th{border-color:rgba(195,165,112,0.25)!important}
-.ks-live-row:hover td{background:rgba(232,218,196,0.55)!important}
-`;
-  }
-  if (selectedSkin === 'whiteblack') {
-    css += `
-.ks-gold{color:#111!important}
-.ks-cream{color:#111!important}
-.ks-muted{color:#555!important}
-.ks-gold-bg{background:#111!important;color:#fff!important}
-.ks-card{background:rgba(255,255,255,0.97)!important;border-color:rgba(0,0,0,0.13)!important}
-.ks-card:hover{border-color:rgba(0,0,0,0.30)!important}
-.ks-live-row td,.ks-live-table th{border-color:rgba(0,0,0,0.08)!important}
-.ks-live-row:hover td{background:rgba(220,220,220,0.45)!important}
-.ks-press{border-color:rgba(0,0,0,0.25)!important}
-.ks-press:hover{background:rgba(0,0,0,0.07)!important}
-.ks-live-pos-1{color:#111!important;border-color:rgba(0,0,0,0.55)!important}
-.ks-live-pos-2{color:#333!important}
-.ks-live-pos-3{color:#666!important}
-`;
-  }
-  if (selectedSkin === 'brawlstars') {
-    css += `
-:root{
---ks-overlay-dark:radial-gradient(circle at center,rgba(80,20,120,0.96),rgba(10,4,28,0.98));
---ks-overlay-doubt:radial-gradient(circle at center,rgba(60,15,100,0.96),rgba(10,4,28,0.97));
---ks-overlay-fight:radial-gradient(circle at center,rgba(100,20,140,0.96),rgba(15,5,35,0.97));
---ks-overlay-doom:radial-gradient(circle at center,rgba(30,8,70,0.97),rgba(5,2,15,0.99));
---ks-modal-overlay:rgba(20,6,40,0.82);
---ks-modal-dark-overlay:rgba(10,4,28,0.94);
---ks-popup-accent:#e070d0;
---ks-glow-orb:rgba(180,80,220,0.50);
---ks-toast-info-bg:rgba(44,10,68,0.92);
---ks-toast-warn-bg:rgba(60,12,88,0.88);
---ks-toast-info-border:rgba(200,80,220,0.70);
---ks-toast-warn-border:rgba(230,120,255,0.60);
-}
-.ks-gold{color:#e070d0!important}
-.ks-gold-bg{background:linear-gradient(135deg,#b030b0,#6010a0)!important;box-shadow:0 0 18px rgba(200,80,230,0.65)!important}
-.ks-card{background:rgba(44,16,68,0.90)!important;border-color:rgba(200,80,220,0.32)!important;box-shadow:0 0 12px rgba(160,60,200,0.30)!important}
-.ks-border-sub{border-color:rgba(200,80,220,0.20)!important}
-.ks-live-row td,.ks-live-table th{border-color:rgba(200,80,220,0.18)!important}
-.ks-live-row:hover td{background:rgba(80,20,110,0.35)!important}
-`;
-  }
-  if (selectedSkin === 'brawlblue') {
-    css += `
-:root{
---ks-overlay-dark:radial-gradient(circle at center,rgba(10,50,130,0.96),rgba(3,10,42,0.98));
---ks-overlay-doubt:radial-gradient(circle at center,rgba(8,40,110,0.96),rgba(3,10,42,0.97));
---ks-overlay-fight:radial-gradient(circle at center,rgba(10,70,160,0.96),rgba(3,14,54,0.97));
---ks-overlay-doom:radial-gradient(circle at center,rgba(5,25,70,0.97),rgba(2,6,24,0.99));
---ks-modal-overlay:rgba(3,12,42,0.82);
---ks-modal-dark-overlay:rgba(3,10,42,0.94);
---ks-popup-accent:#40d8f0;
---ks-glow-orb:rgba(40,180,240,0.50);
---ks-toast-info-bg:rgba(6,28,80,0.92);
---ks-toast-warn-bg:rgba(8,36,100,0.88);
---ks-toast-info-border:rgba(40,180,240,0.70);
---ks-toast-warn-border:rgba(80,210,255,0.60);
-}
-.ks-gold{color:#40d8f0!important}
-.ks-gold-bg{background:linear-gradient(135deg,#1a96d8,#0e5cac)!important;box-shadow:0 0 18px rgba(40,180,240,0.65)!important}
-.ks-card{background:rgba(8,38,90,0.90)!important;border-color:rgba(40,180,240,0.30)!important;box-shadow:0 0 12px rgba(30,140,200,0.28)!important}
-.ks-border-sub{border-color:rgba(40,180,240,0.18)!important}
-.ks-live-row td,.ks-live-table th{border-color:rgba(40,180,240,0.14)!important}
-.ks-live-row:hover td{background:rgba(10,60,130,0.40)!important}
-`;
-  }
-  if (selectedSkin === 'harrypotter') {
-    css += `
-.ks-gold{color:#6b3e0c!important}
-.ks-cream{color:#271608!important}
-.ks-muted{color:#7a5030!important}
-.ks-gold-bg{background:linear-gradient(135deg,#8b5814,#740001)!important;color:#f8f0de!important}
-.ks-card{background:rgba(252,244,226,0.96)!important;border-color:rgba(150,95,22,0.30)!important}
-.ks-card:hover{border-color:rgba(150,95,22,0.55)!important}
-.ks-card-prom{background:rgba(248,238,210,0.97)!important;border-color:rgba(160,100,20,0.55)!important}
-.ks-border-sub{border-color:rgba(150,95,22,0.22)!important}
-.ks-live-row td,.ks-live-table th{border-color:rgba(150,95,22,0.20)!important}
-.ks-live-row:hover td{background:rgba(238,220,188,0.55)!important}
-.ks-live-pos-1{color:#6b3e0c!important;border-color:rgba(140,88,18,0.55)!important}
-.ks-live-pos-2{color:#7a5030!important}
-.ks-live-pos-3{color:#8a6040!important}
-.ks-divider{background:linear-gradient(90deg,transparent,rgba(140,88,18,0.38),transparent)!important}
-:root{
---ks-overlay-dark:radial-gradient(circle at center,rgba(120,80,15,0.94),rgba(30,18,5,0.97));
---ks-overlay-doubt:radial-gradient(circle at center,rgba(100,60,10,0.94),rgba(28,16,4,0.97));
---ks-overlay-fight:radial-gradient(circle at center,rgba(140,60,10,0.95),rgba(35,18,4,0.97));
---ks-overlay-doom:radial-gradient(circle at center,rgba(80,15,10,0.97),rgba(20,6,4,0.99));
---ks-modal-overlay:rgba(30,18,5,0.78);
---ks-modal-dark-overlay:rgba(25,15,4,0.94);
---ks-popup-accent:#c49a28;
---ks-glow-orb:rgba(196,154,40,0.45);
---ks-toast-info-bg:rgba(44,28,6,0.94);
---ks-toast-warn-bg:rgba(55,30,4,0.90);
---ks-toast-info-border:rgba(160,100,20,0.70);
---ks-toast-warn-border:rgba(200,140,30,0.60);
-}
-`;
-  }
-  return css;
-}
-
 const DEFAULT_QUICK_VALUES = [50, 100, 300, 400, 500, 600, 1000, 1500, 2000];
 
 const VIEW_MODE_LABELS = {
@@ -375,7 +177,7 @@ function Ornament() {
 
 function Header({ title, onBack, right }) {
   return (
-    <div className="flex items-center justify-between px-5 py-4 border-b ks-border-sub">
+    <div className="ks-header flex items-center justify-between px-5 py-4 border-b ks-border-sub">
       {onBack ? (
         <button onClick={onBack} className="ks-press ks-cream flex items-center gap-1 -ml-2 px-2 py-1">
           <ChevronLeft size={20} />
@@ -396,7 +198,7 @@ function Toast({ msg, kind, onClose }) {
   };
   const Icon = kind === 'overshoot' ? AlertTriangle : kind === 'warn' ? AlertCircle : Check;
   return (
-    <div className="fixed top-2 left-3 right-3 z-50 ks-slide-down ks-popup-anchor" style={{ pointerEvents: 'none' }}>
+    <div className="ks-dark-overlay fixed top-2 left-3 right-3 z-50 ks-slide-down ks-popup-anchor" style={{ pointerEvents: 'none' }}>
       <div className={`max-w-md mx-auto p-3 rounded-sm border ${colorMap[kind] || colorMap.info} flex items-start gap-2 shadow-2xl`} style={{ pointerEvents: 'auto', opacity: 'var(--ks-popup-opacity, 0.92)' }}>
         <Icon size={20} className="shrink-0 mt-0.5" />
         <div className="ks-body flex-1 text-sm font-medium">{msg}</div>
@@ -486,13 +288,13 @@ function FunnyOverlay({ data, onClose }) {
       bg: 'radial-gradient(circle at center, rgba(60,20,20,0.97), rgba(0,0,0,0.98))',
       label: 'PROROCTVO',
       glow: 'rgba(196,72,72,0.5)',
-      labelColor: '#c44848',
+      labelColor: 'var(--ks-overlay-doom-label, #c44848)',
     },
   };
   const style = VARIANT_STYLES[variant] || VARIANT_STYLES.doubt;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg"
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg ks-dark-overlay"
          style={{ background: style.bg }}
          onClick={onClose}>
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -569,6 +371,8 @@ export default function App() {
   const [soundsEnabled, setSoundsEnabled] = useState(true);
   const [hapticEnabled, setHapticEnabled] = useState(true);
   const [animationsEnabled, setAnimationsEnabled] = useState(true);
+  const reducedMotion = useReducedMotion();
+  const motionEnabled = animationsEnabled && !reducedMotion;
   const [quickValues, setQuickValues] = useState(DEFAULT_QUICK_VALUES);
   const [knownPlayers, setKnownPlayers] = useState(['Marcel', 'Robo', 'Tomáš', 'Jiří', 'Olino', 'Viki', 'Dedko', 'Jarka']);
   const [extensions, setExtensions] = useState(DEFAULT_EXTENSIONS);
@@ -1652,10 +1456,11 @@ function startTournament(players, targetScore) {
 
   return (
     <LangContext.Provider value={lang}>
-    <div className="ks-bg min-h-screen ks-cream ks-body" data-skin={selectedSkin} data-animations={animationsEnabled ? 'on' : 'off'} style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+    <div className={`ks-app-shell ks-bg min-h-screen ks-cream ks-body ${view === 'tournament' && ['observer', 'observerSimplified'].includes(tournamentViewMode) ? 'ks-app-viewer' : ''}`} data-skin={selectedSkin} data-animations={motionEnabled ? 'on' : 'off'} style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
       <style>{skinVarsCss(selectedSkin, selectedFont)}</style>
       <style>{`:root { --ks-popup-offset: ${POPUP_CONFIG.VERTICAL_OFFSET}; --ks-popup-opacity: ${POPUP_CONFIG.OPACITY}; }`}</style>
-      {(selectedSkin === 'brawlstars' || selectedSkin === 'brawlblue' || selectedSkin === 'harrypotter') && animationsEnabled && <BrawlBackground skin={selectedSkin} />}
+      {selectedSkin !== 'classic' && motionEnabled && <BrawlBackground skin={selectedSkin} />}
+      <div className="ks-app-content">
 
       {view === 'menu' && (
         <MainMenu
@@ -1761,6 +1566,7 @@ function startTournament(players, targetScore) {
             onQuickValuesChange={setQuickValues}
             extensions={extensions}
             hapticEnabled={hapticEnabled}
+            motionEnabled={motionEnabled}
           />
         ) : (
           <SafeTournamentFallback title="Turnaj sa nepodarilo načítať" />
@@ -1861,6 +1667,7 @@ function startTournament(players, targetScore) {
           />
         </div>
       )}
+      </div>
     </div>
     </LangContext.Provider>
   );
@@ -2175,7 +1982,7 @@ function TournamentScreen({
   tournament, rules, onUpdate, onFinish, onAbort, onMenu,
   scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange,
   tournamentViewMode, funnyWindowsDisplayMode, debugMode, minWriteOffOverride,
-  isOnline, quickValues, onQuickValuesChange, extensions = {}, hapticEnabled = true
+  isOnline, quickValues, onQuickValuesChange, extensions = {}, hapticEnabled = true, motionEnabled = true
 }) {
   // Early null guard — before destructuring to prevent crash
   if (!tournament) return <SafeTournamentFallback />;
@@ -2684,7 +2491,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
   if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback />;
   
   return (
-    <div className={`min-h-screen ks-fade ks-bg ${isRecorderMode ? 'pb-6' : isViewerMode ? 'pb-0' : 'pb-32'}`}>
+    <div className={`ks-game-screen ks-fade ks-bg ${isViewerMode ? 'ks-viewer-screen' : isRecorderMode ? 'min-h-screen pb-6' : 'min-h-screen pb-32'}`}>
       {!isRecorderMode && (
         <Header
           title={`Turnaj · do ${target.toLocaleString('sk-SK')}`}
@@ -2701,7 +2508,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                   <TrendingUp size={16} />
                 </button>
               )}
-              <button
+              {!isBasicSimplified && !isObserverSimplified && <button
                 onClick={onToggleScoreMode}
                 className="ks-press ks-gold p-1.5 rounded-sm border border-amber-700/40 hover:bg-amber-900/20"
                 title={scoreDisplayMode === 'delta' ? 'Prepnúť na kumulatívne' : 'Prepnúť na prípisy'}
@@ -2710,7 +2517,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                 {scoreDisplayMode === 'delta'
                   ? <Sigma size={16} />
                   : <Layers size={16} />}
-              </button>
+              </button>}
               <button onClick={onAbort} className="ks-press ks-text-accent px-2 py-1 text-xs ks-mono">{t('game.abort')}</button>
             </div>
           }
@@ -2718,9 +2525,9 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
       )}
 
       {isObserverMode ? (
-        <div className="px-2 pt-1 pb-3 h-[calc(100dvh-64px)] flex flex-col">
+        <div className="px-2 pt-1 pb-3 min-h-0 flex flex-col">
           <div className="flex-1 min-h-0 ks-card rounded-sm p-1 overflow-hidden">
-            <div className="h-full overflow-auto [font-size:clamp(18px,2.3vw,34px)]">
+            <div className="ks-observer-scroll h-full overflow-auto" data-keyboard-scroll tabIndex={0} role="region" aria-label="Živá tabuľka skóre — posúvaj šípkami">
               <ScoreTable tournament={tournament} totals={totals} highlightPlayer={currentPlayer}
                           pendingPreview={pendingSum > 0 ? pendingSum : 0} target={target}
                           displayMode={scoreDisplayMode} onToggleMode={onToggleScoreMode} hideModeToolbar={false} hideModeToggle={true} compactObserver={true}
@@ -2732,7 +2539,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
         // Pozorovateľ zjednodušený: iba veľké karty skóre na celú obrazovku.
         // Graf priebehu nie je súčasťou layoutu — otvára sa ako dočasné
         // celoobrazovkové prekrytie tlačidlom v hornej lište (FullscreenProgressView).
-        <div className="px-3 pt-2 pb-3 h-[calc(100dvh-64px)] flex flex-col overflow-hidden">
+        <div className="px-3 pt-2 pb-3 min-h-0 flex flex-col overflow-hidden">
           <div className="flex-1 min-h-0">
             <BigScoreDisplay players={players} totals={totals} highlightPlayer={currentPlayer}
                               target={target} extensions={extensions} size="xl" showRank />
@@ -2760,7 +2567,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
             <div className="flex items-end justify-between gap-3 mb-1">
               <div className="flex-1 min-w-0">
                 <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.player')}</div>
-                <div className="ks-display text-4xl ks-cream font-bold leading-tight truncate">{players[currentPlayer]}</div>
+                <div title={players[currentPlayer]} className="ks-display text-4xl ks-cream font-bold leading-tight truncate">{players[currentPlayer]}</div>
               </div>
               <div className="text-right shrink-0">
                 <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.score')}</div>
@@ -2789,7 +2596,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
             {pending.length > 0 ? (
               <div className="flex flex-wrap gap-2 mb-3">
                 {pending.map((p, i) => (
-                  <button key={i} onClick={() => removePending(i)} className={`ks-press group flex items-center gap-1.5 px-3 py-1.5 rounded-sm border ${p === 'dash' ? 'border-stone-600/60 bg-stone-800/40 ks-muted' : p < 0 ? 'border-red-800/60 bg-red-950/40 ks-text-accent' : 'ks-border-accent bg-stone-900/70 ks-cream'}`}>
+                  <button key={i} onClick={() => removePending(i)} className={`ks-press group flex items-center gap-1.5 px-3 py-1.5 rounded-sm border ${p === 'dash' ? 'ks-pending-dash border-stone-600/60 bg-stone-800/40 ks-muted' : p < 0 ? 'ks-pending-negative border-red-800/60 bg-red-950/40 ks-text-accent' : 'ks-pending-positive ks-border-accent bg-stone-900/70 ks-cream'}`}>
                     <span className="ks-display font-semibold">{p === 'dash' ? '— čiarka' : (p > 0 ? `+${p}` : p)}</span>
                     <X size={14} className="opacity-60 group-hover:opacity-100" />
                   </button>
@@ -2806,7 +2613,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <button aria-label="Upraviť rýchle hodnoty" onClick={() => setShowQVEditor(v => !v)} className="ks-press ks-muted hover:ks-cream p-0.5"><Edit3 size={13} /></button>
             </div>
             {showQVEditor && onQuickValuesChange && (
-              <div className="mb-3 p-2.5 border ks-border-sub rounded-sm bg-stone-950/60 space-y-2">
+              <div className="ks-value-editor mb-3 p-2.5 border ks-border-sub rounded-sm bg-stone-950/60 space-y-2">
                 <div className="ks-mono ks-muted text-xs">UPRAVIŤ TLAČIDLÁ</div>
                 <div className="flex flex-wrap gap-1.5">
                   {qv.map(v => (
@@ -2830,17 +2637,17 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
             )}
             <div className="grid grid-cols-3 gap-2 mb-3">
               {qv.map(v => (
-                <button key={v} onClick={() => addPoints(v)} className="ks-press border ks-border-sub bg-stone-950/40 hover:bg-stone-900/60 py-2.5 rounded-sm ks-display ks-cream text-lg font-semibold">+{v}</button>
+                <button key={v} onClick={() => addPoints(v)} className="ks-press border ks-border-sub ks-quick-value bg-stone-950/40 hover:bg-stone-900/60 py-2.5 rounded-sm ks-display ks-cream text-lg font-semibold">+{v}</button>
               ))}
             </div>
             <div className="flex gap-2 mb-3">
-              <input type="number" value={customInput} onChange={(e) => setCustomInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCustom()} placeholder="Vlastná hodnota" className="flex-1 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
+              <input type="number" value={customInput} onChange={(e) => setCustomInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCustom()} placeholder="Vlastná hodnota" className="ks-custom-value flex-1 min-w-0 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
               <GoldButton onClick={addCustom} icon={Plus} variant="outline">Pridaj</GoldButton>
             </div>
             <div className="ks-divider my-3" />
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={addDash} className="ks-press p-3 rounded-sm border-2 border-stone-600/50 bg-gradient-to-b from-stone-900/60 to-stone-950/80 hover:brightness-125 flex items-center justify-center gap-2"><Minus size={20} className="ks-muted" /><span className="ks-mono ks-cream font-semibold">ČIARKA</span></button>
-              <button onClick={addPenalty} className="ks-press p-3 rounded-sm border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2"><Skull size={20} className="ks-text-accent" /><span className="ks-mono ks-text-accent font-semibold">−1 000</span></button>
+              <button onClick={addDash} className="ks-press p-3 rounded-sm ks-dash-button border-2 border-stone-600/50 bg-gradient-to-b from-stone-900/60 to-stone-950/80 hover:brightness-125 flex items-center justify-center gap-2"><Minus size={20} className="ks-muted" /><span className="ks-mono ks-cream font-semibold">ČIARKA</span></button>
+              <button onClick={addPenalty} className="ks-press p-3 rounded-sm ks-penalty-button border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2"><Skull size={20} className="ks-text-accent" /><span className="ks-mono ks-text-accent font-semibold">−1 000</span></button>
             </div>
             <div className="grid grid-cols-2 gap-2 mt-4">
               <GoldButton onClick={() => setShowStandings(true)} icon={TrendingUp} variant="ghost">Priebeh hry</GoldButton>
@@ -2878,7 +2685,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
           <div className="flex items-end justify-between gap-3 mb-1">
             <div className="flex-1 min-w-0">
               <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.player')}</div>
-              <div className="ks-display text-4xl ks-cream font-bold leading-tight truncate">
+              <div title={players[currentPlayer]} className="ks-display text-4xl ks-cream font-bold leading-tight truncate">
                 {players[currentPlayer]}
               </div>
             </div>
@@ -2925,9 +2732,9 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                   {pending.map((p, i) => (
                     <button key={i} onClick={() => removePending(i)}
                       className={`ks-press group flex items-center gap-1.5 px-3 py-1.5 rounded-sm border
-                        ${p === 'dash' ? 'border-stone-600/60 bg-stone-800/40 ks-muted' :
-                          p < 0 ? 'border-red-800/60 bg-red-950/40 ks-text-accent' :
-                          'ks-border-accent bg-stone-900/70 ks-cream'}`}>
+                        ${p === 'dash' ? 'ks-pending-dash border-stone-600/60 bg-stone-800/40 ks-muted' :
+                          p < 0 ? 'ks-pending-negative border-red-800/60 bg-red-950/40 ks-text-accent' :
+                          'ks-pending-positive ks-border-accent bg-stone-900/70 ks-cream'}`}>
                       <span className="ks-display font-semibold">
                         {p === 'dash' ? '— čiarka' : (p > 0 ? `+${p}` : p)}
                       </span>
@@ -2960,7 +2767,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {qv.map(v => (
                   <button key={v} onClick={() => addPoints(v)}
-                    className="ks-press border ks-border-sub bg-stone-950/40 hover:bg-stone-900/60 py-2.5 rounded-sm ks-display ks-cream text-lg font-semibold">
+                    className="ks-press border ks-border-sub ks-quick-value bg-stone-950/40 hover:bg-stone-900/60 py-2.5 rounded-sm ks-display ks-cream text-lg font-semibold">
                     +{v}
                   </button>
                 ))}
@@ -2971,7 +2778,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                   onChange={(e) => setCustomInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addCustom()}
                   placeholder="Vlastná hodnota"
-                  className="flex-1 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700"
+                  className="ks-custom-value flex-1 min-w-0 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700"
                 />
                 <GoldButton onClick={addCustom} icon={Plus} variant="outline">Pridaj</GoldButton>
               </div>
@@ -2981,12 +2788,12 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               {/* Špeciálne tlačidlá: Čiarka + Penalizácia */}
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={addDash}
-                  className="ks-press p-3 rounded-sm border-2 border-stone-600/50 bg-gradient-to-b from-stone-900/60 to-stone-950/80 hover:brightness-125 flex items-center justify-center gap-2">
+                  className="ks-press p-3 rounded-sm ks-dash-button border-2 border-stone-600/50 bg-gradient-to-b from-stone-900/60 to-stone-950/80 hover:brightness-125 flex items-center justify-center gap-2">
                   <Minus size={20} className="ks-muted" />
                   <span className="ks-mono ks-cream font-semibold">ČIARKA</span>
                 </button>
                 <button onClick={addPenalty}
-                  className="ks-press p-3 rounded-sm border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2">
+                  className="ks-press p-3 rounded-sm ks-penalty-button border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2">
                   <Skull size={20} className="ks-text-accent" />
                   <span className="ks-mono ks-text-accent font-semibold">−1 000</span>
                 </button>
@@ -3062,12 +2869,12 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
       )}
 
       {/* Konfety */}
-      <Confetti active={!!(winnerCelebration && extensions.confetti)} />
+      <Confetti active={!!(winnerCelebration && extensions.confetti && motionEnabled)} skin={selectedSkin} />
 
       {/* Míľnik flash */}
       {milestoneFlash && (
         <div className="fixed inset-0 z-[80] pointer-events-none flex items-center justify-center">
-          <div className="ks-milestone-in absolute text-center px-6 py-4 rounded-lg"
+          <div className="ks-dark-overlay ks-milestone-in absolute text-center px-6 py-4 rounded-lg"
                style={{ left: '50%', top: '38%', background: 'rgba(14,12,10,0.92)', border: '2px solid var(--ks-accent,#d4b86a)' }}>
             <div className="text-4xl mb-1">⚡</div>
             <div className="ks-mono ks-gold text-xs tracking-widest mb-1">{t('milestone.label')}</div>
@@ -3079,7 +2886,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
 
       {/* VÍŤAZSTVO / REMÍZA — celoobrazovkové, nezávisle na queue */}
       {winnerCelebration && funnyWindowsDisplayMode === 'standard' && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-6 ks-overlay-bg" style={{ background: 'var(--ks-overlay-dark, radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98)))' }}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-6 ks-overlay-bg ks-dark-overlay" style={{ background: 'var(--ks-overlay-dark, radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98)))' }}>
           {extensions.dramaticWinner ? (
             <div className="relative z-10 text-center max-w-md">
               <div className="ks-dramatic-win text-8xl mb-4" style={{ display: 'inline-block' }}>
@@ -3182,7 +2989,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
 function DecisionPresenter({ playerName, target, displayMode, onConfirm, onReject }) {
   if (displayMode === 'standard') {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg"
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg ks-dark-overlay"
            style={{ background: 'var(--ks-overlay-dark, radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98)))' }}>
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full ks-funny-orb"
@@ -3257,16 +3064,18 @@ function DecisionPresenter({ playerName, target, displayMode, onConfirm, onRejec
 // ─── Fullscreen Priebeh hry ────────────────────────────────────────────────
 
 function FullscreenProgressView({ onClose, tournament, totals, target, highlightPlayer }) {
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef);
   useBackHandler(() => onClose(), true);
   return (
-    <div className="fixed inset-0 z-40 ks-bg ks-fade flex flex-col p-4 sm:p-6">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="ks-progress-title" tabIndex={-1} className="fixed inset-0 z-40 ks-bg ks-fade flex flex-col p-4 sm:p-6">
       <div className="flex items-center justify-between mb-4 shrink-0">
-        <h2 className="ks-display ks-gold text-3xl sm:text-4xl font-bold">Priebeh hry</h2>
+        <h2 id="ks-progress-title" className="ks-display ks-gold text-3xl sm:text-4xl font-bold">Priebeh hry</h2>
         <button aria-label="Zatvoriť" onClick={onClose} className="ks-press ks-cream p-2 border ks-border-sub rounded-sm">
           <X size={28} />
         </button>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+      <div data-keyboard-scroll tabIndex={0} role="region" aria-label="Graf a poradie hráčov — posúvaj šípkami" className="flex-1 min-h-0 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
         <ProgressChart tournament={tournament} totals={totals} target={target} highlightPlayer={highlightPlayer} fullscreen />
       </div>
     </div>
@@ -3276,8 +3085,11 @@ function FullscreenProgressView({ onClose, tournament, totals, target, highlight
 // ─── Modal + tabuľka poradia ──────────────────────────────────────────────
 
 function Modal({ children, onClose, title }) {
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef);
+  useBackHandler(onClose);
   return (
-    <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center p-0 sm:p-4"
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} className="fixed inset-0 z-40 flex items-end sm:items-center justify-center p-0 sm:p-4"
          style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
       <div className="ks-card w-full max-w-lg max-h-[85vh] flex flex-col rounded-t-lg sm:rounded-sm ks-fade"
            onClick={(e) => e.stopPropagation()}>

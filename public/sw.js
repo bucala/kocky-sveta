@@ -1,6 +1,6 @@
 // Kocky sveta — service worker (cache-first pre statické assety)
 
-const CACHE_NAME = 'kocky-sveta-v1.2.0';
+const CACHE_NAME = 'kocky-sveta-v1.6.4';
 const PRECACHE_URLS = [
   './',
   './index.html',

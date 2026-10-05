@@ -13,7 +13,7 @@
 // prvok. Initial focus nechaj vždy na tomto hooku.
 import { useEffect, useRef } from 'react';
 import { getFocusableIn } from './domFocus.js';
-import { pushFocusScope } from './focusScope.js';
+import { pushFocusScope, getActiveFocusScope } from './focusScope.js';
 
 export function useFocusTrap(containerRef, active = true) {
   const returnFocusRef = useRef(null);
@@ -27,13 +27,22 @@ export function useFocusTrap(containerRef, active = true) {
     const removeScope = pushFocusScope(container);
 
     const initial = getFocusableIn(container)[0];
-    // Malé oneskorenie — necháme modal domaľovať sa pred presunom focusu.
-    const focusId = setTimeout(() => (initial || container).focus?.(), 20);
+    (initial || container).focus?.({ preventScroll: true });
+
+    function keepFocusInside(e) {
+      if (getActiveFocusScope() !== container || container.contains(e.target)) return;
+      (getFocusableIn(container)[0] || container).focus?.({ preventScroll: true });
+    }
+    document.addEventListener('focusin', keepFocusInside, true);
 
     function onKeyDown(e) {
-      if (e.key !== 'Tab') return;
+      if (e.key !== 'Tab' || getActiveFocusScope() !== container) return;
       const items = getFocusableIn(container);
-      if (items.length === 0) return;
+      if (items.length === 0) {
+        e.preventDefault();
+        container.focus?.();
+        return;
+      }
       const first = items[0];
       const last = items[items.length - 1];
       if (e.shiftKey && document.activeElement === first) {
@@ -47,10 +56,10 @@ export function useFocusTrap(containerRef, active = true) {
     container.addEventListener('keydown', onKeyDown);
 
     return () => {
-      clearTimeout(focusId);
+      document.removeEventListener('focusin', keepFocusInside, true);
       container.removeEventListener('keydown', onKeyDown);
       removeScope();
-      returnFocusRef.current?.focus?.();
+      if (returnFocusRef.current?.isConnected) returnFocusRef.current.focus?.({ preventScroll: true });
     };
   }, [active, containerRef]);
 }
