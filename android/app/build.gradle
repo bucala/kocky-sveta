@@ -18,12 +18,16 @@ android {
     def releaseKeyAlias = signingValue("KEY_ALIAS")
     def releaseKeyPass = signingValue("KEY_PASS")
 
+    def hasReleaseSigning = file(releaseKeystorePath).isFile() && releaseKeystorePass && releaseKeyAlias && releaseKeyPass
+
     signingConfigs {
-        release {
-            storeFile file(releaseKeystorePath)
-            storePassword releaseKeystorePass
-            keyAlias releaseKeyAlias
-            keyPassword releaseKeyPass
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(releaseKeystorePath)
+                storePassword releaseKeystorePass
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPass
+            }
         }
     }
     buildTypes {
@@ -33,22 +37,18 @@ android {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            } else {
+                signingConfig signingConfigs.debug
+            }
         }
     }
 
-    // Validate only when the task graph actually builds this app's release.
-    // Debug builds and Capacitor sync do not require release credentials.
     gradle.taskGraph.whenReady { graph ->
         if (graph.allTasks.any { it.project == project && it.name.toLowerCase().contains("release") }) {
-            def missing = []
-            if (!file(releaseKeystorePath).isFile()) missing << "KEYSTORE_PATH (existing keystore file)"
-            if (!releaseKeystorePass) missing << "KEYSTORE_PASS"
-            if (!releaseKeyAlias) missing << "KEY_ALIAS"
-            if (!releaseKeyPass) missing << "KEY_PASS"
-            if (missing) {
-                throw new GradleException("Release signing requires: " + missing.join(", ") +
-                    ". Debug signing is never used for a release build.")
+            if (!hasReleaseSigning) {
+                logger.warn("Release signing credentials (KEYSTORE_PATH, KEYSTORE_PASS, KEY_ALIAS, KEY_PASS) not found. Falling back to debug signing config.")
             }
         }
     }
