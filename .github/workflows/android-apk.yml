@@ -6,7 +6,7 @@ on:
       build_type:
         description: 'Typ buildu'
         required: true
-        default: 'debug'
+        default: 'release'
         type: choice
         options:
           - debug
@@ -27,6 +27,18 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
+      - name: 🧪 Test signing setup
+        run: python3 -m unittest discover -s scripts/tests -v
+
+      - name: 🔑 Prepare and validate release signing
+        if: ${{ inputs.build_type == 'release' }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
+        run: python3 scripts/prepare-android-signing.py
+
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -34,7 +46,7 @@ jobs:
           cache: 'npm'
 
       - name: 📦 Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: 🧪 Run tests
         run: npm test
@@ -62,17 +74,6 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: 🔑 Decode release keystore
-        if: ${{ github.event.inputs.build_type == 'release' }}
-        env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        run: |
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::error::Secret ANDROID_KEYSTORE_BASE64 nie je nastavený v repozitári — release build nie je možný."
-            exit 1
-          fi
-          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
-
       - name: 🤖 Assemble Debug APK
         if: ${{ github.event.inputs.build_type == 'debug' }}
         working-directory: android
@@ -82,10 +83,28 @@ jobs:
         if: ${{ github.event.inputs.build_type == 'release' }}
         working-directory: android
         env:
+          KEYSTORE_PATH: ${{ runner.temp }}/android-signing/release.keystore
           KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
         run: gradle assembleRelease --no-daemon
+
+      - name: ✅ Verify release APK signature and certificate
+        if: ${{ inputs.build_type == 'release' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=android/app/build/outputs/apk/release/app-release.apk
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)
+          test -n "$apksigner"
+          "$apksigner" verify --verbose --print-certs "$apk" > "$RUNNER_TEMP/android-signing/apk-certificate.txt"
+          expected=$(sha256sum "$RUNNER_TEMP/android-signing/certificate.der" | cut -d ' ' -f 1)
+          actual=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/android-signing/apk-certificate.txt" | tr -d '\r')
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::APK nie je podpísané očakávaným release certifikátom."
+            exit 1
+          fi
+          echo "Release APK podpis a certifikát boli overené."
 
       - name: 📤 Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -94,3 +113,8 @@ jobs:
           path: android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: 🧹 Remove temporary signing material
+        if: ${{ always() && inputs.build_type == 'release' }}
+        shell: bash
+        run: rm -rf -- "$RUNNER_TEMP/android-signing"

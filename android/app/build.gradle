@@ -12,20 +12,18 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         resValue "string", "custom_url_scheme", applicationId
     }
+    def signingValue = { String name -> System.getenv(name) ?: project.findProperty(name) }
+    def releaseKeystorePath = signingValue("KEYSTORE_PATH") ?: "release.keystore"
+    def releaseKeystorePass = signingValue("KEYSTORE_PASS")
+    def releaseKeyAlias = signingValue("KEY_ALIAS")
+    def releaseKeyPass = signingValue("KEY_PASS")
+
     signingConfigs {
         release {
-            def keystorePath = System.getenv("KEYSTORE_PATH") ?: project.findProperty("KEYSTORE_PATH") ?: "release.keystore"
-            def keystorePass = System.getenv("KEYSTORE_PASS") ?: project.findProperty("KEYSTORE_PASS")
-            def keyAliasVal  = System.getenv("KEY_ALIAS")     ?: project.findProperty("KEY_ALIAS")     ?: "kockysveta"
-            def keyPass      = System.getenv("KEY_PASS")      ?: project.findProperty("KEY_PASS")
-
-            def keystoreFile = file(keystorePath)
-            if (keystoreFile.exists() && keystorePass && keyPass) {
-                storeFile     keystoreFile
-                storePassword keystorePass
-                keyAlias      keyAliasVal
-                keyPassword   keyPass
-            }
+            storeFile file(releaseKeystorePath)
+            storePassword releaseKeystorePass
+            keyAlias releaseKeyAlias
+            keyPassword releaseKeyPass
         }
     }
     buildTypes {
@@ -35,16 +33,22 @@ android {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
 
-            def keystorePath = System.getenv("KEYSTORE_PATH") ?: project.findProperty("KEYSTORE_PATH") ?: "release.keystore"
-            def keystorePass = System.getenv("KEYSTORE_PASS") ?: project.findProperty("KEYSTORE_PASS")
-            def keyPass      = System.getenv("KEY_PASS")      ?: project.findProperty("KEY_PASS")
-
-            if (file(keystorePath).exists() && keystorePass && keyPass) {
-                signingConfig signingConfigs.release
-            } else {
-                logger.warn("Release signing credentials or keystore file not found (${keystorePath}). Falling back to debug signing config.")
-                signingConfig signingConfigs.debug
+    // Validate only when the task graph actually builds this app's release.
+    // Debug builds and Capacitor sync do not require release credentials.
+    gradle.taskGraph.whenReady { graph ->
+        if (graph.allTasks.any { it.project == project && it.name.toLowerCase().contains("release") }) {
+            def missing = []
+            if (!file(releaseKeystorePath).isFile()) missing << "KEYSTORE_PATH (existing keystore file)"
+            if (!releaseKeystorePass) missing << "KEYSTORE_PASS"
+            if (!releaseKeyAlias) missing << "KEY_ALIAS"
+            if (!releaseKeyPass) missing << "KEY_PASS"
+            if (missing) {
+                throw new GradleException("Release signing requires: " + missing.join(", ") +
+                    ". Debug signing is never used for a release build.")
             }
         }
     }

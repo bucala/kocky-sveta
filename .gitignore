@@ -16,3 +16,7 @@ android/.gradle
 android/local.properties
 *.jks
 *.keystore
+
+# Python signing tooling
+__pycache__/
+*.pyc
