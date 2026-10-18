@@ -13,7 +13,8 @@ def verify_certificate(report, certificate):
         r'^Signer[^\r\n]* certificate SHA-256 digest:[ \t]*([0-9a-fA-F]{64})[ \t]*\r?$',
         report, re.MULTILINE)
     if not digests:
-        raise ValueError('Vo výstupe apksigner chýba SHA-256 podpisového certifikátu.')
+        raise ValueError('Vo výstupe apksigner chýba SHA-256 podpisového certifikátu. '
+                         'Verejný výstup overenia: ' + repr(report))
     actual = {digest.lower() for digest in digests}
     if actual != {expected}:
         # Certificate fingerprints are public, not signing secrets.
