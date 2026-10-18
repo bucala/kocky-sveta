@@ -8,13 +8,14 @@ import sys
 
 def verify_certificate(report, certificate):
     expected = hashlib.sha256(certificate).hexdigest()
-    # New build-tools label v3 signers by SDK range instead of "Signer #1".
+    # Build-tools use numbered, SDK-range, or scheme-prefixed labels (e.g. "V2 Signer:").
     digests = re.findall(
-        r'^Signer[^\r\n]* certificate SHA-256 digest:[ \t]*([0-9a-fA-F]{64})[ \t]*\r?$',
+        r'^(?:V[0-9.]+ )?Signer[^\r\n]* certificate SHA-256 digest:[ \t]*([0-9a-fA-F]{64})[ \t]*\r?$',
         report, re.MULTILINE)
     if not digests:
         raise ValueError('Vo výstupe apksigner chýba SHA-256 podpisového certifikátu. '
-                         'Verejný výstup overenia: ' + repr(report))
+                         'Verejné údaje podpisu: ' + repr('\n'.join(
+                             line for line in report.splitlines() if 'Signer' in line or 'signers' in line)))
     actual = {digest.lower() for digest in digests}
     if actual != {expected}:
         # Certificate fingerprints are public, not signing secrets.

@@ -21,6 +21,17 @@ class CertificateTests(unittest.TestCase):
             f'Signer (minSdkVersion=24, maxSdkVersion=2147483647) certificate SHA-256 digest: {self.digest}\n',
             self.certificate), self.digest)
 
+    def test_scheme_prefixed_signer_from_actual_runner_output(self):
+        report = (f'Verifies\nNumber of signers: 1\n'
+                  f'V2 Signer: certificate SHA-256 digest: {self.digest}\n'
+                  f'V2 Signer: public key SHA-256 digest: {"0" * 64}\n')
+        self.assertEqual(verification.verify_certificate(report, self.certificate), self.digest)
+
+    def test_unexpected_scheme_prefixed_signer_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, 'očakávaným'):
+            verification.verify_certificate(
+                f'V2 Signer: certificate SHA-256 digest: {"0" * 64}\n', self.certificate)
+
     def test_same_certificate_across_signing_schemes(self):
         report = (f'Signer #1 certificate SHA-256 digest: {self.digest}\n'
                   f'Signer (minSdkVersion=28, maxSdkVersion=2147483647) certificate SHA-256 digest: {self.digest.upper()}\r\n')
