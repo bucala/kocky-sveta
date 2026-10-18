@@ -115,13 +115,9 @@ jobs:
           apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)
           test -n "$apksigner"
           "$apksigner" verify --verbose --print-certs "$apk" > "$RUNNER_TEMP/android-signing/apk-certificate.txt"
-          expected=$(sha256sum "$RUNNER_TEMP/android-signing/certificate.der" | cut -d ' ' -f 1)
-          actual=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/android-signing/apk-certificate.txt" | tr -d '\r')
-          if [[ "$actual" != "$expected" ]]; then
-            echo "::error::APK nie je podpísané očakávaným release certifikátom."
-            exit 1
-          fi
-          echo "Release APK podpis a certifikát boli overené."
+          python3 scripts/verify-apk-certificate.py \
+            "$RUNNER_TEMP/android-signing/apk-certificate.txt" \
+            "$RUNNER_TEMP/android-signing/certificate.der"
 
       - name: 📤 Upload APK artifact
         uses: actions/upload-artifact@v4
