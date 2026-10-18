@@ -66,13 +66,30 @@ jobs:
       - name: 🔧 Apply Android post-sync fixes
         run: node scripts/apply-android-fixes.js
 
-      # android/gradlew is not committed to this repo, so we install the
-      # exact Gradle version from android/gradle/wrapper/gradle-wrapper.properties
-      # and invoke it directly instead of relying on the wrapper script.
+      # Keep CI aligned with the Android Studio/wrapper version, even without gradlew.
+      - name: 🔎 Read Gradle version from Android project
+        id: gradle-version
+        shell: bash
+        run: |
+          python3 - <<'PYTHON'
+          import os
+          from pathlib import Path
+          import re
+
+          properties = Path('android/gradle/wrapper/gradle-wrapper.properties').read_text()
+          match = re.search(r'^distributionUrl=.*?/gradle-([0-9]+(?:\.[0-9]+){1,2})-(?:bin|all)\.zip\s*$', properties, re.MULTILINE)
+          if not match:
+              raise SystemExit('::error::Cannot read Gradle version from Android wrapper properties.')
+          version = match.group(1)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'version={version}\n')
+          print(f'Using Gradle {version} from Android wrapper properties.')
+          PYTHON
+
       - name: ⚙️ Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: ${{ steps.gradle-version.outputs.version }}
 
       - name: 🤖 Assemble Debug APK
         if: ${{ github.event.inputs.build_type == 'debug' }}
