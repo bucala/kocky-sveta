@@ -24,6 +24,7 @@ import { MainMenu, MenuButton } from './screens/MainMenu.jsx';
 import { NewTournament } from './screens/NewTournament.jsx';
 import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
 import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
+import { PrivacyScreen } from './screens/PrivacyScreen.jsx';
 // Online obrazovka (a s ňou Firebase, ~450 kB) sa načíta až pri otvorení.
 const OnlineScreen = React.lazy(() => import('./screens/OnlineScreen.jsx').then(m => ({ default: m.OnlineScreen })));
 import { AdminScreen, AdminPinDialog, DEFAULT_ADMIN_SETTINGS } from './screens/AdminScreen.jsx';
@@ -442,6 +443,7 @@ export default function App() {
       case 'settings':
         setView('menu');
         return;
+      case 'privacy':
       case 'admin':
       case 'viewModes':
       case 'visual':
@@ -1550,6 +1552,7 @@ function startTournament(players, targetScore) {
       {view === 'settings' && (
         <SettingsMenu
           onBack={() => setView('menu')}
+          onPrivacy={() => setView('privacy')}
           onOnline={() => setView('online')}
           onRulesEditor={() => setView('rulesEditor')}
           onExport={exportToExcel}
@@ -1674,6 +1677,7 @@ function startTournament(players, targetScore) {
       ) : (
         <SafeTournamentFallback title="Dáta turnaja sa nepodarilo načítať" />
       ))}
+      {view === 'privacy' && <PrivacyScreen onBack={() => setView('settings')} />}
       {view === 'rules' && <RulesView rules={rules} onBack={() => setView('menu')} />}
       {view === 'online' && (
         <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center ks-muted ks-mono text-xs">NAČÍTAVAM ONLINE REŽIM…</div>}>
@@ -1757,7 +1761,7 @@ function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
 
 // ─── Vizuál, Zvuky a Skiny submenu ───────────────────────────────────────────────
 
-function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, onScan, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin, onShowEgg }) {
+function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, onScan, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin, onShowEgg, onPrivacy }) {
   const t = useT();
   const fileInputRef = useRef(null);
   const [eggClicks, setEggClicks] = useState(0);
@@ -1965,6 +1969,12 @@ function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onC
             <p><span className="ks-cream font-semibold">Exporty:</span> XLSX (SheetJS) — každý turnaj ako list + súhrnný prehľad.</p>
             <p><span className="ks-cream font-semibold">Vývoj:</span> Marcel, 2026. Herná logika a pravidlá sú autorské.</p>
           </div>
+          {onPrivacy && (
+            <button onClick={onPrivacy} className="ks-press w-full flex items-center justify-between gap-2 border-t ks-border-sub pt-3 text-left">
+              <span className="ks-cream text-sm">Ochrana súkromia</span>
+              <ChevronRight className="ks-muted" size={18} />
+            </button>
+          )}
         </div>
 
       </div>

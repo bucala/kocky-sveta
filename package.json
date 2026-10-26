@@ -17,7 +17,8 @@
     "sync:release": "node scripts/sync-android.js --release",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "privacy": "node scripts/build-privacy.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
