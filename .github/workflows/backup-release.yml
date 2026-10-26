@@ -1,11 +1,14 @@
 name: 🗄️ Záloha – GitHub release
 
-# Spustí sa po pushnutí tagu v tvare v<verzia>-backup-<dátum>.
+# Spustí sa po pushnutí vetvy backup/**; tag BACKUP_TAG vytvorí GitHub pri release.
 # Overí stav (testy + build) a vytvorí release so zálohou zdrojákov,
 # webového buildu, uloženého APK a kontrolnými súčtami.
 on:
   push:
-    tags: ['v*-backup-*']
+    branches: ['backup/**']
+
+env:
+  BACKUP_TAG: v1.6.4-backup-2026-10-26
 
 permissions:
   contents: write
@@ -30,7 +33,7 @@ jobs:
       - name: 📦 Zabaliť zálohu
         run: |
           mkdir -p out
-          tag="$GITHUB_REF_NAME"
+          tag="$BACKUP_TAG"
           git archive --format=tar.gz --prefix="kocky-sveta-$tag/" -o "out/kocky-sveta-source-$tag.tar.gz" HEAD
           git bundle create "out/kocky-sveta-full-history-$tag.bundle" --all
           (cd dist && zip -qr "../out/kocky-sveta-web-dist-$tag.zip" .)
@@ -44,7 +47,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" out/* \
-            --title "Záloha pred refaktorom – $GITHUB_REF_NAME" \
+          gh release create "$BACKUP_TAG" out/* \
+            --target "$GITHUB_SHA" \
+            --title "Záloha pred refaktorom – $BACKUP_TAG" \
             --notes-file .github/backup-release-notes.md \
             --prerelease
