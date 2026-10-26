@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import { Capacitor } from '@capacitor/core';
 import { ErrorBoundary } from './atoms/ErrorBoundary.jsx';
+import './fonts.css';
 import './index.css';
 import './skin-effects.css';
 

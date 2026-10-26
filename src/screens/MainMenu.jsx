@@ -1,6 +1,6 @@
 import React from 'react';
 import { Play, Archive as ArchiveIcon, ScrollText, Settings, ChevronRight, Wifi, WifiOff, AlertCircle, BarChart2, ScanLine } from 'lucide-react';
-import { Ornament } from '../atoms/GoldButton.jsx';
+import { Ornament } from '../components/ui.jsx';
 import { useOnlineStore } from '../online/onlineStore.ts';
 import { useT } from '../lib/i18n.js';
 import { version as APP_VERSION } from '../../package.json';

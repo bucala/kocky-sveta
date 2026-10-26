@@ -1,7 +1,9 @@
 // src/screens/OnlineScreen.jsx
 import React, { useState, useRef, useEffect } from 'react';
+import { friendlyFirebaseError } from '../online/errors.js';
+import { showConfirm } from '../components/Dialogs.jsx';
 import { getAuth, signInAnonymously } from 'firebase/auth';
-import { Wifi, WifiOff, AlertCircle, ChevronLeft, Copy, Check, LogOut, Info, User, Users, MessageCircle, Send, X } from 'lucide-react';
+import { Wifi, WifiOff, AlertCircle, ChevronLeft, Copy, Check, LogOut, Info, User, Users, MessageCircle, Send, X, Trash2, Shield } from 'lucide-react';
 import { useOnlineStore } from '../online/onlineStore.ts';
 import { createRoom } from '../online/createRoom.ts';
 import { joinRoom } from '../online/joinRoom.ts';
@@ -102,12 +104,13 @@ export function OnlineStatusIcon() {
   return <WifiOff size={18} className="ks-muted" />;
 }
 
-// A player is considered online if their lastSeen heartbeat arrived within 30 s.
+// A player is considered online if their lastSeen heartbeat arrived within 150 s
+// (heartbeat beží raz za minútu, len keď je aplikácia na obrazovke).
 // Falls back to the legacy boolean field for entries that predate heartbeats.
 function isPlayerOnline(player) {
   if (player.lastSeen) {
     const ms = player.lastSeen?.toMillis?.() ?? player.lastSeen;
-    if (typeof ms === 'number') return Date.now() - ms < 30_000;
+    if (typeof ms === 'number') return Date.now() - ms < 150_000;
   }
   return player.online ?? false;
 }
@@ -190,7 +193,7 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
       setUid(uid);
       setStatus('connected');
     } catch (e) {
-      const msg = e?.message || String(e);
+      const msg = friendlyFirebaseError(e, 'Miestnosť sa nepodarilo vytvoriť.');
       setCreateErr(`Chyba: ${msg}`);
       console.error('[OnlineScreen] createRoom failed:', e);
     } finally {
@@ -214,7 +217,7 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
       setUid(uid);
       setStatus('connected');
     } catch (e) {
-      setJoinErr(e.message || 'Miestnosť neexistuje');
+      setJoinErr(friendlyFirebaseError(e, 'Do miestnosti sa nepodarilo pripojiť.'));
     } finally {
       setBusy(false);
     }
@@ -224,8 +227,30 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
     onBack();
   };
 
-  const handleDisconnect = () => {
-    const ok = window.confirm('Naozaj sa chceš odhlásiť? Máš zapísaný kód miestnosti?');
+  // Zmazanie miestnosti pre všetkých – druhé ťuknutie do 4 s potvrdí.
+  const [deleteArmed, setDeleteArmed] = useState(false);
+  const [deleteErr, setDeleteErr] = useState('');
+  useEffect(() => {
+    if (!deleteArmed) return;
+    const id = setTimeout(() => setDeleteArmed(false), 4000);
+    return () => clearTimeout(id);
+  }, [deleteArmed]);
+  const handleDeleteRoom = async () => {
+    if (!deleteArmed) { setDeleteArmed(true); return; }
+    setDeleteArmed(false);
+    setDeleteErr('');
+    try {
+      const { deleteRoom } = await import('../online/deleteRoom.ts');
+      await deleteRoom(roomId);
+      reset();
+      onBack();
+    } catch (e) {
+      setDeleteErr(friendlyFirebaseError(e, 'Miestnosť sa nepodarilo vymazať.'));
+    }
+  };
+
+  const handleDisconnect = async () => {
+    const ok = await showConfirm(`Na návrat budeš potrebovať kód miestnosti ${roomId || ''}.`, { title: 'Odpojiť sa z miestnosti?', confirmLabel: 'Odpojiť' });
     if (!ok) return;
     reset();
     onBack();
@@ -282,6 +307,10 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
                   </button>
                   <p className="ks-muted text-xs mt-1 ml-6 leading-relaxed opacity-70">
                     Meno sa zobrazí druhému zariadeniu. Je to len voliteľné označenie.
+                  </p>
+                  <p className="ks-muted text-xs mt-3 leading-relaxed opacity-80 flex gap-1.5">
+                    <Shield size={12} className="shrink-0 mt-0.5" />
+                    <span>Online hra, archív miestnosti a chat sa ukladajú v Google Firebase a vidí ich každý s kódom miestnosti. Viac v Nastavenia → Ochrana súkromia.</span>
                   </p>
 
                   {useName && (
@@ -371,6 +400,14 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
                   <LogOut size={14} />
                   Odhlásiť sa
                 </button>
+                <button
+                  onClick={handleDeleteRoom}
+                  className={`w-full flex items-center justify-center gap-2 py-2.5 ks-press text-xs rounded-sm border ${deleteArmed ? 'border-red-700/70 bg-red-950/40 ks-text-accent' : 'border-transparent ks-muted'}`}
+                >
+                  <Trash2 size={14} />
+                  {deleteArmed ? 'Ťukni znova: zmazať miestnosť pre všetkých' : 'Zmazať miestnosť a jej údaje'}
+                </button>
+                {deleteErr && <div className="text-xs ks-text-accent text-center">{deleteErr}</div>}
               </div>
             </div>
 

@@ -1,14 +1,19 @@
 import React, { useState, useRef } from 'react';
 import { Play, Target, Plus, X, UserPlus, Check, Pencil } from 'lucide-react';
-import { GoldButton, Ornament } from '../atoms/GoldButton.jsx';
-import { Header } from '../atoms/Header.jsx';
+import { GoldButton, Ornament, Header } from '../components/ui.jsx';
 import { TARGET_OPTIONS } from '../constants/game.js';
 import { useT } from '../lib/i18n.js';
+import { showConfirm } from '../components/Dialogs.jsx';
 
-export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlayersChange }) {
+export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlayersChange, defaultTarget = 10000 }) {
   const t = useT();
   const [count, setCount] = useState(3);
-  const [target, setTarget] = useState(10000);
+  // Predvolený cieľ z pravidla r15; iná hodnota než 5 000/10 000 sa ponúkne ako vlastný cieľ.
+  const initialTarget = Number(defaultTarget) > 0 ? Math.round(Number(defaultTarget)) : 10000;
+  const targetOptions = TARGET_OPTIONS.some(o => o.value === initialTarget)
+    ? TARGET_OPTIONS
+    : [...TARGET_OPTIONS, { value: initialTarget, label: 'Vlastný cieľ', sub: `do ${initialTarget.toLocaleString('sk-SK')} bodov` }];
+  const [target, setTarget] = useState(initialTarget);
   const [selected, setSelected] = useState([]); // ordered list of selected names
   const [newName, setNewName] = useState('');
   const [showAddInput, setShowAddInput] = useState(false);
@@ -47,8 +52,8 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
     setShowAddInput(false);
   };
 
-  const removeKnown = (name) => {
-    if (!window.confirm(`Odstrániť „${name}" zo zoznamu?`)) return;
+  const removeKnown = async (name) => {
+    if (!(await showConfirm(`„${name}“ sa odstráni zo zoznamu hráčov.`, { title: 'Odstrániť hráča?', confirmLabel: 'Odstrániť', danger: true }))) return;
     onKnownPlayersChange?.(knownPlayers.filter(n => n !== name));
     setSelected(prev => prev.filter(n => n !== name));
   };
@@ -68,8 +73,8 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
         {/* Target */}
         <div>
           <div className="ks-mono ks-gold text-xs mb-3 flex items-center gap-2"><Target size={12} /> {t('newt.target')}</div>
-          <div className="grid grid-cols-2 gap-2">
-            {TARGET_OPTIONS.map(opt => (
+          <div className={`grid gap-2 ${targetOptions.length > 2 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            {targetOptions.map(opt => (
               <button key={opt.value} onClick={() => setTarget(opt.value)}
                 className={`ks-press py-3 px-3 rounded-sm text-left ${target === opt.value ? 'ks-gold-bg' : 'ks-card ks-cream'}`}>
                 <div className="ks-display text-2xl font-semibold leading-tight">{opt.value.toLocaleString('sk-SK')}</div>

@@ -3,7 +3,7 @@ import { db } from '../lib/firebase';
 import { getAuth } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { hashPin } from './hashPin';
-import { getDeviceId } from './deviceId';
+import { getRoomDeviceId } from './deviceId';
 import type { RoomDocument } from './types';
 
 function generateRoomId(): string {
@@ -33,7 +33,7 @@ export async function createRoom(params: {
   const uid = getAuth().currentUser?.uid;
   if (!uid) throw new Error('Nie si prihlásený');
 
-  const deviceId = getDeviceId();
+  const deviceId = await getRoomDeviceId(roomId);
 
   const roomData: RoomDocument = {
     ownerPinHash,

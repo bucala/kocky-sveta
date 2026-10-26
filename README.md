@@ -6,10 +6,10 @@
 ![React](https://img.shields.io/badge/React-18.x-0f172a?style=for-the-badge&logo=react)
 ![Firebase](https://img.shields.io/badge/Firebase-12.x-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![Capacitor](https://img.shields.io/badge/Capacitor-6.x-2563eb?style=for-the-badge&logo=capacitor&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-100%2F100%20✓-22c55e?style=for-the-badge)
-![Release](https://img.shields.io/badge/release-v1.7.1-d4b86a?style=for-the-badge)
+![Tests](https://img.shields.io/badge/tests-122%2F122%20✓-22c55e?style=for-the-badge)
+![Release](https://img.shields.io/badge/release-v1.7.3-d4b86a?style=for-the-badge)
 
-## 📦 Status: STABILNÝ — v1.7.1
+## 📦 Status: STABILNÝ — v1.7.3
 
 > **Verzia 1.7.0** — opravy z auditu: štatistiky, undo, tlačidlo Späť, OCR, PWA
 
@@ -29,10 +29,10 @@
 - vlastné pravidlá a nastaviteľné bodovanie
 - export a import turnajov cez Excel (lazy-loaded)
 - archív odohraných hier a prehľad výsledkov
-- niekoľko vizuálnych skinov (Klasik, Les, Royal, Pergamen, Orech, HP, Brawl Stars…)
+- niekoľko vizuálnych skinov (Klasik, Les, Royal, Pergamen, Orech, Čarovný pergamen, Aréna…)
 - progress chart (SVG), standings, history graf
 - Android build cez Capacitor + Android Studio
-- **modulárne screens/components/lib** — časť obrazoviek a zdieľaných komponentov je extrahovaná do samostatných súborov, hlavný herný flow (turnaj, archív, nastavenia) je v `App.jsx`
+- **modulárne screens/components/lib** — časť obrazoviek a zdieľaných komponentov je extrahovaná do samostatných súborov, herná obrazovka a stav aplikácie sú v `App.jsx`, archív, nastavenia a pravidlá v `src/screens/`
 - **tournamentEngine.js** — čistá doménová knižnica (pure functions, unit testovaná)
 
 ### 🔥 Online režim
@@ -50,6 +50,24 @@
 ---
 
 ## 🆕 Changelog
+
+### v1.7.3 — Vlastné skiny, súkromie, angličtina, dialógy *(2026-10-26)*
+
+- **Skiny** Aréna a Čarovný pergamen s vlastnými vzormi (bez cudzích značiek)
+- **Súkromie**: zásady v appke aj na `privacy.html`, zmazanie online miestnosti, hash ID zariadenia
+- **EN preklad** hernej obrazovky a hlášok, **vlastné dialógy** namiesto systémových
+- **Kód**: archív/nastavenia/pravidlá vo vlastných súboroch, testy online synchronizácie, dymový test v CI
+
+---
+
+### v1.7.2 — Pravidlá, online, rýchlejší štart *(2026-10-26)*
+
+- **Nastavenia pravidiel** r13, r15, r16, r17 sa uplatňujú v hre (predvolené správanie bez zmeny)
+- **Online**: pripojenie s neaktívnymi hráčmi, novší lokálny stav sa po návrate online neprepíše, heartbeat raz za minútu
+- **Rýchlejší štart**: Firebase až pri online hre, vlastné písma, menšie obrázky
+- **Android**: targetSdk 36 a AAB pre Google Play
+
+---
 
 ### v1.7.1 — Kombinovaný režim, úpravy archívu, svetlé skiny *(2026-10-26)*
 
@@ -119,8 +137,8 @@ Detaily: [`release-notes.md`](./release-notes.md), [`CHANGELOG.md`](./CHANGELOG.
 
 #### 🎨 Vizuálne skiny
 
-- **Harry Potter skin** — pergamenové pozadie + plávajúce HP ikony
-- **Brawl Stars skin** — dva odtiene (Classic + Brawl Blue) s ikonami postáv
+- **Čarovný pergamen** (pôvodne „Harry Potter“) — pergamenové pozadie a plávajúce magické ikony
+- **Aréna** (pôvodne „Brawl Stars“) — dva odtiene (fialová a modrá) s vlastnými vzormi
 - **Poster backgrounds** — reálne plagátové obrázky ako pozadia skinov
 - **Comprehensive skinning** — CSS custom properties pre všetky popupy a overlaye
 
@@ -137,7 +155,7 @@ Detaily: [`release-notes.md`](./release-notes.md), [`CHANGELOG.md`](./CHANGELOG.
 - **Score display mode** — prepínač Delta (Δ) / Kumulatívny (Σ) v tabuľke skóre
 - **Tournament view mode** — základný / rozšírený pohľad na turnaj
 - **Web Wake Lock API** — displej nespadne do spánku počas hry
-- **OCR scan_sheet tool** — fotka → Excel tabuľka skóre (Anthropic Vision API)
+- **OCR import z fotky** — v aplikácii (Archív → Import z fotky), od 1.7.0 cez Claude Haiku 5.5
 
 ---
 
@@ -226,7 +244,8 @@ Jeden sken stojí zlomok centu (fotka sa zmenší na 1568 px, model beží s ní
 
 ```bash
 npm run dev      # dev server
-npm test         # Vitest unit testy (57/57)
+npm test         # Vitest unit testy
+npm run e2e      # dymový test v prehliadači (po npm run build)
 npm run build    # produkčný build
 npm run preview  # lokálny náhľad produkcie
 ```
@@ -290,75 +309,82 @@ V Android Studio: **Build → Clean Project**, potom **Build → Rebuild Project
 
 | Kategória | Pravidlo |
 |-----------|----------|
-| **Cieľ** | Presne 10 000 bodov (konfigurovateľné) |
-| **Zápis** | Minimálny hod 50 bodov |
-| **Penalta** | −1 000 bodov iba ak hráč hodí 0 bodov (nič) |
-| **Endgame** | Od 9 700 bodov — treba presne X bodov na výhru |
-| **Presný zásah** | Popup: Potvrdil / Nepotvrdil |
-| **Bust** | Prekročenie cieľa = zostáva na pôvodnom skóre, žiadna penalta |
+| **Cieľ** | 10 000 (klasická), 5 000 (krátka) alebo vlastný cieľ z pravidla r15 |
+| **Zápis** | Každý zápis aspoň 300 bodov, alebo čiarka (—) |
+| **Penalta** | −1 000 bodov, ak v hode nepadla žiadna bodujúca kombinácia (r16) |
+| **Koncovka** | Nad 9 700 bodov (cieľ − minimálny zápis) treba trafiť presne |
+| **Presný zásah v koncovke** | Popup Potvrdil / Nepotvrdil (r18 = Áno) |
+| **Prekročenie** | Automatická čiarka, alebo „hod sa neuznáva“ a hráč hádže znova (r17) |
+| **Šesť rovnakých** | Automatická výhra, alebo +3 000 (r13) |
 | **Kolo musí dohrať** | Všetci hráči dokončia kolo pred vyhodnotením víťaza |
 | **Remíza** | Viacero hráčov dosiahne cieľ v rovnakom kole |
+
+Podrobne: [`docs/game-rules.md`](./docs/game-rules.md).
 
 ---
 
 ## 🧱 Štruktúra projektu
 
-> **Pozn.:** `App.jsx` je hlavný orchestrátor a obsahuje aj inline implementácie hernej obrazovky, archívu, nastavení a editora pravidiel (routing, state, persistence, herná logika). Samostatné súbory v `src/screens/` nižšie sú tie obrazovky, ktoré `App.jsx` reálne importuje.
+> **Pozn.:** `App.jsx` je hlavný orchestrátor (routing, stav, perzistencia, online synchronizácia) a obsahuje hernú obrazovku `TournamentScreen`. Ostatné obrazovky sú v `src/screens/`.
 
 ```
 src/
-├── App.jsx                    — orchestrátor + TournamentScreen/ArchiveScreen/
-│                                 SettingsMenu/RulesEditor (inline)
+├── App.jsx                    — orchestrátor + TournamentScreen (herná obrazovka)
 ├── app.css                    — aplikačné štýly
-├── index.css                  — global štýly + Google Fonts import
-├── main.jsx                   — entry point + ErrorBoundary
+├── fonts.css                  — lokálne písma (@fontsource)
+├── index.css                  — globálne štýly a skiny
+├── main.jsx                   — entry point + ErrorBoundary + window.storage
 ├── atoms/
-│   ├── DiceIcon.jsx, DiceRow.jsx — kocky
 │   ├── ErrorBoundary.jsx      — React Error Boundary
-│   ├── FunnyOverlay.jsx       — funny message popup systém
-│   ├── GoldButton.jsx, Header.jsx, Ornament.jsx, Toast.jsx — zdieľané UI
-│   ├── PendingChips.jsx, StatusBanner.jsx, StrikethroughCrown.jsx
-│   ├── SimplifiedResult.jsx   — výsledkový badge
-│   ├── SkinSelector.jsx       — výber vizuálneho skinu
-│   └── index.js
+│   └── ToggleRow.jsx          — prepínač v nastaveniach
 ├── components/
-│   ├── BrawlBackground.jsx    — animované pozadie pre Brawl Stars skin
+│   ├── BigScoreDisplay.jsx    — veľké skóre (pozorovateľ, kombinovaný režim)
+│   ├── BrawlBackground.jsx    — animované pozadie pre skiny Aréna a Čarovný pergamen
 │   ├── Confetti.jsx           — canvas confetti animácia
-│   ├── Modal.jsx              — modálne okno
+│   ├── CurrentPlayerBadge.jsx — odznak hráča na ťahu
+│   ├── Dialogs.jsx            — vlastné dialógy (showAlert / showConfirm)
 │   ├── ProgressChart.jsx      — vlastný SVG graf vývoja skóre
 │   ├── ScoreTable.jsx         — tabuľka skóre (delta / kumulatívny mód)
-│   └── ui.jsx                 — zdieľané UI komponenty
+│   └── ui.jsx                 — zdieľané UI: Header, GoldButton, Toast, Modal, Standings…
 ├── constants/
 │   ├── game.js                — TARGET_OPTIONS a ďalšie herné konštanty
+│   ├── rules.js               — predvolené pravidlá + mergeRulesWithDefaults, ruleFrom
 │   └── skins.js               — definície skinov
+├── content/privacy.js         — text zásad ochrany súkromia
+├── hooks/                     — useBackHandler, useFocusTrap, useDpadNavigation…
 ├── lib/
 │   ├── extensions.js          — voliteľné vizuálne rozšírenia (haptika, konfety…)
 │   ├── firebase.js            — Firebase konfigurácia
-│   ├── gameEngine.js          — herný engine (legacy wrapper)
+│   ├── format.js              — formátovanie dátumu a dĺžky
 │   ├── i18n.js                — SK/EN preklady + React Context
-│   ├── sounds.js               — zvukový systém
-│   ├── storage.js             — localStorage abstrakcia
-│   ├── tournamentEngine.js    — čistá doménová knižnica (pure functions)
-│   └── tournamentEngine.test.js — 57 unit testov
+│   ├── scoreInput.js          — zápis bunky skóre (číslo / čiarka)
+│   ├── sounds.js              — zvukový systém
+│   ├── stats.js               — štatistiky hráčov
+│   └── tournamentEngine.js    — čistá doménová knižnica (pure functions)
 ├── online/
-│   ├── createRoom.ts          — vytvorenie Firebase miestnosti
-│   ├── deviceId.ts            — perzistentné ID zariadenia
+│   ├── createRoom.ts, joinRoom.ts, deleteRoom.ts — správa miestnosti
+│   ├── deviceId.ts            — ID zariadenia (hash pre každú miestnosť)
+│   ├── errors.js              — zrozumiteľné chyby Firebase
 │   ├── hashPin.ts             — PIN hashing
-│   ├── joinRoom.ts            — pripojenie do miestnosti
 │   ├── onlineStore.ts         — Zustand store s persist middleware
-│   ├── types.ts               — TypeScript typy
+│   ├── syncDecision.js        — rozhodovanie synchronizácie a undo (testované)
 │   ├── updateGameState.ts     — Firestore write (ukladá JSON string)
 │   ├── updatePresence.ts      — heartbeat prítomnosti hráčov
 │   └── useRoomSubscription.ts — real-time Firestore listener
 └── screens/
     ├── AdminScreen.jsx        — PIN-chránený admin panel
+    ├── ArchiveScreens.jsx     — archív, detail a úprava turnaja
     ├── GameViewModesScreen.jsx
     ├── MainMenu.jsx
     ├── NewTournament.jsx
     ├── OnlineScreen.jsx       — online miestnosti (create/join)
     ├── PlayerStatsScreen.jsx  — štatistiky hráčov
+    ├── PrivacyScreen.jsx      — zásady ochrany súkromia
+    ├── RulesScreens.jsx       — prehľad a editor pravidiel
     ├── ScanImportScreen.jsx   — OCR import z fotky
+    ├── SettingsMenu.jsx       — nastavenia
     └── VisualAndSkinScreen.jsx
+e2e/smoke.mjs                  — dymový test v prehliadači (Playwright)
 ```
 
 ---
@@ -410,7 +436,8 @@ Firestore odmietol zápis (napr. bezpečnostné pravidlá). Skontroluj `firestor
 
 ### 🏗️ Build
 - [ ] `npm run build` — build prebehne bez chýb
-- [ ] `npm test` — 57/57 Vitest testov zelených
+- [ ] `npm test` — všetky Vitest testy zelené
+- [ ] `npm run e2e` — dymový test v prehliadači prejde
 - [ ] `npm run dev` — app štartuje bez chýb v konzole
 
 ### 🌐 Online funkcie
@@ -440,8 +467,8 @@ Firestore odmietol zápis (napr. bezpečnostné pravidlá). Skontroluj `firestor
 - [ ] Standings — poradie hráčov aktuálne po každom kole
 
 ### 🎨 Skins & vizuál
-- [ ] Harry Potter skin — pergamenové pozadie + HP ikony
-- [ ] Brawl Stars skin (Classic + Brawl Blue) — Brawl ikony v pozadí
+- [ ] Čarovný pergamen — pergamenové pozadie + magické ikony
+- [ ] Aréna (fialová + modrá) — vlastné vzory v pozadí
 - [ ] Ostatné skiny (Klasik, Les, Royal, Pergamen, Orech) — fungujú správne
 - [ ] Skin sa synchronizuje online — pozorovateľ vidí rovnaký skin ako recorder
 
