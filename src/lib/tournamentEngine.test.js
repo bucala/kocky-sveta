@@ -11,7 +11,7 @@ import {
   evaluateTournamentState,
 } from './tournamentEngine.js';
 
-const STRICT_RULES  = [{ id: 'r18', selected: 'Nie' }];  // default
+const STRICT_RULES  = [{ id: 'r18', selected: 'Nie' }];  // explicitný strict režim
 const CLASSIC_RULES = [{ id: 'r18', selected: 'Áno' }];  // confirmation mode
 const BASE = { players: ['Alice', 'Bob', 'Carol'], targetScore: 10000, rounds: [] };
 
@@ -375,5 +375,33 @@ describe('computeWinners — pendingDecision blokuje výsledok', () => {
     const r = computeWinners(t);
     expect(r.winners).toEqual([0]);
     expect(r.valid).toBe(true);
+  });
+});
+
+// ── Tvar turnaja presne ako ho vytvára startTournament ────────────────────
+// Turnaj nemá pole `rules` (pravidlá sú v `ruleSnapshot`), takže víťaza určuje
+// engine podľa toho, kto prvý dosiahol cieľ. Toto je správanie, ktoré hráči poznajú.
+describe('computeWinners — produkčný tvar turnaja (ruleSnapshot, bez rules)', () => {
+  const production = (rounds, extra = {}) => ({
+    ...BASE,
+    rounds,
+    minWriteOff: 300,
+    ruleSnapshot: [{ id: 'r14', points: 300 }, { id: 'r18', selected: 'Áno' }],
+    ...extra,
+  });
+
+  it('9 000 + 1 000 mimo koncovky: víťaz na konci kola bez overovacieho ťahu', () => {
+    const t = production([[9000, 500, 500], [1000, 300, 300]], { confirmationQueue: [0] });
+    const r = computeWinners(t);
+    expect(r.valid).toBe(true);
+    expect(r.winners).toEqual([0]);
+  });
+
+  it('r18 = Áno v ruleSnapshot neprepína engine do klasického režimu', () => {
+    const t = production([[9000, 9000, 500], [1000, 1000, 300]]);
+    const r = computeWinners(t);
+    expect(r.valid).toBe(true);
+    expect(r.winners).toEqual([0, 1]);
+    expect(r.isDraw).toBe(true);
   });
 });

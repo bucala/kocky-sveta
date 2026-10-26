@@ -6,12 +6,12 @@
 ![React](https://img.shields.io/badge/React-18.x-0f172a?style=for-the-badge&logo=react)
 ![Firebase](https://img.shields.io/badge/Firebase-12.x-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![Capacitor](https://img.shields.io/badge/Capacitor-6.x-2563eb?style=for-the-badge&logo=capacitor&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-57%2F57%20✓-22c55e?style=for-the-badge)
-![Release](https://img.shields.io/badge/release-v1.6.3-d4b86a?style=for-the-badge)
+![Tests](https://img.shields.io/badge/tests-85%2F85%20✓-22c55e?style=for-the-badge)
+![Release](https://img.shields.io/badge/release-v1.7.0-d4b86a?style=for-the-badge)
 
-## 📦 Status: STABILNÝ — v1.6.3
+## 📦 Status: STABILNÝ — v1.7.0
 
-> **Tag:** [`v1.6.3`](https://github.com/bucala/kocky-sveta/releases/tag/1.6.3) — Farby hráčov zhodné s grafom, prehľadnejší graf
+> **Verzia 1.7.0** — opravy z auditu: štatistiky, undo, tlačidlo Späť, OCR, PWA
 
 ---
 
@@ -50,6 +50,19 @@
 ---
 
 ## 🆕 Changelog
+
+### v1.7.0 — Opravy z auditu *(2026-10-26)*
+
+- **Štatistiky hráčov** správne počítajú výhry, úspešnosť a posledné hry
+- **Vrátiť posledný zápis** — nové tlačidlo v zapisovacích režimoch, v online hre chránené pred prepísaním cudzieho zápisu
+- **Späť na Androide a TV** ide vždy o úroveň vyššie, vyskakovacie okná sa dajú ovládať ovládačom
+- **OCR import z fotky** cez Claude Haiku 5.5, s potvrdením pred odoslaním a chráneným endpointom
+- **PWA** sa po vydaní hneď aktualizuje (network-first service worker)
+- **Bezpečnosť a release**: Capacitor 6.2.2, SheetJS 0.20.3, release bez podpisu zlyhá, binárky mimo gitu, CI s buildom
+
+Detaily: [`release-notes.md`](./release-notes.md), [`CHANGELOG.md`](./CHANGELOG.md)
+
+---
 
 ### v1.6.3 — Farby hráčov zhodné s grafom, prehľadnejší graf *(2026-07-05)*
 
@@ -184,6 +197,20 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
 VITE_FIREBASE_APP_ID=your-app-id
 VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id
 ```
+
+### OCR import z fotky (`/api/scan` na Verceli)
+
+Nastavenie vo Verceli (Settings → Environment Variables), nikdy nie v kóde ani v `VITE_*` premenných:
+
+| Premenná | Povinná | Význam |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | áno | kľúč k Anthropic API (iba na serveri) |
+| `SCAN_MODEL` | nie | iný model než predvolený `claude-haiku-5-5` |
+| `SCAN_ALLOWED_ORIGINS` | nie | ďalšie povolené pôvody oddelené čiarkou |
+
+Endpoint prijíma len požiadavky z webu aplikácie, náhľadových deployov a Android aplikácie a má rate-limit 20 skenov za hodinu na IP.
+Pre tvrdú ochranu kreditu odporúčame nastaviť v Anthropic Console mesačný limit útraty pre kľúč a vo Verceli pravidlo Firewall → Rate limit pre `/api/scan`.
+Jeden sken stojí zlomok centu (fotka sa zmenší na 1568 px, model beží s nízkym úsilím).
 
 Údaje nájdeš vo [Firebase Console](https://console.firebase.google.com/project/kocky-sveta-2026/settings/general/web).
 
@@ -425,4 +452,4 @@ Firestore odmietol zápis (napr. bezpečnostné pravidlá). Skontroluj `firestor
 
 ---
 
-**Latest Release:** [v1.6.3 — Farby hráčov zhodné s grafom, prehľadnejší graf](https://github.com/bucala/kocky-sveta/releases/tag/1.6.3)
+**Aktuálna verzia:** 1.7.0 — opravy z auditu

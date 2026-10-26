@@ -231,6 +231,10 @@ function StrikethroughCrown({ size = 96, color = '#d4b86a', strikeColor = '#c448
 }
 
 function SimplifiedResult({ kind, title, subtitle, onClose, actionLabel }) {
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef);
+  // Späť (Android/TV/Escape) okno zatvorí; bez onClose ho len pohltí, aby neopustilo hru.
+  useBackHandler(() => { onClose?.(); });
   const palette = {
     victory:        { accent: '#d4b86a', label: 'VÍŤAZ' },
     draw:           { accent: '#d4b86a', label: 'REMÍZA' },
@@ -244,7 +248,8 @@ function SimplifiedResult({ kind, title, subtitle, onClose, actionLabel }) {
   };
 
   return (
-    <div className="fixed inset-x-3 top-1/3 z-50 ks-fade ks-popup-anchor flex justify-center"
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={palette.label}
+         className="fixed inset-x-3 top-1/3 z-50 ks-fade ks-popup-anchor flex justify-center"
          onClick={onClose}>
       <div className="ks-card max-w-sm w-full rounded-sm border-2 p-5 text-center shadow-2xl"
            style={{ borderColor: palette.accent, opacity: 'var(--ks-popup-opacity, 0.92)', cursor: 'pointer' }}>
@@ -258,9 +263,14 @@ function SimplifiedResult({ kind, title, subtitle, onClose, actionLabel }) {
         {subtitle && (
           <div className="ks-body ks-cream text-sm opacity-90 leading-snug">{subtitle}</div>
         )}
-        {actionLabel && (
+        {actionLabel && onClose ? (
+          <button type="button" onClick={(e) => { e.stopPropagation(); onClose(); }}
+                  className="ks-press ks-mono text-[11px] ks-muted mt-3 tracking-widest px-3 py-1.5 rounded-sm border ks-border-sub">
+            {actionLabel === 'KLIKNI PRE ZATVORENIE' ? 'ZATVORIŤ' : actionLabel}
+          </button>
+        ) : actionLabel ? (
           <div className="ks-mono text-[10px] ks-muted mt-3 tracking-widest">{actionLabel}</div>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -292,9 +302,13 @@ function FunnyOverlay({ data, onClose }) {
     },
   };
   const style = VARIANT_STYLES[variant] || VARIANT_STYLES.doubt;
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef);
+  useBackHandler(() => { onClose?.(); });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg ks-dark-overlay"
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={style.label}
+         className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg ks-dark-overlay"
          style={{ background: style.bg }}
          onClick={onClose}>
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -365,6 +379,7 @@ export default function App() {
   const [rules, setrules] = useState(DEFAULT_RULES);
   const [viewingTournament, setViewingTournament] = useState(null);
   const [archiveReturnTo, setArchiveReturnTo] = useState('menu');
+  const [scanReturnTo, setScanReturnTo] = useState('archive');
   const [loaded, setLoaded] = useState(false);
   const [selectedSkin, setSelectedSkin] = useState('classic');
   const [selectedFont, setSelectedFont] = useState('default');
@@ -436,6 +451,8 @@ export default function App() {
         setView(archiveReturnTo);
         return;
       case 'scan':
+        setView(scanReturnTo);
+        return;
       case 'archiveDetail':
         setView('archive');
         return;
@@ -890,27 +907,46 @@ export default function App() {
   }, []);
 
   // ─── Undo stack (max 5 krokov) ───────────────────────────────────────────
+  // Každý krok si pamätá stav pred zápisom aj po ňom. Vrátiť sa dá iba vtedy,
+  // keď aktuálny stav je presne ten, ktorý sme sami zapísali. Ak medzitým
+  // zapisovalo iné zariadenie (online), undo sa odmietne, aby neprepísalo cudzí zápis.
   const [undoStack, setUndoStack] = useState([]);
+  const undoStackRef = useRef([]);
   const activeRef = useRef(null);
   useEffect(() => { activeRef.current = active; }, [active]);
+  useEffect(() => { undoStackRef.current = undoStack; }, [undoStack]);
 
   const handleUpdateActive = useCallback((updater) => {
     const snapshot = activeRef.current;
-    if (snapshot) setUndoStack(s => [...s.slice(-4), snapshot]);
     // Compute new state synchronously so we can write it to Firestore immediately.
     const newState = typeof updater === 'function' ? updater(snapshot) : updater;
+    if (snapshot && newState) {
+      const next = [...undoStackRef.current.slice(-4), { before: snapshot, after: newState }];
+      undoStackRef.current = next;
+      setUndoStack(next);
+    }
+    activeRef.current = newState;
     setActive(newState);
     syncActiveNow(newState);
   }, [syncActiveNow]);
 
   const handleUndo = useCallback(() => {
-    setUndoStack(s => {
-      if (!s.length) return s;
-      const prevState = s[s.length - 1];
-      setActive(prevState);
-      syncActiveNow(prevState);
-      return s.slice(0, -1);
-    });
+    const stack = undoStackRef.current;
+    if (!stack.length) return { ok: false, reason: 'empty' };
+    const last = stack[stack.length - 1];
+    const current = activeRef.current;
+    if (!current || gameFingerprint(current) !== gameFingerprint(last.after)) {
+      undoStackRef.current = [];
+      setUndoStack([]);
+      return { ok: false, reason: 'changed' };
+    }
+    const rest = stack.slice(0, -1);
+    undoStackRef.current = rest;
+    setUndoStack(rest);
+    activeRef.current = last.before;
+    setActive(last.before);
+    syncActiveNow(last.before);
+    return { ok: true };
   }, [syncActiveNow]);
 
   // Refs hold the latest function so stable callbacks never go stale
@@ -991,6 +1027,11 @@ function startTournament(players, targetScore) {
       confirmationRoundComplete: false,
       pendingDecision: null,
       targetScore, minWriteOff,
+      // Snímka pravidiel z času štartu: všetky zariadenia (aj online) a archív
+      // tak používajú rovnaké nastavenie, aj keď sa globálne pravidlá neskôr zmenia.
+      // Úmyselne nie pod kľúčom `rules` – víťaza určuje engine vždy podľa toho,
+      // kto prvý dosiahol cieľ; r18 riadi iba overovací popup presného zásahu v koncovke.
+      ruleSnapshot: (rules || []).map(r => ({ id: r.id, points: r.points, selected: r.selected })),
     };
     setActive(newTournament);
     syncActiveNow(newTournament);
@@ -1229,10 +1270,15 @@ function startTournament(players, targetScore) {
   }
 
   async function importFromExcel(file) {
+    // Záloha z aplikácie má desiatky kB; väčší súbor nie je naša záloha.
+    if (file && file.size > 5 * 1024 * 1024) {
+      window.alert('Súbor je príliš veľký (viac ako 5 MB). Vyber zálohu exportovanú z aplikácie.');
+      return;
+    }
     try {
       const XLSX = (await import('xlsx')).default || await import('xlsx');
       const data = await file.arrayBuffer();
-      const wb = XLSX.read(data, { type: 'array' });
+      const wb = XLSX.read(data, { type: 'array', cellFormula: false, cellHTML: false, sheetRows: 2000 });
 
       const imported = [];
       const skipped = [];
@@ -1484,7 +1530,7 @@ function startTournament(players, targetScore) {
           onImport={importFromExcel}
           onClearAll={clearAllData}
           onArchive={() => { setArchiveReturnTo('settings'); setView('archive'); }}
-          onScan={() => setView('scan')}
+          onScan={() => { setScanReturnTo('settings'); setView('scan'); }}
           tournamentCount={tournaments.length}
           selectedSkin={selectedSkin}
           onSkinChange={setSelectedSkin}
@@ -1576,13 +1622,13 @@ function startTournament(players, targetScore) {
           onBack={() => setView(archiveReturnTo)}
           onView={(t) => { setViewingTournament(t); setView('archiveDetail'); }}
           onDelete={(id) => { if (window.confirm('Vymazať tento turnaj z archívu?')) setTournaments(prev => prev.filter(x => x.id !== id)); }}
-          onScan={() => setView('scan')}
+          onScan={() => { setScanReturnTo('archive'); setView('scan'); }}
           readOnly={archiveReturnTo === 'menu'}
         />
       )}
       {view === 'scan' && (
         <ScanImportScreen
-          onBack={() => setView('archive')}
+          onBack={() => setView(scanReturnTo)}
           onImport={(tournament) => {
             setTournaments(prev => [tournament, ...(Array.isArray(prev) ? prev : [])]);
             setView('archive');
@@ -1908,6 +1954,13 @@ function PendingChips({ pending, removePending }) {
   );
 }
 
+// Odtlačok herného stavu pre kontrolu, či undo nevráti cudzí (online) zápis.
+function gameFingerprint(t) {
+  if (!t) return '';
+  return JSON.stringify([t.rounds, t.currentPlayer, t.currentRound, t.winner ?? null,
+    t.pendingDecision ?? null, t.confirmationPendingPlayer ?? null]);
+}
+
 function isStrictMode(rules) {
   const r18 = (rules || []).find(r => r.id === 'r18');
   return !r18 || r18.selected !== 'Áno';
@@ -1982,6 +2035,7 @@ function TournamentScreen({
   tournament, rules, onUpdate, onFinish, onAbort, onMenu,
   scoreDisplayMode, onToggleScoreMode, selectedSkin, onSkinChange,
   tournamentViewMode, funnyWindowsDisplayMode, debugMode, minWriteOffOverride,
+  canUndo = false, onUndo,
   isOnline, quickValues, onQuickValuesChange, extensions = {}, hapticEnabled = true, motionEnabled = true
 }) {
   // Early null guard — before destructuring to prevent crash
@@ -2006,6 +2060,8 @@ function TournamentScreen({
   const [temporaryKingToken, setTemporaryKingToken] = useState(null);
   const [deferTemporaryKingUntilWinPopupCloses, setDeferTemporaryKingUntilWinPopupCloses] = useState(false);
   const [winnerCelebration, setWinnerCelebration] = useState(null);
+  // Počas krátkej oslavy víťaza (pred uložením do archívu) Späť nič nerobí.
+  useBackHandler(() => {}, !!winnerCelebration);
   const t = useT();
   const funnyCountRef = useRef(players.map(() => 0));
   const endgameNoticedRef = useRef(new Set());
@@ -2043,7 +2099,7 @@ function TournamentScreen({
   // Koncovka (nutnosť presného zásahu) platí až keď hráč PREKROČIL prah (napr. > 9700 pri minWO 300),
   // nie už na hranici (9700 presne) — tam je zvyšok (300) rovný minimálnemu zápisu, takže ide o bežné kolo.
   const isEndgame = total > target - minWO && total < target;
-  const strictMode = isStrictMode(rules);
+  const strictMode = isStrictMode(tournament.ruleSnapshot || rules);
   const confirmationPlayer = strictMode ? null : tournament.confirmationPendingPlayer;
   const isConfirmationTurn = confirmationPlayer === currentPlayer && confirmationPlayer !== null;
   const exactNeeded = target - total;
@@ -2118,6 +2174,43 @@ function TournamentScreen({
     if (pending.length === 1 && pending[0] === PENALTY_VALUE) return; 
     setPending([PENALTY_VALUE]);
   }
+
+  // ─── Vrátenie posledného zápisu ──────────────────────────────────────────
+  // Prvé ťuknutie tlačidlo „nabije“, druhé do 4 s zápis vráti (ochrana pred omylom).
+  const [undoArmed, setUndoArmed] = useState(false);
+  useEffect(() => {
+    if (!undoArmed) return;
+    const id = setTimeout(() => setUndoArmed(false), 4000);
+    return () => clearTimeout(id);
+  }, [undoArmed]);
+
+  function undoLastWrite() {
+    if (!undoArmed) { setUndoArmed(true); return; }
+    setUndoArmed(false);
+    const res = onUndo ? onUndo() : { ok: false, reason: 'empty' };
+    setPending([]);
+    setCustomInput('');
+    if (res && res.ok) {
+      setShowTemporaryKingPopup(false);
+      setTemporaryKingToken(null);
+      setDeferTemporaryKingUntilWinPopupCloses(false);
+      showToast('Posledný zápis bol vrátený.', 'info');
+    } else if (res && res.reason === 'changed') {
+      showToast('Medzitým zapisovalo iné zariadenie – posledný zápis sa už nedá vrátiť.', 'warn');
+    }
+  }
+
+  const undoButton = canUndo && onUndo ? (
+    <button
+      type="button"
+      onClick={undoLastWrite}
+      className={`ks-press w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-sm border text-sm ks-mono ${undoArmed ? 'border-red-700/70 bg-red-950/40 ks-text-accent' : 'ks-border-sub ks-muted'}`}
+      aria-label={undoArmed ? 'Potvrdiť vrátenie posledného zápisu' : 'Vrátiť posledný zápis'}
+    >
+      <RotateCcw size={14} />
+      {undoArmed ? 'ŤUKNI ZNOVA PRE VRÁTENIE' : 'VRÁTIŤ POSLEDNÝ ZÁPIS'}
+    </button>
+  ) : null;
 
   function removePending(idx) { setPending(prev => prev.filter((_, i) => i !== idx)); }
   function clearPending() { setPending([]); }
@@ -2426,6 +2519,8 @@ function TournamentScreen({
       }, 2200);
       return () => clearTimeout(id);
     }
+    // Víťaz zrušený (napr. vrátením zápisu) – zavrieť oslavu.
+    setWinnerCelebration(null);
   }, [tournament.winner]);
 
   useEffect(() => {
@@ -2606,6 +2701,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed ks-border-sub rounded-sm">Pridaj body alebo čiarku z hodu nižšie…</div>
             )}
             <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">Zapísať</GoldButton>
+            {undoButton}
           </div>
           <div className="ks-card-sub rounded-sm p-4 flex-1">
             <div className="flex items-center justify-between mb-3">
@@ -2756,6 +2852,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">
                 Zapísať
               </GoldButton>
+              {undoButton}
             </div>
           </div>
 
@@ -2987,9 +3084,14 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
 // Zobrazuje rozhodovací popup v troch vizuálnych variantoch podľa displayMode.
 // Volá tie isté callbacky onConfirm/onReject – herná logika sa nemení.
 function DecisionPresenter({ playerName, target, displayMode, onConfirm, onReject }) {
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef);
+  // Rozhodnutie je povinné – Späť ho nesmie preskočiť ani opustiť hru.
+  useBackHandler(() => {});
   if (displayMode === 'standard') {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg ks-dark-overlay"
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Potvrdenie výhry"
+           className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg ks-dark-overlay"
            style={{ background: 'var(--ks-overlay-dark, radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98)))' }}>
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full ks-funny-orb"
@@ -3033,7 +3135,8 @@ function DecisionPresenter({ playerName, target, displayMode, onConfirm, onRejec
 
   // simplified & suppressed: kompaktná karta bez click-outside
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Potvrdenie výhry"
+         className="fixed inset-0 z-50 flex items-center justify-center px-4"
          style={{ background: 'var(--ks-modal-dark-overlay, rgba(10,8,6,0.92))' }}>
       <div className="ks-card max-w-sm w-full rounded-sm border-2 p-5 text-center shadow-2xl"
            style={{ borderColor: 'var(--ks-popup-accent, #d4b86a)' }}>
@@ -3212,6 +3315,11 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
   const [draft, setDraft] = useState(rules);
   const [activeCategory, setActiveCategory] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  // Späť vo vnútri editora ide o úroveň vyššie: úprava pravidla → kategória → zoznam kategórií.
+  useBackHandler(() => {
+    if (editingId) { setEditingId(null); return; }
+    setActiveCategory(null);
+  }, !!(activeCategory || editingId));
 
   function update(id, patch) { setDraft(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r)); }
   function remove(id) { if (window.confirm('Vymazať toto pravidlo?')) setDraft(prev => prev.filter(r => r.id !== id)); }
@@ -3626,6 +3734,8 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
   if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback title="Poškodený turnaj v archíve" />;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
+  // Späť počas úprav najprv zruší úpravy (rovnako ako tlačidlo Späť v hlavičke).
+  useBackHandler(() => { setDraft(null); setEditing(false); }, editing);
 
   function startEdit() {
     setDraft({
