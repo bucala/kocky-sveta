@@ -1,5 +1,6 @@
 // src/screens/OnlineScreen.jsx
 import React, { useState, useRef, useEffect } from 'react';
+import { friendlyFirebaseError } from '../online/errors.js';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { Wifi, WifiOff, AlertCircle, ChevronLeft, Copy, Check, LogOut, Info, User, Users, MessageCircle, Send, X } from 'lucide-react';
 import { useOnlineStore } from '../online/onlineStore.ts';
@@ -102,12 +103,13 @@ export function OnlineStatusIcon() {
   return <WifiOff size={18} className="ks-muted" />;
 }
 
-// A player is considered online if their lastSeen heartbeat arrived within 30 s.
+// A player is considered online if their lastSeen heartbeat arrived within 150 s
+// (heartbeat beží raz za minútu, len keď je aplikácia na obrazovke).
 // Falls back to the legacy boolean field for entries that predate heartbeats.
 function isPlayerOnline(player) {
   if (player.lastSeen) {
     const ms = player.lastSeen?.toMillis?.() ?? player.lastSeen;
-    if (typeof ms === 'number') return Date.now() - ms < 30_000;
+    if (typeof ms === 'number') return Date.now() - ms < 150_000;
   }
   return player.online ?? false;
 }
@@ -190,7 +192,7 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
       setUid(uid);
       setStatus('connected');
     } catch (e) {
-      const msg = e?.message || String(e);
+      const msg = friendlyFirebaseError(e, 'Miestnosť sa nepodarilo vytvoriť.');
       setCreateErr(`Chyba: ${msg}`);
       console.error('[OnlineScreen] createRoom failed:', e);
     } finally {
@@ -214,7 +216,7 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
       setUid(uid);
       setStatus('connected');
     } catch (e) {
-      setJoinErr(e.message || 'Miestnosť neexistuje');
+      setJoinErr(friendlyFirebaseError(e, 'Do miestnosti sa nepodarilo pripojiť.'));
     } finally {
       setBusy(false);
     }

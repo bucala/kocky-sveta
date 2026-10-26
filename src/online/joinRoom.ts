@@ -1,7 +1,7 @@
 // src/online/joinRoom.ts
 import { db } from '../lib/firebase';
 import { getAuth } from 'firebase/auth';
-import { doc, getDoc, updateDoc, deleteField, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, deleteField } from 'firebase/firestore';
 import { hashPin } from './hashPin';
 import { getDeviceId } from './deviceId';
 
@@ -35,42 +35,38 @@ export async function joinRoom(params: {
   const existingPlayers = snap.data()?.players ?? {};
   const STALE_MS = 5 * 60 * 1000; // 5 minutes
 
-  // Build a single atomic patch:
-  // 1. Remove stale players (offline for >5 min) — cleans up ghost accumulation
-  // 2. Remove same physical device with a different UID (session refresh)
-  // 3. Upsert this device's current player entry
-  const patch: Record<string, any> = {};
+  // 1. Vstup: iba pridanie vlastného záznamu. Pravidlá Firestore dovoľujú
+  //    nečlenovi len pridať seba, nie mazať iných – preto sa upratuje až potom.
+  await updateDoc(roomRef, {
+    [`players.${uid}`]: {
+      name: params.playerName,
+      score: 0,
+      isReady: false,
+      online: true,
+      deviceId,
+      lastSeen: Date.now(),
+    },
+  });
 
+  // 2. Upratanie ako člen: duch z tohto zariadenia (stará relácia) a hráči
+  //    dlhšie offline. Zlyhanie upratovania nesmie zablokovať vstup.
+  const cleanup: Record<string, any> = {};
   for (const [existingUid, player] of Object.entries(existingPlayers)) {
     if (existingUid === uid) continue;
     const p = player as any;
-
-    // Same physical device, different UID → ghost from session refresh
     if (p.deviceId === deviceId) {
-      patch[`players.${existingUid}`] = deleteField();
-      if ((window as any).__ksVerboseFirebase) console.log('[joinRoom] removing ghost (same device):', existingUid);
+      cleanup[`players.${existingUid}`] = deleteField();
       continue;
     }
-
-    // Stale player: offline flag AND lastSeen older than threshold
     const lastSeen = p.lastSeen?.toMillis?.() ?? p.lastSeen ?? 0;
     const isStale = !p.online && typeof lastSeen === 'number' && lastSeen > 0 && Date.now() - lastSeen > STALE_MS;
-    if (isStale) {
-      patch[`players.${existingUid}`] = deleteField();
-      if ((window as any).__ksVerboseFirebase) console.log('[joinRoom] removing stale player:', existingUid, 'lastSeen:', lastSeen);
-    }
+    if (isStale) cleanup[`players.${existingUid}`] = deleteField();
   }
-
-  patch[`players.${uid}`] = {
-    name: params.playerName,
-    score: 0,
-    isReady: false,
-    online: true,
-    deviceId,
-    lastSeen: serverTimestamp(),
-  };
-
-  await updateDoc(roomRef, patch);
+  if (Object.keys(cleanup).length > 0) {
+    await updateDoc(roomRef, cleanup).catch((e) => {
+      if ((window as any).__ksVerboseFirebase) console.warn('[joinRoom] cleanup skipped:', e?.code);
+    });
+  }
 
   if ((window as any).__ksVerboseFirebase) console.log('[joinRoom] roomId:', params.roomId, 'uid:', uid, 'deviceId:', deviceId);
   return { uid };

@@ -1,6 +1,6 @@
 // src/lib/firebase.js
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, getFirestore } from 'firebase/firestore';
 import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -14,7 +14,19 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// Trvalá lokálna cache: zápisy spravené offline prežijú aj zatvorenie aplikácie
+// a odošlú sa po návrate pripojenia. Ak IndexedDB nie je dostupná, použije sa
+// pamäťová cache ako doteraz.
+function createDb() {
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    });
+  } catch {
+    return getFirestore(app);
+  }
+}
+export const db = createDb();
 
 const auth = getAuth(app);
 // Explicitly persist auth across page reloads (default on web, but made explicit for Capacitor)

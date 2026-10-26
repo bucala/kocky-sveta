@@ -489,22 +489,26 @@ export default function App() {
   // the user can reconnect and continue without losing their scoreboard.
 
   // ─── Presence heartbeat ───────────────────────────────────────────────────
-  // Updates lastSeen every 15 s so other devices can show accurate online state.
-  // Fires immediately on connect so observers see us as online without waiting.
+  // Updates lastSeen once a minute, only while the app is on screen. Every write
+  // sends the whole room document (incl. archive) to all devices, so fewer
+  // beats mean far less traffic and Firestore reads. Fires immediately on
+  // connect and when the app comes back to the foreground.
   useEffect(() => {
     if (!onlineRoomId || !onlineUid) return;
     let cancelled = false;
     const beat = () => {
-      if (cancelled) return;
+      if (cancelled || document.visibilityState !== 'visible') return;
       import('./online/updatePresence.ts').then(({ updatePresence }) => {
         updatePresence(onlineRoomId, onlineUid).catch(() => {});
       });
     };
     beat();
-    const id = setInterval(beat, 15_000);
+    const id = setInterval(beat, 60_000);
+    document.addEventListener('visibilitychange', beat);
     return () => {
       cancelled = true;
       clearInterval(id);
+      document.removeEventListener('visibilitychange', beat);
       // Best-effort offline mark on disconnect
       import('./online/updatePresence.ts').then(({ markOffline }) => {
         markOffline(onlineRoomId, onlineUid).catch(() => {});
@@ -767,10 +771,19 @@ export default function App() {
       ? remoteRaw
       : JSON.stringify(remoteRaw ?? null);
     if (remoteJson === lastWrittenActiveJson.current) return; // already in sync
-    if ((window).__ksVerboseFirebase) console.log('[sync] remote→local APPLY — prev len:', lastWrittenActiveJson.current?.length, '→ new len:', remoteJson.length);
-    lastWrittenActiveJson.current = remoteJson;
     let parsed = null;
     try { parsed = remoteJson ? JSON.parse(remoteJson) : null; } catch { parsed = null; }
+    // Lokálny stav toho istého turnaja s vyšším rev je novší (zápisy spravené
+    // offline alebo pred prvým snapshotom) – odošleme ho namiesto prepísania.
+    const local = activeRef.current;
+    if (local && parsed && local.id === parsed.id && (local.rev ?? 0) > (parsed.rev ?? 0)) {
+      if ((window).__ksVerboseFirebase) console.log('[sync] local newer (rev', local.rev, '>', parsed.rev, ') → push');
+      lastWrittenActiveJson.current = remoteJson;
+      syncActiveNow(local);
+      return;
+    }
+    if ((window).__ksVerboseFirebase) console.log('[sync] remote→local APPLY — prev len:', lastWrittenActiveJson.current?.length, '→ new len:', remoteJson.length);
+    lastWrittenActiveJson.current = remoteJson;
     setActive(parsed);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlineRoomId, onlineRoomState]);
@@ -921,7 +934,10 @@ export default function App() {
   const handleUpdateActive = useCallback((updater) => {
     const snapshot = activeRef.current;
     // Compute new state synchronously so we can write it to Firestore immediately.
-    const newState = typeof updater === 'function' ? updater(snapshot) : updater;
+    const computed = typeof updater === 'function' ? updater(snapshot) : updater;
+    // rev = poradové číslo zmeny; podľa neho online synchronizácia pozná,
+    // či je lokálny alebo vzdialený stav novší (napr. po návrate z offline).
+    const newState = computed ? { ...computed, rev: Math.max(snapshot?.rev ?? 0, computed.rev ?? 0) + 1 } : computed;
     if (snapshot && newState) {
       const next = [...undoStackRef.current.slice(-4), { before: snapshot, after: newState }];
       undoStackRef.current = next;
@@ -945,9 +961,11 @@ export default function App() {
     const rest = stack.slice(0, -1);
     undoStackRef.current = rest;
     setUndoStack(rest);
-    activeRef.current = last.before;
-    setActive(last.before);
-    syncActiveNow(last.before);
+    // vrátený stav je nová zmena – dostane vyššie rev, aby ho ostatné zariadenia prijali
+    const restored = { ...last.before, rev: (current.rev ?? 0) + 1 };
+    activeRef.current = restored;
+    setActive(restored);
+    syncActiveNow(restored);
     return { ok: true };
   }, [syncActiveNow]);
 
@@ -1028,6 +1046,7 @@ function startTournament(players, targetScore) {
       confirmationQueue: [],
       confirmationRoundComplete: false,
       pendingDecision: null,
+      rev: 1,
       targetScore, minWriteOff,
       // Snímka pravidiel z času štartu: všetky zariadenia (aj online) a archív
       // tak používajú rovnaké nastavenie, aj keď sa globálne pravidlá neskôr zmenia.
