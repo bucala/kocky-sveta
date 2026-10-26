@@ -33,6 +33,7 @@ import { createRoom } from './online/createRoom.ts';
 import { useOnlineStore } from './online/onlineStore.ts';
 import { useRoomSubscription } from './online/useRoomSubscription.ts';
 import { computeWinners, computePlayerTotals as computeTotals } from './lib/tournamentEngine.js';
+import { parseScoreCell, formatScoreCell } from './lib/scoreInput.js';
 import { sounds } from './lib/sounds.js';
 import { DEFAULT_EXTENSIONS, hapticFeedback, MILESTONE_VALUES, PLAYER_COLORS } from './lib/extensions.js';
 import { LangContext, useT } from './lib/i18n.js';
@@ -55,6 +56,7 @@ const VIEW_MODE_LABELS = {
   observer: 'Pozorovateľ',
   observerSimplified: 'Pozorovateľ zjednodušený',
   recorder: 'Zapisovateľ',
+  combined: 'Kombinovaný',
 };
 const PENALTY_VALUE = -1000;
 
@@ -2066,7 +2068,9 @@ function TournamentScreen({
   const funnyCountRef = useRef(players.map(() => 0));
   const endgameNoticedRef = useRef(new Set());
   const prevPlayerRef = useRef(currentPlayer);
-  const prevTotalsRef = useRef(players.map(() => 0));
+  // null = ešte nič neporovnávať; prvý beh efektu si len zapamätá súčty, aby sa pri
+  // otvorení rozohranej hry neukázal falošný míľnik.
+  const prevTotalsRef = useRef(null);
   const [milestoneFlash, setMilestoneFlash] = useState(null);
 
   useEffect(() => {
@@ -2540,7 +2544,7 @@ function TournamentScreen({
   }, [currentPlayer, currentRound, isEndgame, isConfirmationTurn, exactNeeded]);
 
   useEffect(() => {
-    if (!extensions.milestoneFlash) { prevTotalsRef.current = [...totals]; return; }
+    if (!extensions.milestoneFlash || prevTotalsRef.current === null) { prevTotalsRef.current = [...totals]; return; }
     let flashed = false;
     for (let p = 0; p < players.length; p++) {
       const prev = prevTotalsRef.current[p] ?? 0;
@@ -2563,6 +2567,8 @@ const isObserverMode = tournamentViewMode === 'observer';
 const isObserverSimplified = tournamentViewMode === 'observerSimplified';
 const isBasicSimplified = tournamentViewMode === 'basicSimplified';
 const isRecorderMode = tournamentViewMode === 'recorder';
+// Kombinovaný: veľké skóre všetkých hráčov (s cieľom) + karta „na ťahu“, bez zapisovania.
+const isCombinedMode = tournamentViewMode === 'combined';
 // Pozorovateľské režimy: žiadny zapisovací panel dole → nemizne im spodná rezerva,
 // obsah musí presne zaplniť výšku obrazovky (dôležité najmä na Android TV).
 const isViewerMode = isObserverMode || isObserverSimplified;
@@ -2584,10 +2590,39 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
   }
 
   if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback />;
-  
+
+  // Karta „na ťahu“ – spoločná pre Zapisovateľa a Kombinovaný režim.
+  const turnCard = (
+          <div
+            className="ks-card-prom ks-current-player-frame rounded-sm p-4 mb-2"
+            style={{ '--ks-current-player-color': currentPlayerColor }}
+            aria-current="true"
+          >
+            <div className="flex items-baseline justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <CurrentPlayerBadge />
+                <div className="ks-mono ks-gold text-xs">{t('game.round')} {currentRound + 1}</div>
+              </div>
+              <div className="ks-mono ks-muted text-xs">{t('game.target')} {target.toLocaleString('sk-SK')}</div>
+            </div>
+            <div className="flex items-end justify-between gap-3 mb-1">
+              <div className="flex-1 min-w-0">
+                <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.player')}</div>
+                <div title={players[currentPlayer]} className="ks-display text-4xl ks-cream font-bold leading-tight truncate">{players[currentPlayer]}</div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.score')}</div>
+                <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'ks-text-accent' : 'ks-gold'}`} style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
+                  {total.toLocaleString('sk-SK')}
+                </div>
+              </div>
+            </div>
+          </div>
+  );
+
   return (
-    <div className={`ks-game-screen ks-fade ks-bg ${isViewerMode ? 'ks-viewer-screen' : isRecorderMode ? 'min-h-screen pb-6' : 'min-h-screen pb-32'}`}>
-      {!isRecorderMode && (
+    <div className={`ks-game-screen ks-fade ks-bg ${isViewerMode ? 'ks-viewer-screen' : (isRecorderMode || isCombinedMode) ? 'min-h-screen pb-6' : 'min-h-screen pb-32'}`}>
+      {!isRecorderMode && !isCombinedMode && (
         <Header
           title={`Turnaj · do ${target.toLocaleString('sk-SK')}`}
           onBack={onMenu}
@@ -2640,6 +2675,19 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                               target={target} extensions={extensions} size="xl" showRank />
           </div>
         </div>
+      ) : isCombinedMode ? (
+        <div className="h-[100dvh] flex flex-col px-3 pt-[max(10px,env(safe-area-inset-top))] pb-[max(10px,env(safe-area-inset-bottom))] overflow-y-auto">
+          <div className="flex items-center justify-between gap-2 mb-2 shrink-0">
+            <button onClick={onMenu} className="ks-press ks-cream flex items-center gap-1 px-2 py-1"><ChevronLeft size={20} /><span className="ks-body">Späť</span></button>
+            <div className="ks-display ks-gold text-lg text-center">{players[currentPlayer]}</div>
+            <button onClick={onAbort} className="ks-press ks-card px-3 py-2 rounded-sm ks-mono text-xs ks-text-accent">{t('game.abort')}</button>
+          </div>
+          <div className="mb-2 flex-1" style={{ minHeight: 160 }}>
+            <BigScoreDisplay players={players} totals={totals} highlightPlayer={currentPlayer}
+                              target={target} extensions={extensions} size="lg" showRank showTarget fill />
+          </div>
+          <div className="shrink-0">{turnCard}</div>
+        </div>
       ) : isRecorderMode ? (
         <div className="min-h-[100dvh] flex flex-col px-3 pt-[max(10px,env(safe-area-inset-top))] pb-[max(10px,env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between gap-2 mb-2">
@@ -2647,31 +2695,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
             <div className="ks-display ks-gold text-lg text-center">{players[currentPlayer]}</div>
             <button onClick={onAbort} className="ks-press ks-card px-3 py-2 rounded-sm ks-mono text-xs ks-text-accent">{t('game.abort')}</button>
           </div>
-          <div
-            className="ks-card-prom ks-current-player-frame rounded-sm p-4 mb-2"
-            style={{ '--ks-current-player-color': currentPlayerColor }}
-            aria-current="true"
-          >
-            <div className="flex items-baseline justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <CurrentPlayerBadge />
-                <div className="ks-mono ks-gold text-xs">{t('game.round')} {currentRound + 1}</div>
-              </div>
-              <div className="ks-mono ks-muted text-xs">{t('game.target')} {target.toLocaleString('sk-SK')}</div>
-            </div>
-            <div className="flex items-end justify-between gap-3 mb-1">
-              <div className="flex-1 min-w-0">
-                <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.player')}</div>
-                <div title={players[currentPlayer]} className="ks-display text-4xl ks-cream font-bold leading-tight truncate">{players[currentPlayer]}</div>
-              </div>
-              <div className="text-right shrink-0">
-                <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.score')}</div>
-                <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'ks-text-accent' : 'ks-gold'}`} style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
-                  {total.toLocaleString('sk-SK')}
-                </div>
-              </div>
-            </div>
-          </div>
+          {turnCard}
           <div className="ks-card-prom rounded-sm p-4 mb-2">
             <div className="flex items-center justify-between mb-3">
               <div className="ks-mono ks-gold text-xs">PRÁVE PRIPISUJEŠ</div>
@@ -3366,7 +3390,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
         </div>
 
         <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
-             style={{ background: 'rgba(14,12,10,0.95)' }}>
+             style={{ background: 'color-mix(in srgb, var(--ks-bg-main, #0e0c0a) 95%, transparent)' }}>
           <div className="max-w-2xl mx-auto grid grid-cols-2 gap-2">
             <GoldButton onClick={() => setActiveCategory(null)} variant="outline" icon={ChevronLeft}>Späť</GoldButton>
             <GoldButton onClick={save} icon={Save}>Uložiť všetko</GoldButton>
@@ -3419,7 +3443,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
         </div>
 
         <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
-             style={{ background: 'rgba(14,12,10,0.95)' }}>
+             style={{ background: 'color-mix(in srgb, var(--ks-bg-main, #0e0c0a) 95%, transparent)' }}>
           <div className="max-w-2xl mx-auto grid grid-cols-2 gap-2">
             <GoldButton onClick={() => { setActiveCategory(null); setEditingId(null); }} variant="outline" icon={ChevronLeft}>Späť</GoldButton>
             <GoldButton onClick={save} icon={Save}>Uložiť všetko</GoldButton>
@@ -3482,7 +3506,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
-           style={{ background: 'rgba(14,12,10,0.95)' }}>
+           style={{ background: 'color-mix(in srgb, var(--ks-bg-main, #0e0c0a) 95%, transparent)' }}>
         <div className="max-w-2xl mx-auto grid grid-cols-3 gap-2">
           <GoldButton onClick={onReset} variant="danger" icon={RotateCcw}>Reset</GoldButton>
           <GoldButton onClick={onBack} variant="outline" icon={X}>Zrušiť</GoldButton>
@@ -3676,10 +3700,8 @@ function ArchiveScreen({ tournaments, onBack, onView, onDelete, readOnly }) {
 }
 
 function ArchiveItem({ t, onView, onDelete, readOnly }) {
-  const totals = t.players.map((_, pIdx) =>
-    (t.rounds || []).reduce((s, r) => s + (typeof r[pIdx] === 'number' ? r[pIdx] : 0), 0)
-  );
-  if (!t || !Array.isArray(t.players) || !Array.isArray(t.rounds)) return <SafeTournamentFallback title="Poškodený turnaj v archíve" />;
+  if (!t || !Array.isArray(t.players) || !Array.isArray(t.rounds) || t.players.length === 0) return <SafeTournamentFallback title="Poškodený turnaj v archíve" />;
+  const totals = computeTotals(t.rounds, t.players.length);
   const winnerArr = t.winner === null || t.winner === undefined
     ? []
     : (Array.isArray(t.winner) ? t.winner : [t.winner]);
@@ -3743,6 +3765,7 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
       rounds: (tournament.rounds || []).map(r => [...r]),
       winner: tournament.winner,
       targetScore: tournament.targetScore || 10000,
+      winnerTouched: false,
     });
     setEditing(true);
   }
@@ -3753,14 +3776,33 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
   }
 
   function saveEdit() {
-    const totals = draft.players.map((_, pIdx) =>
-      draft.rounds.reduce((s, r) => s + (typeof r[pIdx] === 'number' ? r[pIdx] : 0), 0)
-    );
-    let newWinner = draft.winner;
-    onUpdate({
+    const edited = {
+      ...tournament,
       players: draft.players,
       rounds: draft.rounds,
-      winner: newWinner,
+      targetScore: draft.targetScore,
+      pendingDecision: null,
+      // potvrdenia viazané na kolá, ktoré už neexistujú, sa zahodia
+      _confirmedDetailed: Array.isArray(tournament._confirmedDetailed)
+        ? tournament._confirmedDetailed.filter(c => c.round < draft.rounds.length)
+        : tournament._confirmedDetailed,
+    };
+    const computed = computeWinners(edited);
+    // Ručne zvolený víťaz má prednosť; inak sa víťaz prepočíta zo súčtov.
+    const winners = draft.winnerTouched
+      ? (draft.winner === null || draft.winner === undefined ? [] : (Array.isArray(draft.winner) ? draft.winner : [draft.winner]))
+      : (computed.valid ? computed.winners : []);
+    const winner = winners.length === 0 ? null : (winners.length === 1 ? winners[0] : [...winners].sort((a, b) => a - b));
+    const status = winner !== null ? 'finished' : (tournament.status === 'finished' ? 'aborted' : tournament.status);
+    onUpdate({
+      players: edited.players,
+      rounds: edited.rounds,
+      targetScore: edited.targetScore,
+      _confirmedDetailed: edited._confirmedDetailed,
+      _validatedTotals: computeTotals(edited.rounds, edited.players.length),
+      winner,
+      status,
+      finishedAt: tournament.finishedAt || (status !== 'active' ? new Date().toISOString() : undefined),
     });
     setEditing(false);
     setDraft(null);
@@ -3802,7 +3844,7 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
       if (idx >= 0) arr.splice(idx, 1);
       else arr.push(playerIdx);
       const newWinner = arr.length === 0 ? null : (arr.length === 1 ? arr[0] : arr.sort((a,b)=>a-b));
-      return { ...prev, winner: newWinner };
+      return { ...prev, winner: newWinner, winnerTouched: true };
     });
   }
 
@@ -3898,7 +3940,20 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
             )}
             <div>
               <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Target size={10} /> CIEĽ</div>
-              <div className="ks-body ks-cream text-sm mt-0.5">{target.toLocaleString('sk-SK')} b.</div>
+              {editing ? (
+                <select
+                  value={draft.targetScore}
+                  onChange={(e) => setDraft(prev => ({ ...prev, targetScore: Number(e.target.value) }))}
+                  aria-label="Cieľové skóre turnaja"
+                  className="ks-body ks-cream text-sm mt-0.5 bg-transparent border ks-border-sub rounded-sm px-1 py-0.5"
+                >
+                  {[...new Set([...TARGET_OPTIONS.map(o => o.value), draft.targetScore])].map(v => (
+                    <option key={v} value={v} style={{ color: '#111' }}>{v.toLocaleString('sk-SK')} b.</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="ks-body ks-cream text-sm mt-0.5">{target.toLocaleString('sk-SK')} b.</div>
+              )}
             </div>
             <div>
               <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Users size={10} /> HRÁČI</div>
@@ -3985,7 +4040,7 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
 
       {editing && (
         <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
-             style={{ background: 'rgba(14,12,10,0.95)' }}>
+             style={{ background: 'color-mix(in srgb, var(--ks-bg-main, #0e0c0a) 95%, transparent)' }}>
           <div className="max-w-2xl mx-auto grid grid-cols-2 gap-2">
             <GoldButton onClick={cancelEdit} variant="outline" icon={X}>Zrušiť</GoldButton>
             <GoldButton onClick={saveEdit} icon={Save}>Uložiť zmeny</GoldButton>
@@ -3996,15 +4051,35 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
   );
 }
 
-function EditableScoreTable({ players, rounds, totals, target, winner, onChangeCell, onRemoveRound, onSetWinner }) {
-  function parseCellValue(str) {
-    const s = (str || '').trim();
-    if (s === '' || s === '·') return null;
-    if (s === '—' || s === '-' || s.toLowerCase() === 'dash') return 'dash';
-    const n = parseInt(s, 10);
-    if (Number.isFinite(n)) return n;
-    return null;
+// Bunka editora archívu: počas písania drží surový text, hodnotu uloží až pri
+// opustení poľa alebo Enter. Neplatný text vráti pôvodnú hodnotu.
+function ScoreCellInput({ value, onCommit, className }) {
+  const [text, setText] = useState(formatScoreCell(value));
+  const [invalid, setInvalid] = useState(false);
+  useEffect(() => { setText(formatScoreCell(value)); setInvalid(false); }, [value]);
+  function commit() {
+    const res = parseScoreCell(text);
+    if (!res.ok) { setInvalid(true); setText(formatScoreCell(value)); return; }
+    setInvalid(false);
+    if (res.value !== value) onCommit(res.value);
+    else setText(formatScoreCell(value));
   }
+  return (
+    <input
+      value={text}
+      inputMode="text"
+      onChange={(e) => { setText(e.target.value); setInvalid(false); }}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } }}
+      placeholder="·"
+      aria-invalid={invalid}
+      title="Číslo (napr. 500, -1000), — alebo prázdne"
+      className={`${className} ${invalid ? 'border-red-700' : ''}`}
+    />
+  );
+}
+
+function EditableScoreTable({ players, rounds, totals, target, winner, onChangeCell, onRemoveRound, onSetWinner }) {
 
   return (
     <div className="ks-card rounded-sm overflow-hidden">
@@ -4030,13 +4105,11 @@ function EditableScoreTable({ players, rounds, totals, target, winner, onChangeC
                 <td className="ks-mono ks-muted text-xs py-1.5 px-2 text-center sticky left-0" style={{ background: 'var(--ks-sticky-bg, rgba(14,12,10,0.97))' }}>{rIdx + 1}</td>
                 {players.map((_, pIdx) => {
                   const v = round[pIdx];
-                  const display = v === 'dash' ? '—' : (typeof v === 'number' ? String(v) : '');
                   return (
                     <td key={pIdx} className="p-0.5">
-                      <input
-                        value={display}
-                        onChange={(e) => onChangeCell(rIdx, pIdx, parseCellValue(e.target.value))}
-                        placeholder="·"
+                      <ScoreCellInput
+                        value={v}
+                        onCommit={(nv) => onChangeCell(rIdx, pIdx, nv)}
                         className={`w-full bg-stone-950/40 border ks-border-sub rounded-sm px-2 py-1 ks-display text-center text-sm outline-none focus:border-amber-700 ${
                           v === 'dash' ? 'ks-muted' : (typeof v === 'number' && v < 0 ? 'ks-text-accent' : 'ks-cream')
                         }`}

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.1] — 2026-10-26 — Kombinovaný režim, úpravy archívu, svetlé skiny
+
+### Pridané (Added)
+
+- **Kombinovaný režim zobrazenia** (prenesený z vetiev v1.6.4–v1.6.6): veľké skóre všetkých hráčov s cieľom hry („/ 10 000“ alebo „/ 5 000“) a pod ním karta „na ťahu“, bez zapisovania. Funguje na výšku aj na šírku.
+- **Úprava cieľa v archíve**: pri úprave turnaja sa dá zmeniť cieľ (5 000 / 10 000).
+
+### Opravené (Fixed)
+
+- Spodné lišty s tlačidlami (Hodnoty hry, kategória pravidiel, úprava pravidiel, úprava turnaja) berú pozadie zo skinu; na svetlých skinoch boli tlačidlá takmer neviditeľné.
+- Nový turnaj: mazanie hráča zo zoznamu má vlastný režim „Upraviť“ s viditeľným tlačidlom. Skryté tlačidlo predtým zachytávalo ťuky a na TV sa nedalo použiť.
+- Editor archívu: dá sa zapísať −1000, „1 000“ aj „1.000“; neplatný text sa vráti. Uloženie prepočíta víťaza, stav a súčty.
+- Poškodený záznam v archíve už nezhodí zoznam.
+- Pri otvorení rozohranej hry sa už neukáže falošný „míľnik“.
+
+---
+
 ## [1.7.0] — 2026-10-26 — Opravy z auditu: štatistiky, undo, tlačidlo Späť, OCR, PWA
 
 Pred týmito zmenami vznikla záloha predchádzajúceho stavu: release [`v1.6.4-backup-2026-10-26`](https://github.com/bucala/kocky-sveta/releases/tag/v1.6.4-backup-2026-10-26).

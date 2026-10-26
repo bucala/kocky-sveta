@@ -9,7 +9,7 @@ import { CurrentPlayerBadge } from './CurrentPlayerBadge.jsx';
 // Layout sa nehýbe, menia sa iba hodnoty. Mená aj hodnoty sú vždy farebne
 // odlíšené presne podľa farieb hráčov v grafe priebehu hry (ProgressChart),
 // aby bolo možné hráča identifikovať bez legendy.
-export function BigScoreDisplay({ players, totals, highlightPlayer, target, extensions = {}, size = 'lg', showRank = false }) {
+export function BigScoreDisplay({ players, totals, highlightPlayer, target, extensions = {}, size = 'lg', showRank = false, showTarget = false, fill = false }) {
   const maxTotal = Math.max(...totals, 0);
   const leaderIdx = totals.indexOf(maxTotal);
   const sortedDesc = [...totals].sort((a, b) => b - a);
@@ -38,19 +38,25 @@ export function BigScoreDisplay({ players, totals, highlightPlayer, target, exte
   // počtom riadkov), aby mriečka vždy zaplnila dostupný priestor bez
   // orezávania — kľúčové pre televízory s 16:9 pomerom strán.
   const vhPerRow = (vh) => rows > 1 ? `calc(${vh} / ${rows})` : `${vh}`;
+  // fill (Kombinovaný režim): karty delia výšku s kartou „na ťahu“, preto aj
+  // veľkosť písma musí rešpektovať výšku displeja (na šírku je nízky).
   const nameSize = isXl
     ? `clamp(20px, min(4.5vw, ${vhPerRow('6.5vh')}), 56px)`
-    : 'clamp(16px, 2.6vw, 30px)';
+    : fill ? `clamp(12px, min(2.6vw, ${vhPerRow('4.5vh')}), 30px)` : 'clamp(16px, 2.6vw, 30px)';
   const scoreSize = isXl
     ? `clamp(36px, min(9vw, ${vhPerRow('13vh')}), 120px)`
-    : 'clamp(28px, 5vw, 60px)';
+    : fill ? `clamp(18px, min(5vw, ${vhPerRow('8vh')}), 60px)` : 'clamp(28px, 5vw, 60px)';
   const crownSize = isXl ? 34 : 20;
-  const cardPad = isXl ? 'p-4 sm:p-8' : 'p-4 sm:p-6';
+  const cardPad = isXl ? 'p-4 sm:p-8' : fill ? 'px-2 py-1 sm:p-4' : 'p-4 sm:p-6';
 
   return (
     <div
-      className={`grid gap-3 sm:gap-4 w-full ${isXl ? 'h-full' : ''}`}
-      style={{ gridTemplateColumns: `repeat(${Math.min(cols, players.length)}, minmax(0, 1fr))` }}
+      className={`grid gap-3 sm:gap-4 w-full ${isXl || fill ? 'h-full' : ''}`}
+      style={{
+        gridTemplateColumns: `repeat(${Math.min(cols, players.length)}, minmax(0, 1fr))`,
+        // fill: karty rovnomerne vyplnia výšku rodiča (Kombinovaný režim)
+        ...(fill ? { gridAutoRows: 'minmax(0, 1fr)' } : null),
+      }}
     >
       {players.map((p, i) => {
         const isLeader = extensions.leaderCrown && i === leaderIdx && maxTotal > 0;
@@ -61,7 +67,7 @@ export function BigScoreDisplay({ players, totals, highlightPlayer, target, exte
         return (
           <div
             key={i}
-            className={`relative ks-card rounded-sm ${cardPad} flex flex-col items-center justify-center text-center gap-2 transition-colors ${
+            className={`relative ks-card rounded-sm ${cardPad} flex flex-col items-center justify-center text-center ${fill ? 'gap-0.5 overflow-hidden min-h-0' : 'gap-2'} transition-colors ${
               isCurrent ? 'ks-current-player-frame' : 'border ks-border-sub'
             }`}
             style={isCurrent ? { '--ks-current-player-color': color } : undefined}
@@ -102,6 +108,11 @@ export function BigScoreDisplay({ players, totals, highlightPlayer, target, exte
             >
               {t.toLocaleString('sk-SK')}
             </div>
+            {showTarget && target ? (
+              <div className="ks-mono ks-muted" style={{ fontSize: 'clamp(10px, 1.2vw, 14px)' }}>
+                / {target.toLocaleString('sk-SK')}
+              </div>
+            ) : null}
           </div>
         );
       })}

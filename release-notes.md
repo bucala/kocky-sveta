@@ -1,3 +1,12 @@
+## Čo je nové v 1.7.1
+
+- 📺 Nový **Kombinovaný režim**: veľké skóre všetkých hráčov aj s cieľom a karta, kto je na ťahu.
+- 📁 V archíve sa dá upraviť cieľ hry, zapísať penalizácia −1000 a víťaz sa po úprave prepočíta.
+- 🎨 Tlačidlá v spodných lištách sú čitateľné aj na svetlých skinoch.
+- 👥 Mazanie hráča zo zoznamu cez tlačidlo „Upraviť“ (funguje aj na TV).
+
+---
+
 ## Čo je nové v 1.7.0
 
 - 📊 Štatistiky hráčov konečne počítajú výhry, úspešnosť a posledné hry správne.

@@ -9,6 +9,7 @@ export function GameViewModesScreen({ onBack, selectedMode, onChangeMode, select
     { id: 'observer', title: 'Pozorovateľ', desc: 'Veľký živý prehľad skóre pre obrazovku alebo TV.' },
     { id: 'observerSimplified', title: 'Pozorovateľ zjednodušený', desc: 'Iba mená a skóre vo veľkom na celú obrazovku. Graf priebehu na vyžiadanie — tlačidlo v hornej lište.' },
     { id: 'recorder', title: 'Zapisovateľ', desc: 'Jednoduché veľké ovládanie pre rýchly zápis bodov.' },
+    { id: 'combined', title: 'Kombinovaný', desc: 'Veľké skóre všetkých hráčov aj s cieľom a pod ním karta, kto je na ťahu. Bez zapisovania – ideálne pre TV pri inom zapisovateľovi.' },
   ];
   const skin = SKIN_PRESETS[selectedSkin] || SKIN_PRESETS.classic;
 
@@ -61,6 +62,14 @@ export function GameViewModesScreen({ onBack, selectedMode, onChangeMode, select
                         <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /></div>
                         <div style={{display:'grid', gridTemplateRows:'repeat(4, 1fr)', gap:'3px'}}><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /><div style={{borderRadius:'2px', background:'rgba(255,255,255,0.05)'}} /></div>
                       </div>
+                    </div>
+                  ) : opt.id === 'combined' ? (
+                    <div style={{height:'100%', display:'grid', gridTemplateRows:'1fr 22px', gap:'4px', padding:'5px'}}>
+                      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'3px'}}>
+                        <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.10)', border:'1px solid rgba(212,184,106,0.3)'}} />
+                        <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.10)', border:'1px solid rgba(212,184,106,0.3)'}} />
+                      </div>
+                      <div style={{borderRadius:'2px', background:'rgba(212,184,106,0.18)', border:'1px solid rgba(212,184,106,0.22)'}} />
                     </div>
                   ) : (
                     <div style={{height:'100%', display:'grid', gridTemplateRows:'14px 22px 1fr 12px', gap:'4px', padding:'5px'}}>
