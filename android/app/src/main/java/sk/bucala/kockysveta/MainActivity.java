@@ -3,6 +3,7 @@ package sk.bucala.kockysveta;
 import android.os.Bundle;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
+import com.capacitorjs.plugins.app.AppPlugin;
 import com.capacitorjs.plugins.filesystem.FilesystemPlugin;
 import com.capacitorjs.plugins.share.SharePlugin;
 import androidx.core.view.WindowCompat;
@@ -12,6 +13,7 @@ import androidx.core.view.WindowInsetsControllerCompat;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(AppPlugin.class);
         registerPlugin(FilesystemPlugin.class);
         registerPlugin(SharePlugin.class);
         super.onCreate(savedInstanceState);

@@ -86,8 +86,12 @@ function buildTournament(scanResult) {
     currentPlayer: 0,
     currentRound: normalizedRounds.length,
     winners: maxTotal >= targetScore ? [winnerIdx] : [],
-    finishedAt: now,
-    startedAt: now,
+    // Rovnaký tvar ako hra z aplikácie, aby archív aj štatistiky hru správne zobrazili.
+    winner: maxTotal >= targetScore ? winnerIdx : null,
+    status: maxTotal >= targetScore ? 'finished' : 'aborted',
+    date: new Date(now).toISOString(),
+    finishedAt: new Date(now).toISOString(),
+    startedAt: new Date(now).toISOString(),
     _source: 'scan',
     _notes: scanResult.notes || '',
   };

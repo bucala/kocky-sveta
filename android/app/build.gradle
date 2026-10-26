@@ -65,6 +65,8 @@ repositories {
 
 dependencies {
     implementation project(':capacitor-android')
+    // @capacitor/app: hardvérové Späť (Android aj TV ovládač). Bez neho Späť ukončí aplikáciu.
+    implementation project(':capacitor-app')
     implementation project(':capacitor-filesystem')
     implementation project(':capacitor-share')
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
