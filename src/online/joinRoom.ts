@@ -3,7 +3,7 @@ import { db } from '../lib/firebase';
 import { getAuth } from 'firebase/auth';
 import { doc, getDoc, updateDoc, deleteField } from 'firebase/firestore';
 import { hashPin } from './hashPin';
-import { getDeviceId } from './deviceId';
+import { getRoomDeviceId } from './deviceId';
 
 const PIN_VERIFICATION_ENABLED = false;
 
@@ -31,7 +31,7 @@ export async function joinRoom(params: {
   const uid = getAuth().currentUser?.uid;
   if (!uid) throw new Error('Nie si prihlásený');
 
-  const deviceId = getDeviceId();
+  const deviceId = await getRoomDeviceId(params.roomId);
   const existingPlayers = snap.data()?.players ?? {};
   const STALE_MS = 5 * 60 * 1000; // 5 minutes
 

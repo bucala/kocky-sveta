@@ -1,7 +1,7 @@
 // src/screens/AdminScreen.jsx
 import React, { useState, useCallback, useRef } from 'react';
 import { Shield, Bug, Wifi, Copy, Zap, Terminal, Wrench, BarChart2, RefreshCw } from 'lucide-react';
-import { Header } from '../atoms/Header.jsx';
+import { Header } from '../components/ui.jsx';
 import { ToggleRow } from '../atoms/ToggleRow.jsx';
 import { useFocusTrap } from '../hooks/useFocusTrap.js';
 

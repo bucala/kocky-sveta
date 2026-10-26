@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { Play, Target, Plus, X, UserPlus, Check, Pencil } from 'lucide-react';
-import { GoldButton, Ornament } from '../atoms/GoldButton.jsx';
-import { Header } from '../atoms/Header.jsx';
+import { GoldButton, Ornament, Header } from '../components/ui.jsx';
 import { TARGET_OPTIONS } from '../constants/game.js';
 import { useT } from '../lib/i18n.js';
+import { showConfirm } from '../components/Dialogs.jsx';
 
 export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlayersChange, defaultTarget = 10000 }) {
   const t = useT();
@@ -52,8 +52,8 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
     setShowAddInput(false);
   };
 
-  const removeKnown = (name) => {
-    if (!window.confirm(`Odstrániť „${name}" zo zoznamu?`)) return;
+  const removeKnown = async (name) => {
+    if (!(await showConfirm(`„${name}“ sa odstráni zo zoznamu hráčov.`, { title: 'Odstrániť hráča?', confirmLabel: 'Odstrániť', danger: true }))) return;
     onKnownPlayersChange?.(knownPlayers.filter(n => n !== name));
     setSelected(prev => prev.filter(n => n !== name));
   };

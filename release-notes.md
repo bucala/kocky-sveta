@@ -1,3 +1,12 @@
+## Čo je nové v 1.7.3
+
+- 🎨 Skiny Aréna a Čarovný pergamen majú vlastný vzhľad.
+- 🔒 Zásady ochrany súkromia v Nastaveniach a možnosť zmazať online miestnosť.
+- 🇬🇧 Herná obrazovka a hlášky aj po anglicky.
+- 💬 Nové dialógy podľa skinu, ovládateľné aj diaľkovým ovládačom TV.
+
+---
+
 ## Čo je nové v 1.7.2
 
 - ⚙️ Nastavenia pravidiel naozaj platia: vlastný cieľ, penalizácia, „hod sa neuznáva“ a 6 rovnakých = výhra.

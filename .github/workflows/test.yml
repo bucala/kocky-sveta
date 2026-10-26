@@ -5,7 +5,6 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
 
 permissions:
   contents: read
@@ -36,6 +35,12 @@ jobs:
 
       - name: 🏗️ Produkčný build
         run: npm run build
+
+      - name: 🌐 Prehliadač pre dymový test
+        run: npx playwright install --with-deps chromium
+
+      - name: 🚬 Dymový test v prehliadači
+        run: npm run e2e
 
       - name: 🐍 Testy podpisovania Android
         run: python3 -m unittest discover -s scripts/tests -v

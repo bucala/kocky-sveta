@@ -1,13 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import {
-  Dice1, Dice2, Dice3, Dice4, Dice5, Dice6,
-  Plus, Minus, Trash2, Save, X, ChevronLeft,
-  BookOpen, Archive as ArchiveIcon, Settings, Trophy, Users,
-  AlertCircle, AlertTriangle, Check, Play, RotateCcw, ScrollText, Crown,
-  Calendar, ChevronRight, ListPlus, Pencil, Zap, Skull, Target,
-  Download, Upload, Edit3, Clock, FileSpreadsheet, ChevronDown, TrendingUp,
-  Sigma, Layers, Monitor, Bell, Wifi, Info, Shield, ScanLine
-} from 'lucide-react';
+import { Plus, Minus, X, ChevronLeft, AlertCircle, AlertTriangle, Check, RotateCcw, ScrollText, Crown, Skull, Target, Edit3, TrendingUp, Sigma, Layers } from 'lucide-react';
 // XLSX sa načíta lazy pri prvom použití
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
@@ -20,10 +12,18 @@ import ScoreTable from './components/ScoreTable.jsx';
 import { ProgressChart } from './components/ProgressChart.jsx';
 import { BigScoreDisplay } from './components/BigScoreDisplay.jsx';
 import { CurrentPlayerBadge } from './components/CurrentPlayerBadge.jsx';
-import { MainMenu, MenuButton } from './screens/MainMenu.jsx';
+import { MainMenu } from './screens/MainMenu.jsx';
 import { NewTournament } from './screens/NewTournament.jsx';
 import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
 import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
+import { PrivacyScreen } from './screens/PrivacyScreen.jsx';
+import { DialogHost, showAlert, showConfirm } from './components/Dialogs.jsx';
+import { GoldButton, Header, Toast, StatusBanner, SafeTournamentFallback, Modal } from './components/ui.jsx';
+import { SettingsMenu } from './screens/SettingsMenu.jsx';
+import { RulesView, RulesContent, RulesEditor } from './screens/RulesScreens.jsx';
+import { ArchiveScreen, ArchiveDetail } from './screens/ArchiveScreens.jsx';
+import { DEFAULT_RULES, mergeRulesWithDefaults, ruleFrom, isStrictMode } from './constants/rules.js';
+import { formatDateTime } from './lib/format.js';
 // Online obrazovka (a s ňou Firebase, ~450 kB) sa načíta až pri otvorení.
 const OnlineScreen = React.lazy(() => import('./screens/OnlineScreen.jsx').then(m => ({ default: m.OnlineScreen })));
 import { AdminScreen, AdminPinDialog, DEFAULT_ADMIN_SETTINGS } from './screens/AdminScreen.jsx';
@@ -31,11 +31,12 @@ import { PlayerStatsScreen } from './screens/PlayerStatsScreen.jsx';
 import { ScanImportScreen } from './screens/ScanImportScreen.jsx';
 import { useOnlineStore } from './online/onlineStore.ts';
 import { useRoomSubscription } from './online/useRoomSubscription.ts';
+import { decideRemoteActive, withNextRev, decideUndo } from './online/syncDecision.js';
 import { computeWinners, computePlayerTotals as computeTotals } from './lib/tournamentEngine.js';
-import { parseScoreCell, formatScoreCell } from './lib/scoreInput.js';
+
 import { sounds } from './lib/sounds.js';
 import { DEFAULT_EXTENSIONS, hapticFeedback, MILESTONE_VALUES, PLAYER_COLORS } from './lib/extensions.js';
-import { LangContext, useT } from './lib/i18n.js';
+import { LangContext, useT, useLang, numberLocale } from './lib/i18n.js';
 import { Confetti } from './components/Confetti.jsx';
 import { BrawlBackground } from './components/BrawlBackground.jsx';
 import { version as APP_VERSION } from '../package.json';
@@ -46,23 +47,9 @@ import './app.css';
 
 // ─── Konštanty ────────────────────────────────────────────────────────────
 
-const DICE_ICONS = { 1: Dice1, 2: Dice2, 3: Dice3, 4: Dice4, 5: Dice5, 6: Dice6 };
 const DEFAULT_QUICK_VALUES = [50, 100, 300, 400, 500, 600, 1000, 1500, 2000];
 
-const VIEW_MODE_LABELS = {
-  basic: 'Klasický',
-  basicSimplified: 'Klasický zjednodušený',
-  observer: 'Pozorovateľ',
-  observerSimplified: 'Pozorovateľ zjednodušený',
-  recorder: 'Zapisovateľ',
-  combined: 'Kombinovaný',
-};
 const PENALTY_VALUE = -1000;
-
-const TARGET_OPTIONS = [
-  { value: 5000,  label: 'Krátka hra',   sub: 'do 5 000 bodov' },
-  { value: 10000, label: 'Klasická hra', sub: 'do 10 000 bodov' },
-];
 
 // Funny hlášky — { msg, emoji, variant }
 const FUNNY_MESSAGES = [
@@ -78,30 +65,6 @@ const FUNNY_MESSAGES = [
 ];
 
 // Kategórie pravidiel
-const RULE_CATEGORIES = [
-  { id: 'cat-basic',   title: 'Bodové hodnoty kociek', subtitle: 'Samostatné kocky',         ruleIds: ['r1', 'r2'] },
-  { id: 'cat-trio',    title: 'Trojice rovnakých',     subtitle: 'Tri rovnaké kocky',        ruleIds: ['r3', 'r4', 'r5', 'r6', 'r7', 'r8'] },
-  { id: 'cat-special', title: 'Špeciálne kombinácie',  subtitle: 'Postupka a tri páry',      ruleIds: ['r9', 'r10'] },
-  { id: 'cat-multi',   title: 'Násobky kociek',        subtitle: 'Štyri, päť, šesť rovnakých', ruleIds: ['r11', 'r12', 'r13'] },
-];
-
-const SETTING_RULE_IDS = ['r14', 'r15', 'r16', 'r17', 'r18'];
-
-function formatDateTime(iso) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleString('sk-SK', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-function formatDuration(startIso, endIso) {
-  if (!startIso || !endIso) return null;
-  const ms = new Date(endIso) - new Date(startIso);
-  if (ms < 0) return null;
-  const min = Math.floor(ms / 60000);
-  if (min < 60) return `${min} min`;
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return `${h} h ${m} min`;
-}
 
 const POPUP_CONFIG = {
   POPUP_DISPLAY_DURATION: 2000,
@@ -109,105 +72,6 @@ const POPUP_CONFIG = {
   VERTICAL_OFFSET: '0px',
   OPACITY: 0.92,
 };
-
-const DEFAULT_RULES = [
-  { id: 'r1',  name: 'Jednotka',         description: 'Samostatná kocka s hodnotou 1',                         points: 100,   type: 'numeric', dice: [1] },
-  { id: 'r2',  name: 'Päťka',            description: 'Samostatná kocka s hodnotou 5',                         points: 50,    type: 'numeric', dice: [5] },
-  { id: 'r3',  name: 'Tri jednotky',     description: 'Trojica jednotiek',                                     points: 1000,  type: 'numeric', dice: [1,1,1] },
-  { id: 'r4',  name: 'Tri dvojky',       description: 'Trojica dvojok',                                        points: 200,   type: 'numeric', dice: [2,2,2] },
-  { id: 'r5',  name: 'Tri trojky',       description: 'Trojica trojok',                                        points: 300,   type: 'numeric', dice: [3,3,3] },
-  { id: 'r6',  name: 'Tri štvorky',      description: 'Trojica štvoriek',                                      points: 400,   type: 'numeric', dice: [4,4,4] },
-  { id: 'r7',  name: 'Tri päťky',        description: 'Trojica päťok',                                         points: 500,   type: 'numeric', dice: [5,5,5] },
-  { id: 'r8',  name: 'Tri šestky',       description: 'Trojica šestiek',                                       points: 600,   type: 'numeric', dice: [6,6,6] },
-  { id: 'r9',  name: 'Postupka 1–6',     description: 'Šesť kociek za sebou: 1·2·3·4·5·6',                     points: 2000,  type: 'numeric', dice: [1,2,3,4,5,6] },
-  { id: 'r10', name: 'Tri páry',         description: 'Tri rôzne páry kociek',                                 points: 1000,  type: 'numeric', dice: [2,2,4,4,6,6] },
-  { id: 'r11', name: 'Štyri rovnaké',    description: 'Štyri rovnaké kocky',                                   points: 0,     type: 'select', options: ['Dvojnásobok trojice', 'Pevná hodnota'], selected: 'Dvojnásobok trojice', dice: [3,3,3,3] },
-  { id: 'r12', name: 'Päť rovnakých',    description: 'Päť rovnakých kociek',                                  points: 0,     type: 'select', options: ['Štvornásobok trojice', 'Pevná hodnota'], selected: 'Štvornásobok trojice', dice: [4,4,4,4,4] },
-  { id: 'r13', name: 'Šesť rovnakých',   description: 'Všetkých šesť kociek rovnakých',                        points: 0,     type: 'select', options: ['Automatická výhra', 'Pevná hodnota 3000'], selected: 'Automatická výhra', dice: [5,5,5,5,5,5] },
-  { id: 'r14', name: 'Minimálny zápis', description: 'Každý zápis bodov musí byť aspoň 300 bodov. Namiesto bodov sa dá vždy zapísať čiarka (—).', points: 300, type: 'numeric', dice: [] },
-  { id: 'r15', name: 'Cieľové skóre',    description: 'Predvolený cieľ pri zakladaní turnaja. Klasická hra do 10 000, krátka do 5 000; iná hodnota sa ponúkne ako vlastný cieľ.', points: 10000, type: 'numeric', dice: [] },
-  { id: 'r16', name: 'Nič nehodené',     description: 'Hod, pri ktorom nepadla žiadna bodujúca kombinácia – ani jednotka, ani päťka, ani trojica, ani postupka. Z aktuálneho skóre sa odpočíta penalizácia (predvolene 1 000 bodov).', points: -1000, type: 'numeric', dice: [2,3,4,6] },
-  { id: 'r17', name: 'Prekročenie cieľa', description: 'Ak by hod prekročil cieľové skóre, body sa nezapíšu. „Automatická čiarka“ zapíše čiarku (—) a ťah prejde ďalej; „Hod sa neuznáva“ nič nezapíše a ten istý hráč hádže znova.', points: 0, type: 'select', options: ['Automatická čiarka', 'Hod sa neuznáva'], selected: 'Automatická čiarka', dice: [] },
-  { id: 'r18', name: 'Režim potvrdenia víťazstva', description: 'Určuje, či sa po presnom dosiahnutí cieľa ešte vyžaduje overenie víťazstva v ďalšom ťahu ničnehodením (čiarkou), alebo sa výhra uzná okamžite po dokončení kola.', points: 0, type: 'select', options: ['Áno', 'Nie'], selected: 'Áno', dice: [] },
-];
-
-function DiceIcon({ value, size = 28 }) {
-  const Icon = DICE_ICONS[value];
-  if (!Icon) return null;
-  return <Icon size={size} strokeWidth={1.5} />;
-}
-
-function DiceRow({ dice, size = 24 }) {
-  if (!dice || dice.length === 0) return <span className="ks-muted text-sm italic">—</span>;
-  return (
-    <div className="flex flex-wrap gap-1 items-center">
-      {dice.map((d, i) => (
-        <div key={i} className="ks-gold" style={{ display: 'inline-flex' }}>
-          <DiceIcon value={d} size={size} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function GoldButton({ children, onClick, disabled, className = '', icon: Icon, variant = 'gold' }) {
-  const base = 'ks-press ks-mono px-5 py-3 rounded-sm flex items-center justify-center gap-2 font-semibold tracking-wider';
-  const styles = {
-    gold:    'ks-gold-bg hover:brightness-110 disabled:opacity-30 disabled:cursor-not-allowed ks-text-on-accent',
-    outline: 'border ks-border-accent ks-gold hover:bg-amber-900/20 disabled:opacity-30 disabled:cursor-not-allowed',
-    ghost:   'ks-cream hover:bg-stone-800/50 disabled:opacity-30',
-    danger:  'border border-red-900/60 ks-text-accent hover:bg-red-950/40 disabled:opacity-30',
-  };
-  return (
-    <button onClick={onClick} disabled={disabled} className={`${base} ${styles[variant]} ${className}`}>
-      {Icon && <Icon size={18} strokeWidth={2} />}
-      {children}
-    </button>
-  );
-}
-
-function Ornament() {
-  return (
-    <div className="flex items-center justify-center gap-3 my-3">
-      <div className="ks-divider flex-1" />
-      <div className="ks-gold text-xs">✦</div>
-      <div className="ks-divider flex-1" />
-    </div>
-  );
-}
-
-function Header({ title, onBack, right }) {
-  return (
-    <div className="ks-header flex items-center justify-between px-5 py-4 border-b ks-border-sub">
-      {onBack ? (
-        <button onClick={onBack} className="ks-press ks-cream flex items-center gap-1 -ml-2 px-2 py-1">
-          <ChevronLeft size={20} />
-          <span className="ks-body">Späť</span>
-        </button>
-      ) : <div className="w-16" />}
-      <h2 className="ks-display ks-gold text-xl font-semibold text-center">{title}</h2>
-      <div className="min-w-16 flex justify-end">{right}</div>
-    </div>
-  );
-}
-
-function Toast({ msg, kind, onClose }) {
-  const colorMap = {
-    info:      'ks-border-accent bg-amber-950/90 ks-cream',
-    warn:      'border-amber-600/70 bg-amber-900/80 ks-text-accent',
-    overshoot: 'border-red-600/70 bg-gradient-to-b from-red-900 to-red-950 text-red-50',
-  };
-  const Icon = kind === 'overshoot' ? AlertTriangle : kind === 'warn' ? AlertCircle : Check;
-  return (
-    <div className="ks-dark-overlay fixed top-2 left-3 right-3 z-50 ks-slide-down ks-popup-anchor" style={{ pointerEvents: 'none' }}>
-      <div className={`max-w-md mx-auto p-3 rounded-sm border ${colorMap[kind] || colorMap.info} flex items-start gap-2 shadow-2xl`} style={{ pointerEvents: 'auto', opacity: 'var(--ks-popup-opacity, 0.92)' }}>
-        <Icon size={20} className="shrink-0 mt-0.5" />
-        <div className="ks-body flex-1 text-sm font-medium">{msg}</div>
-        <button aria-label="Zatvoriť" onClick={onClose} className="opacity-70 hover:opacity-100"><X size={16} /></button>
-      </div>
-    </div>
-  );
-}
 
 function StrikethroughCrown({ size = 96, color = '#d4b86a', strikeColor = '#c44848' }) {
   return (
@@ -357,20 +221,6 @@ function FunnyOverlay({ data, onClose }) {
   );
 }
 
-function StatusBanner({ kind, icon: Icon, children }) {
-  const colors = {
-    info: 'border-amber-800/30 bg-amber-950/30 ks-text-accent/90',
-    warn: 'border-red-800/40 bg-red-950/30 ks-text-accent',
-    gold: 'border-amber-600/60 bg-amber-900/30 ks-text-accent',
-  };
-  return (
-    <div className={`flex items-start gap-2 text-sm border rounded-sm p-2 ${colors[kind]}`}>
-      <Icon size={16} className="mt-0.5 shrink-0 ks-gold" />
-      <div className="ks-body">{children}</div>
-    </div>
-  );
-}
-
 // ─── App ──────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -442,6 +292,7 @@ export default function App() {
       case 'settings':
         setView('menu');
         return;
+      case 'privacy':
       case 'admin':
       case 'viewModes':
       case 'visual':
@@ -585,6 +436,7 @@ export default function App() {
   useEffect(() => { if (loaded) window.storage.set('knownPlayers', JSON.stringify(knownPlayers)).catch(() => {}); }, [knownPlayers, loaded]);
   useEffect(() => { if (loaded) window.storage.set('extensions', JSON.stringify(extensions)).catch(() => {}); }, [extensions, loaded]);
   useEffect(() => { if (loaded) window.storage.set('lang', JSON.stringify(lang)).catch(() => {}); }, [lang, loaded]);
+  useEffect(() => { document.documentElement.lang = lang; }, [lang]);
   useEffect(() => { if (loaded) window.storage.set('animationsEnabled', JSON.stringify(animationsEnabled)).catch(() => {}); }, [animationsEnabled, loaded]);
   useEffect(() => { sounds.setEnabled(soundsEnabled); }, [soundsEnabled]);
 
@@ -759,23 +611,21 @@ export default function App() {
   //  2. JSON comparison vs lastWrittenActiveJson — skip echoes of our own writes.
   useEffect(() => {
     if (!onlineRoomId || !onlineRoomState) return;
-    if (pendingWriteCountRef.current > 0) {
-      if ((window).__ksVerboseFirebase) console.log('[sync] remote→local SKIP — write in-flight, pending:', pendingWriteCountRef.current);
+    const local = activeRef.current;
+    const decision = decideRemoteActive({
+      remoteRaw: onlineRoomState.activeTournament,
+      lastWrittenJson: lastWrittenActiveJson.current,
+      local,
+      pendingWrites: pendingWriteCountRef.current,
+    });
+    if (decision.action === 'skip') {
+      if ((window).__ksVerboseFirebase && decision.reason === 'write-in-flight') console.log('[sync] remote→local SKIP — write in-flight, pending:', pendingWriteCountRef.current);
       return;
     }
-    const remoteRaw = onlineRoomState.activeTournament;
-    if (remoteRaw === undefined) return; // field not set yet (fresh room)
-    // remoteRaw is a JSON string (new format) or a raw object/null (legacy).
-    const remoteJson = typeof remoteRaw === 'string'
-      ? remoteRaw
-      : JSON.stringify(remoteRaw ?? null);
-    if (remoteJson === lastWrittenActiveJson.current) return; // already in sync
-    let parsed = null;
-    try { parsed = remoteJson ? JSON.parse(remoteJson) : null; } catch { parsed = null; }
+    const { json: remoteJson, parsed } = decision;
     // Lokálny stav toho istého turnaja s vyšším rev je novší (zápisy spravené
     // offline alebo pred prvým snapshotom) – odošleme ho namiesto prepísania.
-    const local = activeRef.current;
-    if (local && parsed && local.id === parsed.id && (local.rev ?? 0) > (parsed.rev ?? 0)) {
+    if (decision.action === 'push') {
       if ((window).__ksVerboseFirebase) console.log('[sync] local newer (rev', local.rev, '>', parsed.rev, ') → push');
       lastWrittenActiveJson.current = remoteJson;
       syncActiveNow(local);
@@ -936,7 +786,7 @@ export default function App() {
     const computed = typeof updater === 'function' ? updater(snapshot) : updater;
     // rev = poradové číslo zmeny; podľa neho online synchronizácia pozná,
     // či je lokálny alebo vzdialený stav novší (napr. po návrate z offline).
-    const newState = computed ? { ...computed, rev: Math.max(snapshot?.rev ?? 0, computed.rev ?? 0) + 1 } : computed;
+    const newState = withNextRev(snapshot, computed);
     if (snapshot && newState) {
       const next = [...undoStackRef.current.slice(-4), { before: snapshot, after: newState }];
       undoStackRef.current = next;
@@ -948,20 +798,18 @@ export default function App() {
   }, [syncActiveNow]);
 
   const handleUndo = useCallback(() => {
-    const stack = undoStackRef.current;
-    if (!stack.length) return { ok: false, reason: 'empty' };
-    const last = stack[stack.length - 1];
-    const current = activeRef.current;
-    if (!current || gameFingerprint(current) !== gameFingerprint(last.after)) {
-      undoStackRef.current = [];
-      setUndoStack([]);
-      return { ok: false, reason: 'changed' };
+    const result = decideUndo(undoStackRef.current, activeRef.current);
+    if (!result.ok) {
+      if (result.clear) {
+        undoStackRef.current = [];
+        setUndoStack([]);
+      }
+      return { ok: false, reason: result.reason };
     }
-    const rest = stack.slice(0, -1);
+    const { rest, restored } = result;
     undoStackRef.current = rest;
     setUndoStack(rest);
     // vrátený stav je nová zmena – dostane vyššie rev, aby ho ostatné zariadenia prijali
-    const restored = { ...last.before, rev: (current.rev ?? 0) + 1 };
     activeRef.current = restored;
     setActive(restored);
     syncActiveNow(restored);
@@ -983,7 +831,7 @@ export default function App() {
   }, []);
 
   const handleSimulateTurn = useCallback(() => {
-    if (!active) { window.alert('Žiadna aktívna hra.'); return; }
+    if (!active) { showAlert('Žiadna aktívna hra.'); return; }
     const randomScore = (Math.floor(Math.random() * 20) + 1) * 50;
     handleUpdateActive(prev => {
       if (!prev) return prev;
@@ -1009,7 +857,7 @@ export default function App() {
 
   const handleAdminCreateRoom = useCallback(async () => {
     const customId = adminSettings.roomName?.toUpperCase().trim();
-    if (!customId) { window.alert('Zadaj názov miestnosti.'); return; }
+    if (!customId) { showAlert('Zadaj názov miestnosti.'); return; }
     try {
       const [{ getAuth, signInAnonymously }, { createRoom }] = await Promise.all([
         import('firebase/auth'),
@@ -1031,7 +879,7 @@ export default function App() {
       setOnlineStatus('connected');
       setView('online');
     } catch (e) {
-      window.alert(`Chyba: ${e?.message || e}`);
+      showAlert(`Miestnosť sa nepodarilo vytvoriť.\n\n${e?.message || e}`);
     }
   }, [adminSettings.roomName, rules, selectedSkin, setOnlineRoomId, setOnlineUid, setOnlineStatus]);
 
@@ -1076,10 +924,10 @@ function startTournament(players, targetScore) {
     });
 
     if (!validation.valid) {
-      const msg = 'Turnaj nemôže byť uzatvorený — nájdené nezhody:\n\n' +
+      const msg = 'Turnaj sa nedá uzavrieť, výsledok nesedí:\n\n' +
         validation.errors.join('\n') +
-        '\n\nReason: ' + validation.reason;
-      window.alert(msg);
+        '\n\nDôvod: ' + validation.reason;
+      showAlert(msg, { title: 'Turnaj nie je uzavretý' });
       console.error('[finishTournament] Validation failed:', validation);
       return;
     }
@@ -1094,8 +942,8 @@ function startTournament(players, targetScore) {
       const msg = 'Diskrepancia v určení víťaza:\n\n' +
         `Hra deklaruje víťazov: ${declaredWinners.map(i => active.players[i]).join(', ')}\n` +
         `Validácia podľa súčtov: ${computedWinners.map(i => active.players[i]).join(', ')}\n\n` +
-        'Turnaj sa neuzatvorí — kontaktuj vývojára (alebo skús presný stav v archíve).';
-      window.alert(msg);
+        'Turnaj sa neuzavrie. Skontroluj zápisy, prípadne ich oprav cez Vrátiť posledný zápis.';
+      showAlert(msg, { title: 'Nezhoda vo víťazovi' });
       console.error('[finishTournament] Winner mismatch:', { declaredWinners, computedWinners, totals: validation.totals });
       return;
     }
@@ -1115,9 +963,9 @@ function startTournament(players, targetScore) {
     setView('archiveDetail');
   }
 
-  function abortTournament() {
+  async function abortTournament() {
     if (!active) return;
-    if (!window.confirm('Naozaj chceš zrušiť rozohraný turnaj? Bude uložený do archívu ako nedokončený.')) return;
+    if (!(await showConfirm('Rozohraný turnaj sa uloží do archívu ako nedokončený.', { title: 'Zrušiť turnaj?', confirmLabel: 'Zrušiť turnaj', cancelLabel: 'Hrať ďalej', danger: true }))) return;
     setTournaments(prev => [{ ...active, status: 'aborted', finishedAt: new Date().toISOString() }, ...prev]);
     setActive(null);
     syncActiveNow(null);
@@ -1133,7 +981,7 @@ function startTournament(players, targetScore) {
 
   async function exportToExcel() {
     if (tournaments.length === 0) {
-      window.alert('Archív je prázdny — nie je čo exportovať.');
+      showAlert('Archív je prázdny, nie je čo exportovať.');
       return;
     }
     const XLSX = (await import('xlsx')).default || await import('xlsx');
@@ -1231,13 +1079,13 @@ function startTournament(players, targetScore) {
             dialogTitle: 'Uložiť alebo zdieľať export'
           });
         } else {
-          window.alert('Export uložený do Documents: ' + fileName);
+          showAlert('Export je uložený v priečinku Documents ako ' + fileName + '.');
         }
         return;
       }
     } catch (e) {
       console.error('Native Android export failed:', e);
-      window.alert('Natívny export zlyhal: ' + (e?.message || 'neznáma chyba') + '\n\nSkontroluj, či si po npm install spustil aj npx cap sync android.');
+      showAlert('Export sa nepodarilo uložiť do zariadenia. Skúsim ho stiahnuť iným spôsobom.');
     }
 
     const mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -1298,7 +1146,7 @@ function startTournament(players, targetScore) {
   async function importFromExcel(file) {
     // Záloha z aplikácie má desiatky kB; väčší súbor nie je naša záloha.
     if (file && file.size > 5 * 1024 * 1024) {
-      window.alert('Súbor je príliš veľký (viac ako 5 MB). Vyber zálohu exportovanú z aplikácie.');
+      showAlert('Súbor je príliš veľký (viac ako 5 MB). Vyber zálohu exportovanú z aplikácie.');
       return;
     }
     try {
@@ -1478,7 +1326,7 @@ function startTournament(players, targetScore) {
       }
 
       if (imported.length === 0) {
-        window.alert(`Žiadne turnaje neboli importované.${skipped.length ? '\n\nPreskočené listy:\n' + skipped.join('\n') : ''}`);
+        showAlert(`Žiadne turnaje neboli importované.${skipped.length ? '\n\nPreskočené listy:\n' + skipped.join('\n') : ''}`);
         return;
       }
 
@@ -1487,28 +1335,21 @@ function startTournament(players, targetScore) {
 
       let msg = `Úspešne importované: ${imported.length} ${imported.length === 1 ? 'turnaj' : (imported.length < 5 ? 'turnaje' : 'turnajov')}.`;
       if (skipped.length) msg += `\n\nPreskočené:\n${skipped.join('\n')}`;
-      window.alert(msg);
+      showAlert(msg, { title: 'Import hotový' });
     } catch (err) {
       console.error(err);
-      window.alert('Chyba pri importe: ' + (err.message || 'neznáma chyba'));
+      showAlert('Súbor sa nepodarilo načítať. Vyber zálohu exportovanú z aplikácie (.xlsx).', { title: 'Import zlyhal' });
     }
   }
 
   async function clearAllData() {
-    const step1 = window.confirm(
-      '⚠️ POZOR: Toto vymaže VŠETKY turnaje z archívu, rozohranú hru aj uložené pravidlá z tohto zariadenia.\n\n' +
-      'Odporúčame najprv vytvoriť zálohu cez Export do Excelu.\n\n' +
-      'Chceš pokračovať?'
+    // Namiesto písania „VYMAZAŤ“ (na TV ovládači takmer nemožné) dvojité potvrdenie.
+    const ok = await showConfirm(
+      'Vymažú sa VŠETKY turnaje z archívu, rozohraná hra aj uložené pravidlá z tohto zariadenia. Akcia sa nedá vrátiť.\n\n' +
+      'Odporúčame najprv vytvoriť zálohu cez Export do Excelu.',
+      { title: 'Vymazať všetky dáta?', confirmLabel: 'Vymazať všetko', danger: true, doubleTap: true }
     );
-    if (!step1) return;
-
-    const step2 = window.prompt(
-      'Pre potvrdenie napíš slovo VYMAZAŤ (veľkými písmenami).'
-    );
-    if (step2 !== 'VYMAZAŤ') {
-      window.alert('Vymazanie zrušené.');
-      return;
-    }
+    if (!ok) return;
 
     setTournaments([]);
     setActive(null);
@@ -1523,7 +1364,7 @@ function startTournament(players, targetScore) {
     await window.storage.set('rules', JSON.stringify(DEFAULT_RULES)).catch(() => {});
     await window.storage.set('selectedSkin', JSON.stringify('classic')).catch(() => {});
 
-    window.alert('Všetky dáta boli vymazané.');
+    showAlert('Všetky dáta boli vymazané.');
   }
 
   return (
@@ -1531,6 +1372,8 @@ function startTournament(players, targetScore) {
     <div className={`ks-app-shell ks-bg min-h-screen ks-cream ks-body ${view === 'tournament' && ['observer', 'observerSimplified'].includes(tournamentViewMode) ? 'ks-app-viewer' : ''}`} data-skin={selectedSkin} data-animations={motionEnabled ? 'on' : 'off'} style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
       <style>{skinVarsCss(selectedSkin, selectedFont)}</style>
       <style>{`:root { --ks-popup-offset: ${POPUP_CONFIG.VERTICAL_OFFSET}; --ks-popup-opacity: ${POPUP_CONFIG.OPACITY}; }`}</style>
+      {/* vlastné dialógy (showAlert/showConfirm) – vo vnútri skinu, aby dedili jeho farby */}
+      <DialogHost />
       {selectedSkin !== 'classic' && motionEnabled && <BrawlBackground skin={selectedSkin} />}
       <div className="ks-app-content">
 
@@ -1550,6 +1393,7 @@ function startTournament(players, targetScore) {
       {view === 'settings' && (
         <SettingsMenu
           onBack={() => setView('menu')}
+          onPrivacy={() => setView('privacy')}
           onOnline={() => setView('online')}
           onRulesEditor={() => setView('rulesEditor')}
           onExport={exportToExcel}
@@ -1647,7 +1491,7 @@ function startTournament(players, targetScore) {
         <ArchiveScreen tournaments={Array.isArray(tournaments) ? tournaments : []}
           onBack={() => setView(archiveReturnTo)}
           onView={(t) => { setViewingTournament(t); setView('archiveDetail'); }}
-          onDelete={(id) => { if (window.confirm('Vymazať tento turnaj z archívu?')) setTournaments(prev => prev.filter(x => x.id !== id)); }}
+          onDelete={async (id) => { if (await showConfirm('Turnaj sa natrvalo odstráni z archívu.', { title: 'Vymazať turnaj?', confirmLabel: 'Vymazať', danger: true })) setTournaments(prev => prev.filter(x => x.id !== id)); }}
           onScan={() => { setScanReturnTo('archive'); setView('scan'); }}
           readOnly={archiveReturnTo === 'menu'}
         />
@@ -1674,6 +1518,7 @@ function startTournament(players, targetScore) {
       ) : (
         <SafeTournamentFallback title="Dáta turnaja sa nepodarilo načítať" />
       ))}
+      {view === 'privacy' && <PrivacyScreen onBack={() => setView('settings')} />}
       {view === 'rules' && <RulesView rules={rules} onBack={() => setView('menu')} />}
       {view === 'online' && (
         <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center ks-muted ks-mono text-xs">NAČÍTAVAM ONLINE REŽIM…</div>}>
@@ -1686,7 +1531,7 @@ function startTournament(players, targetScore) {
       )}
       {view === 'rulesEditor' && (
         <RulesEditor rules={rules} onSave={setrules} onBack={() => setView('settings')}
-          onReset={() => { if (window.confirm('Obnoviť všetky pravidlá na pôvodné nastavenia?')) setrules(DEFAULT_RULES); }}
+          onReset={async () => { if (await showConfirm('Všetky pravidlá sa vrátia na pôvodné hodnoty.', { title: 'Obnoviť pravidlá?', confirmLabel: 'Obnoviť' })) setrules(DEFAULT_RULES); }}
           selectedSkin={selectedSkin}
         />
       )}
@@ -1751,226 +1596,7 @@ function startTournament(players, targetScore) {
 
 // ─── Hlavné menu ──────────────────────────────────────────────────────────
 
-function SafeTournamentFallback({ title = 'Dáta sa nepodarilo načítať' }) {
-  return <div className="min-h-screen flex items-center justify-center p-6 ks-cream"><div className="ks-card rounded-sm p-5 text-center max-w-md"><div className="ks-display text-2xl ks-gold mb-2">{title}</div><div className="ks-muted text-sm">Skús sa vrátiť späť alebo otvoriť turnaj znova.</div></div></div>;
-}
-
 // ─── Vizuál, Zvuky a Skiny submenu ───────────────────────────────────────────────
-
-function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, onScan, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin, onShowEgg }) {
-  const t = useT();
-  const fileInputRef = useRef(null);
-  const [eggClicks, setEggClicks] = useState(0);
-
-  function handleEggClick() {
-    const next = eggClicks + 1;
-    setEggClicks(next);
-    if (next >= 5) { onShowEgg?.(); setEggClicks(0); }
-  }
-
-  function handleFilePick(e) {
-    const file = e.target.files?.[0];
-    if (file && onImport) onImport(file);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  }
-
-  return (
-    <div className="min-h-screen ks-fade pb-8">
-      <Header title={t('settings.title')} onBack={onBack} />
-      <div className="p-4 max-w-2xl mx-auto space-y-3">
-
-        <div className="ks-mono ks-gold text-xs px-1 pt-3">ONLINE</div>
-        <button onClick={onOnline}
-          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
-            <Wifi size={22} className="ks-gold" />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.online')}</div>
-            <div className="ks-muted text-sm">{t('settings.online.sub')}</div>
-          </div>
-          <ChevronRight className="ks-muted" size={20} />
-        </button>
-
-        <div className="ks-mono ks-gold text-xs px-1 pt-3">{t('settings.rules.section')}</div>
-        <button onClick={onRulesEditor}
-          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
-            <Settings size={22} className="ks-gold" />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.rules')}</div>
-            <div className="ks-muted text-sm">Bodové kombinácie · cieľ · prvý zápis · koncovka · potvrdenie výhry · penalizácia</div>
-          </div>
-          <ChevronRight className="ks-muted" size={20} />
-        </button>
-
-        <div className="ks-mono ks-gold text-xs px-1 pt-3">{t('settings.visual.section')}</div>
-        <button onClick={onViewModes}
-          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
-            <Monitor size={22} className="ks-gold" />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.viewmode')}</div>
-            <div className="ks-muted text-sm">{VIEW_MODE_LABELS[tournamentViewMode] || VIEW_MODE_LABELS.basic}</div>
-          </div>
-          <ChevronRight className="ks-muted" size={20} />
-        </button>
-
-        <div className="ks-card w-full p-4 rounded-sm">
-          <div className="flex items-center gap-4 mb-3">
-            <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
-              <Bell size={22} className="ks-gold" />
-            </div>
-            <div className="flex-1">
-              <div className="ks-display ks-cream text-xl font-semibold">{t('settings.funnymode')}</div>
-              <div className="ks-muted text-sm">{t('settings.funnymode.sub')}</div>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              ['standard', t('settings.funnymode.standard')],
-              ['simplified', t('settings.funnymode.simplified')],
-              ['suppressed', t('settings.funnymode.suppressed')]
-            ].map(([value,label]) => (
-              <button key={value} onClick={() => onFunnyWindowsDisplayModeChange(value)}
-                className={`ks-press px-3 py-2 rounded-sm text-sm ${funnyWindowsDisplayMode === value ? 'ks-gold-bg' : 'border ks-border-sub ks-card ks-cream'}`}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button onClick={onVisualAndSkins}
-          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
-            <Layers size={22} className="ks-gold" />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.visual')}</div>
-            <div className="ks-muted text-sm">{t('settings.visual.sub')}</div>
-          </div>
-          <ChevronRight className="ks-muted" size={20} />
-        </button>
-
-        <div className="ks-mono ks-gold text-xs px-1 pt-3">{t('settings.archive.section')}</div>
-
-        <button onClick={onExport} disabled={!tournamentCount}
-          className={`ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left ${!tournamentCount ? 'opacity-40 cursor-not-allowed' : ''}`}>
-          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
-            <FileSpreadsheet size={22} className="ks-gold" />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Export do Excelu</div>
-            <div className="ks-muted text-sm">
-              {tournamentCount > 0
-                ? `${tournamentCount} turnajov · súbor .xlsx s listami`
-                : 'Žiadne turnaje na export'}
-            </div>
-          </div>
-          <Download className="ks-muted" size={20} />
-        </button>
-
-        <button onClick={() => fileInputRef.current?.click()}
-          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
-            <Upload size={22} className="ks-gold" />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Import z Excelu</div>
-            <div className="ks-muted text-sm">Pridá turnaje z .xlsx súboru do archívu</div>
-          </div>
-          <ChevronRight className="ks-muted" size={20} />
-        </button>
-        <input ref={fileInputRef} type="file"
-          accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-          onChange={handleFilePick} className="hidden" />
-
-        <button onClick={onArchive}
-          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
-            <Edit3 size={22} className="ks-gold" />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.edit.archive')}</div>
-            <div className="ks-muted text-sm">{t('settings.edit.archive.sub')}</div>
-          </div>
-          <ChevronRight className="ks-muted" size={20} />
-        </button>
-
-        <button onClick={onScan}
-          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
-            <ScanLine size={22} className="ks-gold" />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.scan')}</div>
-            <div className="ks-muted text-sm">{t('settings.scan.sub')}</div>
-          </div>
-          <ChevronRight className="ks-muted" size={20} />
-        </button>
-
-        <button onClick={onAdmin}
-          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-          <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
-            <Shield size={22} className="ks-gold" />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.admin')}</div>
-            <div className="ks-muted text-sm">{t('settings.admin.sub')}</div>
-          </div>
-          <ChevronRight className="ks-muted" size={20} />
-        </button>
-
-        <div className="ks-mono ks-text-accent text-xs px-1 pt-4 flex items-center gap-1.5">
-          <AlertTriangle size={11} /> {t('settings.danger')}
-        </div>
-
-        <button onClick={onClearAll}
-          className="ks-press w-full p-4 rounded-sm flex items-center gap-4 text-left border-2 border-red-900/50 bg-gradient-to-b from-red-950/40 to-stone-950/60 hover:brightness-125">
-          <div className="w-12 h-12 rounded-sm border border-red-700/60 bg-red-950/50 flex items-center justify-center">
-            <Trash2 size={22} className="ks-text-accent" />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-text-accent text-xl font-semibold">{t('settings.clear')}</div>
-            <div className="ks-text-accent/70 text-sm">Archív, rozohraná hra, pravidlá — nenávratná akcia</div>
-          </div>
-          <ChevronRight className="ks-text-accent" size={20} />
-        </button>
-
-        <div className="ks-card rounded-sm p-3 ks-body text-xs ks-muted italic mt-2 flex items-start gap-2">
-          <AlertCircle size={14} className="ks-gold shrink-0 mt-0.5" />
-          <div>
-            Pred vymazaním dát si <strong className="ks-gold">vytvor zálohu</strong> cez Export do Excelu.
-            Súbor neskôr môžeš obnoviť cez Import. Každý dohraný turnaj si pamätá dátum a čas začiatku aj konca.
-          </div>
-        </div>
-
-        <div className="ks-mono ks-gold text-xs px-1 pt-4">O APLIKÁCII</div>
-        <div className="ks-card w-full p-4 rounded-sm space-y-3">
-          <div className="flex items-center gap-4">
-            <button onClick={handleEggClick} className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center ks-press select-none">
-              <Info size={22} className="ks-gold" />
-            </button>
-            <div className="flex-1">
-              <div className="ks-display ks-cream text-xl font-semibold">Kocky sveta</div>
-              <div className="ks-muted text-sm">React + Vite + Firebase + Capacitor</div>
-            </div>
-          </div>
-          <div className="space-y-2 text-xs ks-muted leading-relaxed border-t ks-border-sub pt-3">
-            <p><span className="ks-cream font-semibold">Verzia:</span> {APP_VERSION}</p>
-            <p><span className="ks-cream font-semibold">Technológie:</span> React 18, Vite, Tailwind CSS, Firebase Firestore, Capacitor (Android/iOS)</p>
-            <p><span className="ks-cream font-semibold">Dáta:</span> Ukladané lokálne. Online sync cez Firebase Firestore v reálnom čase.</p>
-            <p><span className="ks-cream font-semibold">Exporty:</span> XLSX (SheetJS) — každý turnaj ako list + súhrnný prehľad.</p>
-            <p><span className="ks-cream font-semibold">Vývoj:</span> Marcel, 2026. Herná logika a pravidlá sú autorské.</p>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
-}
 
 function PendingChips({ pending, removePending }) {
   return (
@@ -1985,36 +1611,9 @@ function PendingChips({ pending, removePending }) {
 }
 
 // Odtlačok herného stavu pre kontrolu, či undo nevráti cudzí (online) zápis.
-function gameFingerprint(t) {
-  if (!t) return '';
-  return JSON.stringify([t.rounds, t.currentPlayer, t.currentRound, t.winner ?? null,
-    t.pendingDecision ?? null, t.confirmationPendingPlayer ?? null]);
-}
-
 // Uložené pravidlá zladí s aktuálnymi predvolenými: názvy, popisy a možnosti
 // berie z kódu (opravené texty sa dostanú aj k existujúcim používateľom),
 // hodnoty a voľby nastavené používateľom zachová. Vlastné pravidlá ponechá.
-function mergeRulesWithDefaults(saved) {
-  if (!Array.isArray(saved)) return DEFAULT_RULES;
-  const byId = new Map(saved.filter(r => r && r.id).map(r => [r.id, r]));
-  const merged = DEFAULT_RULES.map(def => {
-    const own = byId.get(def.id);
-    if (!own) return def;
-    const selected = def.options && def.options.includes(own.selected) ? own.selected : def.selected;
-    return { ...def, points: own.points ?? def.points, ...(def.options ? { selected } : {}) };
-  });
-  const defaultIds = new Set(DEFAULT_RULES.map(r => r.id));
-  return [...merged, ...saved.filter(r => r && r.id && !defaultIds.has(r.id))];
-}
-
-function ruleFrom(rules, id) {
-  return (rules || []).find(r => r.id === id);
-}
-
-function isStrictMode(rules) {
-  const r18 = (rules || []).find(r => r.id === 'r18');
-  return !r18 || r18.selected !== 'Áno';
-}
 
 function useFunnyQueue() {
   const [active, setActive] = useState(null);
@@ -2090,12 +1689,15 @@ function TournamentScreen({
 }) {
   // Early null guard — before destructuring to prevent crash
   if (!tournament) return <SafeTournamentFallback />;
+  const t = useT();
+  const lang = useLang();
+  const fmtNum = (n) => Number(n).toLocaleString(numberLocale(lang));
   const target = tournament.targetScore || 10000;
   const minWO = minWriteOffOverride ?? tournament.minWriteOff ?? 300;
   // Pravidlá z času štartu turnaja (staršie turnaje bez snímky použijú aktuálne).
   const turnRules = tournament.ruleSnapshot || rules;
   const penaltyValue = Number.isFinite(tournament.penalty) && tournament.penalty < 0 ? tournament.penalty : PENALTY_VALUE;
-  const penaltyLabel = `−${Math.abs(penaltyValue).toLocaleString('sk-SK')}`;
+  const penaltyLabel = `−${Math.abs(penaltyValue).toLocaleString(numberLocale(lang))}`;
   const overshootRejects = ruleFrom(turnRules, 'r17')?.selected === 'Hod sa neuznáva';
   const sixOfKind = ruleFrom(turnRules, 'r13')?.selected;
   const players = Array.isArray(tournament.players) ? tournament.players : [];
@@ -2118,7 +1720,6 @@ function TournamentScreen({
   const [winnerCelebration, setWinnerCelebration] = useState(null);
   // Počas krátkej oslavy víťaza (pred uložením do archívu) Späť nič nerobí.
   useBackHandler(() => {}, !!winnerCelebration);
-  const t = useT();
   const funnyCountRef = useRef(players.map(() => 0));
   const endgameNoticedRef = useRef(new Set());
   const prevPlayerRef = useRef(currentPlayer);
@@ -2131,12 +1732,12 @@ function TournamentScreen({
     if (!isOnline) { prevPlayerRef.current = currentPlayer; return; }
     if (currentPlayer !== prevPlayerRef.current) {
       prevPlayerRef.current = currentPlayer;
-      const name = players[currentPlayer] || `Hráč ${currentPlayer + 1}`;
+      const name = players[currentPlayer] || t('game.playerN', { n: currentPlayer + 1 });
       if (extensions.turnNotification) {
-        setToast({ msg: `Na rade: ${name}`, kind: 'info' });
-        const t = setTimeout(() => setToast(null), 3500);
+        setToast({ msg: t('toast.turn', { name }), kind: 'info' });
+        const timer = setTimeout(() => setToast(null), 3500);
         sounds.playTurn();
-        return () => clearTimeout(t);
+        return () => clearTimeout(timer);
       } else {
         sounds.playTurn();
       }
@@ -2204,7 +1805,7 @@ function TournamentScreen({
   function addPoints(v) {
     if (!Number.isFinite(v) || v === 0) return;
     if (isConfirmationTurn) {
-      showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
+      showToast(t('toast.dashRequired'), 'warn');
       return;
     }
     if (pending.some(p => p === 'dash' || p === penaltyValue)) {
@@ -2221,7 +1822,7 @@ function TournamentScreen({
 
   function addPenalty() {
     if (isConfirmationTurn) {
-      showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
+      showToast(t('toast.dashRequired'), 'warn');
       return;
     }
     if (pending.length === 1 && pending[0] === penaltyValue) return; 
@@ -2247,9 +1848,9 @@ function TournamentScreen({
       setShowTemporaryKingPopup(false);
       setTemporaryKingToken(null);
       setDeferTemporaryKingUntilWinPopupCloses(false);
-      showToast('Posledný zápis bol vrátený.', 'info');
+      showToast(t('toast.undone'), 'info');
     } else if (res && res.reason === 'changed') {
-      showToast('Medzitým zapisovalo iné zariadenie – posledný zápis sa už nedá vrátiť.', 'warn');
+      showToast(t('toast.undoConflict'), 'warn');
     }
   }
 
@@ -2258,10 +1859,10 @@ function TournamentScreen({
       type="button"
       onClick={undoLastWrite}
       className={`ks-press w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-sm border text-sm ks-mono ${undoArmed ? 'border-red-700/70 bg-red-950/40 ks-text-accent' : 'ks-border-sub ks-muted'}`}
-      aria-label={undoArmed ? 'Potvrdiť vrátenie posledného zápisu' : 'Vrátiť posledný zápis'}
+      aria-label={undoArmed ? t('game.undo.aria.armed') : t('game.undo.aria')}
     >
       <RotateCcw size={14} />
-      {undoArmed ? 'ŤUKNI ZNOVA PRE VRÁTENIE' : 'VRÁTIŤ POSLEDNÝ ZÁPIS'}
+      {undoArmed ? t('game.undo.armed') : t('game.undo')}
     </button>
   ) : null;
 
@@ -2292,10 +1893,10 @@ function TournamentScreen({
       type="button"
       onClick={sixOfKindWin}
       className={`ks-press w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-sm border text-sm ks-mono ${sixArmed ? 'ks-border-accent ks-gold bg-amber-900/20' : 'ks-border-sub ks-muted'}`}
-      aria-label={sixArmed ? `Potvrdiť výhru hráča ${players[currentPlayer]} – šesť rovnakých` : 'Šesť rovnakých kociek – automatická výhra'}
+      aria-label={sixArmed ? t('game.six.aria.armed', { name: players[currentPlayer] }) : t('game.six.aria')}
     >
       <Crown size={14} />
-      {sixArmed ? `ŤUKNI ZNOVA: VÝHRA ${String(players[currentPlayer] || '').toUpperCase()}` : '6 ROVNAKÝCH = VÝHRA'}
+      {sixArmed ? t('game.six.armed', { name: String(players[currentPlayer] || '').toUpperCase() }) : t('game.six')}
     </button>
   ) : sixOfKind === 'Pevná hodnota 3000' ? (
     <button
@@ -2325,13 +1926,13 @@ function TournamentScreen({
 
     if (isConfirmationTurn) {
       // V confirmation kole smie hráč len čiarkovať (ničnehodenie)
-      showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
+      showToast(t('toast.dashRequired'), 'warn');
       return;
     }
 
     if (pending.some(p => p < 0)) {
       if (pending.length > 1 || pending[0] !== penaltyValue) {
-        showToast(`Penalizácia ${penaltyLabel} sa nedá kombinovať s inými bodmi.`, 'warn');
+        showToast(t('toast.penaltyAlone', { penalty: penaltyLabel }), 'warn');
         return;
       }
       advance(penaltyValue);
@@ -2343,7 +1944,7 @@ function TournamentScreen({
         if (strictMode) {
           maybeFunny();
         if (!isLastPlayerInRound) {
-          showToast(`${players[currentPlayer]} dosiahol cieľ ${target.toLocaleString('sk-SK')}! Kolo sa dohrá a hra skončí.`, 'info');
+          showToast(t('toast.reachedTarget', { name: players[currentPlayer], target: fmtNum(target) }), 'info');
         }
           advance(pendingSum, {
             addCandidate: currentPlayer,
@@ -2376,27 +1977,27 @@ function TournamentScreen({
         return;
       }
       if (overshootRejects && pendingSum > exactNeeded) {
-        showToast(`Koncovka — treba presne ${exactNeeded} bodov. Hod sa neuznáva, hádž znova.`, 'overshoot');
+        showToast(t('toast.exactRethrow', { n: exactNeeded }), 'overshoot');
         setPending([]);
         return;
       }
-      showToast(`Koncovka — treba presne ${exactNeeded} bodov. Automatická čiarka!`, 'overshoot');
+      showToast(t('toast.exactDash', { n: exactNeeded }), 'overshoot');
       advance('dash');
       return;
     }
 
     if (pendingSum > 0 && pendingSum < minWO) {
-      showToast(`Každý zápis musí byť aspoň ${minWO} bodov, alebo daj čiarku.`, 'warn');
+      showToast(t('toast.minEntry', { min: minWO }), 'warn');
       return;
     }
 
     if (newTotal > target) {
       if (overshootRejects) {
-        showToast(`Prekročenie ${target.toLocaleString('sk-SK')} – hod sa neuznáva, hádž znova.`, 'overshoot');
+        showToast(t('toast.overRethrow', { target: fmtNum(target) }), 'overshoot');
         setPending([]);
         return;
       }
-      showToast(`Prekročenie ${target.toLocaleString('sk-SK')} – automatická čiarka!`, 'overshoot');
+      showToast(t('toast.overDash', { target: fmtNum(target) }), 'overshoot');
       advance('dash');
       return;
     }
@@ -2405,7 +2006,7 @@ function TournamentScreen({
       maybeFunny();
       if (strictMode) {
         if (!isLastPlayerInRound) {
-          showToast(`${players[currentPlayer]} dosiahol cieľ ... Kolo sa dohrá a hra skončí.`);
+          showToast(t('toast.reachedTarget', { name: players[currentPlayer], target: fmtNum(target) }), 'info');
         }
         advance(pendingSum, {
           addCandidate: currentPlayer,
@@ -2683,7 +2284,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
     const n = parseInt(customInput, 10);
     if (!Number.isFinite(n) || n === 0) return;
     if (n % 50 !== 0) {
-      showToast('Hodnota musí byť násobok 50 (50, 100, 150…)', 'warn');
+      showToast(t('toast.mult50'), 'warn');
       return;
     }
     addPoints(n);
@@ -2704,7 +2305,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                 <CurrentPlayerBadge />
                 <div className="ks-mono ks-gold text-xs">{t('game.round')} {currentRound + 1}</div>
               </div>
-              <div className="ks-mono ks-muted text-xs">{t('game.target')} {target.toLocaleString('sk-SK')}</div>
+              <div className="ks-mono ks-muted text-xs">{t('game.target')} {fmtNum(target)}</div>
             </div>
             <div className="flex items-end justify-between gap-3 mb-1">
               <div className="flex-1 min-w-0">
@@ -2714,7 +2315,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <div className="text-right shrink-0">
                 <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.score')}</div>
                 <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'ks-text-accent' : 'ks-gold'}`} style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
-                  {total.toLocaleString('sk-SK')}
+                  {total.toLocaleString(numberLocale(lang))}
                 </div>
               </div>
             </div>
@@ -2725,7 +2326,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
     <div className={`ks-game-screen ks-fade ks-bg ${isViewerMode ? 'ks-viewer-screen' : (isRecorderMode || isCombinedMode) ? 'min-h-screen pb-6' : 'min-h-screen pb-32'}`}>
       {!isRecorderMode && !isCombinedMode && (
         <Header
-          title={`Turnaj · do ${target.toLocaleString('sk-SK')}`}
+          title={`Turnaj · do ${fmtNum(target)}`}
           onBack={onMenu}
           right={
             <div className="flex items-center gap-2">
@@ -2742,8 +2343,8 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               {!isBasicSimplified && !isObserverSimplified && <button
                 onClick={onToggleScoreMode}
                 className="ks-press ks-gold p-1.5 rounded-sm border border-amber-700/40 hover:bg-amber-900/20"
-                title={scoreDisplayMode === 'delta' ? 'Prepnúť na kumulatívne' : 'Prepnúť na prípisy'}
-                aria-label={scoreDisplayMode === 'delta' ? 'Prepnúť na kumulatívne' : 'Prepnúť na prípisy'}
+                title={scoreDisplayMode === 'delta' ? t('game.toggle.toCumulative') : t('game.toggle.toDelta')}
+                aria-label={scoreDisplayMode === 'delta' ? t('game.toggle.toCumulative') : t('game.toggle.toDelta')}
               >
                 {scoreDisplayMode === 'delta'
                   ? <Sigma size={16} />
@@ -2779,7 +2380,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
       ) : isCombinedMode ? (
         <div className="h-[100dvh] flex flex-col px-3 pt-[max(10px,env(safe-area-inset-top))] pb-[max(10px,env(safe-area-inset-bottom))] overflow-y-auto">
           <div className="flex items-center justify-between gap-2 mb-2 shrink-0">
-            <button onClick={onMenu} className="ks-press ks-cream flex items-center gap-1 px-2 py-1"><ChevronLeft size={20} /><span className="ks-body">Späť</span></button>
+            <button onClick={onMenu} className="ks-press ks-cream flex items-center gap-1 px-2 py-1"><ChevronLeft size={20} /><span className="ks-body">{t('back')}</span></button>
             <div className="ks-display ks-gold text-lg text-center">{players[currentPlayer]}</div>
             <button onClick={onAbort} className="ks-press ks-card px-3 py-2 rounded-sm ks-mono text-xs ks-text-accent">{t('game.abort')}</button>
           </div>
@@ -2792,23 +2393,23 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
       ) : isRecorderMode ? (
         <div className="min-h-[100dvh] flex flex-col px-3 pt-[max(10px,env(safe-area-inset-top))] pb-[max(10px,env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <button onClick={onMenu} className="ks-press ks-cream flex items-center gap-1 px-2 py-1"><ChevronLeft size={20} /><span className="ks-body">Späť</span></button>
+            <button onClick={onMenu} className="ks-press ks-cream flex items-center gap-1 px-2 py-1"><ChevronLeft size={20} /><span className="ks-body">{t('back')}</span></button>
             <div className="ks-display ks-gold text-lg text-center">{players[currentPlayer]}</div>
             <button onClick={onAbort} className="ks-press ks-card px-3 py-2 rounded-sm ks-mono text-xs ks-text-accent">{t('game.abort')}</button>
           </div>
           {turnCard}
           <div className="ks-card-prom rounded-sm p-4 mb-2">
             <div className="flex items-center justify-between mb-3">
-              <div className="ks-mono ks-gold text-xs">PRÁVE PRIPISUJEŠ</div>
+              <div className="ks-mono ks-gold text-xs">{t('game.adding')}</div>
               <div className="flex items-baseline gap-2">
                 {pending.length > 0 && pending[0] !== 'dash' && Number.isFinite(newTotal) && (
-                  <span className="ks-muted text-xl ks-mono leading-none">→ {newTotal.toLocaleString('sk-SK')}</span>
+                  <span className="ks-muted text-xl ks-mono leading-none">→ {newTotal.toLocaleString(numberLocale(lang))}</span>
                 )}
                 {pending[0] === 'dash' ? (
                   <div className="ks-display text-6xl font-bold ks-muted">—</div>
                 ) : (
                   <div className={`ks-display text-6xl font-bold ${pendingSum < 0 ? 'ks-text-accent' : 'ks-gold'}`}>
-                    {pendingSum > 0 ? '+' : ''}{pendingSum.toLocaleString('sk-SK')}
+                    {pendingSum > 0 ? '+' : ''}{pendingSum.toLocaleString(numberLocale(lang))}
                   </div>
                 )}
               </div>
@@ -2817,25 +2418,25 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <div className="flex flex-wrap gap-2 mb-3">
                 {pending.map((p, i) => (
                   <button key={i} onClick={() => removePending(i)} className={`ks-press group flex items-center gap-1.5 px-3 py-1.5 rounded-sm border ${p === 'dash' ? 'ks-pending-dash border-stone-600/60 bg-stone-800/40 ks-muted' : p < 0 ? 'ks-pending-negative border-red-800/60 bg-red-950/40 ks-text-accent' : 'ks-pending-positive ks-border-accent bg-stone-900/70 ks-cream'}`}>
-                    <span className="ks-display font-semibold">{p === 'dash' ? '— čiarka' : (p > 0 ? `+${p}` : p)}</span>
+                    <span className="ks-display font-semibold">{p === 'dash' ? t('game.dashChip') : (p > 0 ? `+${p}` : p)}</span>
                     <X size={14} className="opacity-60 group-hover:opacity-100" />
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed ks-border-sub rounded-sm">Pridaj body alebo čiarku z hodu nižšie…</div>
+              <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed ks-border-sub rounded-sm">{t('game.addHint')}</div>
             )}
-            <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">Zapísať</GoldButton>
+            <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">{t('game.commit')}</GoldButton>
             {sixButton}{undoButton}
           </div>
           <div className="ks-card-sub rounded-sm p-4 flex-1">
             <div className="flex items-center justify-between mb-3">
-              <div className="ks-mono ks-muted text-xs">PRIDAJ BODY Z HODU</div>
+              <div className="ks-mono ks-muted text-xs">{t('game.addFromThrow')}</div>
               <button aria-label="Upraviť rýchle hodnoty" onClick={() => setShowQVEditor(v => !v)} className="ks-press ks-muted hover:ks-cream p-0.5"><Edit3 size={13} /></button>
             </div>
             {showQVEditor && onQuickValuesChange && (
               <div className="ks-value-editor mb-3 p-2.5 border ks-border-sub rounded-sm bg-stone-950/60 space-y-2">
-                <div className="ks-mono ks-muted text-xs">UPRAVIŤ TLAČIDLÁ</div>
+                <div className="ks-mono ks-muted text-xs">{t('game.editButtons')}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {qv.map(v => (
                     <button key={v} onClick={() => onQuickValuesChange(qv.filter(x => x !== v))}
@@ -2862,17 +2463,17 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               ))}
             </div>
             <div className="flex gap-2 mb-3">
-              <input type="number" value={customInput} onChange={(e) => setCustomInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCustom()} placeholder="Vlastná hodnota" className="ks-custom-value flex-1 min-w-0 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
-              <GoldButton onClick={addCustom} icon={Plus} variant="outline">Pridaj</GoldButton>
+              <input type="number" value={customInput} onChange={(e) => setCustomInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCustom()} placeholder={t('game.customPlaceholder')} className="ks-custom-value flex-1 min-w-0 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
+              <GoldButton onClick={addCustom} icon={Plus} variant="outline">{t('game.addBtn')}</GoldButton>
             </div>
             <div className="ks-divider my-3" />
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={addDash} className="ks-press p-3 rounded-sm ks-dash-button border-2 border-stone-600/50 bg-gradient-to-b from-stone-900/60 to-stone-950/80 hover:brightness-125 flex items-center justify-center gap-2"><Minus size={20} className="ks-muted" /><span className="ks-mono ks-cream font-semibold">ČIARKA</span></button>
+              <button onClick={addDash} className="ks-press p-3 rounded-sm ks-dash-button border-2 border-stone-600/50 bg-gradient-to-b from-stone-900/60 to-stone-950/80 hover:brightness-125 flex items-center justify-center gap-2"><Minus size={20} className="ks-muted" /><span className="ks-mono ks-cream font-semibold">{t('game.dashBtn')}</span></button>
               <button onClick={addPenalty} className="ks-press p-3 rounded-sm ks-penalty-button border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2"><Skull size={20} className="ks-text-accent" /><span className="ks-mono ks-text-accent font-semibold">{penaltyLabel}</span></button>
             </div>
             <div className="grid grid-cols-2 gap-2 mt-4">
               <GoldButton onClick={() => setShowStandings(true)} icon={TrendingUp} variant="ghost">Priebeh hry</GoldButton>
-              <GoldButton onClick={() => setShowrules(true)} icon={ScrollText} variant="ghost">Pravidlá</GoldButton>
+              <GoldButton onClick={() => setShowrules(true)} icon={ScrollText} variant="ghost">{t('game.rules')}</GoldButton>
             </div>
           </div>
         </div>
@@ -2901,7 +2502,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <CurrentPlayerBadge />
               <div className="ks-mono ks-gold text-xs">{t('game.round')} {currentRound + 1}</div>
             </div>
-            <div className="ks-mono ks-muted text-xs">{t('game.target')} {target.toLocaleString('sk-SK')}</div>
+            <div className="ks-mono ks-muted text-xs">{t('game.target')} {fmtNum(target)}</div>
           </div>
           <div className="flex items-end justify-between gap-3 mb-1">
             <div className="flex-1 min-w-0">
@@ -2914,7 +2515,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.score')}</div>
               <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'ks-text-accent' : 'ks-gold'}`}
                    style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
-                {total.toLocaleString('sk-SK')}
+                {total.toLocaleString(numberLocale(lang))}
               </div>
             </div>
           </div>
@@ -2933,16 +2534,16 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
       <div className="px-4 mt-4">
             <div className="ks-card-prom rounded-sm p-4">
               <div className="flex items-center justify-between mb-3">
-                <div className="ks-mono ks-gold text-xs">PRÁVE PRIPISUJEŠ</div>
+                <div className="ks-mono ks-gold text-xs">{t('game.adding')}</div>
                 <div className="flex items-baseline gap-2">
                   {pending.length > 0 && pending[0] !== 'dash' && Number.isFinite(newTotal) && (
-                    <span className="ks-muted text-xl ks-mono leading-none">→ {newTotal.toLocaleString('sk-SK')}</span>
+                    <span className="ks-muted text-xl ks-mono leading-none">→ {newTotal.toLocaleString(numberLocale(lang))}</span>
                   )}
                   {pending[0] === 'dash' ? (
                     <div className="ks-display text-6xl font-bold ks-muted">—</div>
                   ) : (
                     <div className={`ks-display text-6xl font-bold ${pendingSum < 0 ? 'ks-text-accent' : 'ks-gold'}`}>
-                      {pendingSum > 0 ? '+' : ''}{pendingSum.toLocaleString('sk-SK')}
+                      {pendingSum > 0 ? '+' : ''}{pendingSum.toLocaleString(numberLocale(lang))}
                     </div>
                   )}
                 </div>
@@ -2957,7 +2558,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                           p < 0 ? 'ks-pending-negative border-red-800/60 bg-red-950/40 ks-text-accent' :
                           'ks-pending-positive ks-border-accent bg-stone-900/70 ks-cream'}`}>
                       <span className="ks-display font-semibold">
-                        {p === 'dash' ? '— čiarka' : (p > 0 ? `+${p}` : p)}
+                        {p === 'dash' ? t('game.dashChip') : (p > 0 ? `+${p}` : p)}
                       </span>
                       <X size={14} className="opacity-60 group-hover:opacity-100" />
                     </button>
@@ -2984,7 +2585,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
           {/* SUBTÍLNA KARTA — predvolené hodnoty */}
           <div className="px-4 mt-4">
             <div className="ks-card-sub rounded-sm p-4">
-              <div className="ks-mono ks-muted text-xs mb-3">PRIDAJ BODY Z HODU</div>
+              <div className="ks-mono ks-muted text-xs mb-3">{t('game.addFromThrow')}</div>
 
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {qv.map(v => (
@@ -2999,10 +2600,10 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                 <input type="number" value={customInput}
                   onChange={(e) => setCustomInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addCustom()}
-                  placeholder="Vlastná hodnota"
+                  placeholder={t('game.customPlaceholder')}
                   className="ks-custom-value flex-1 min-w-0 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700"
                 />
-                <GoldButton onClick={addCustom} icon={Plus} variant="outline">Pridaj</GoldButton>
+                <GoldButton onClick={addCustom} icon={Plus} variant="outline">{t('game.addBtn')}</GoldButton>
               </div>
 
               <div className="ks-divider my-3" />
@@ -3012,7 +2613,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                 <button onClick={addDash}
                   className="ks-press p-3 rounded-sm ks-dash-button border-2 border-stone-600/50 bg-gradient-to-b from-stone-900/60 to-stone-950/80 hover:brightness-125 flex items-center justify-center gap-2">
                   <Minus size={20} className="ks-muted" />
-                  <span className="ks-mono ks-cream font-semibold">ČIARKA</span>
+                  <span className="ks-mono ks-cream font-semibold">{t('game.dashBtn')}</span>
                 </button>
                 <button onClick={addPenalty}
                   className="ks-press p-3 rounded-sm ks-penalty-button border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2">
@@ -3021,15 +2622,15 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-2 mt-1">
-                <div className="ks-muted text-[10px] italic text-center">Hod bez zápisu (— pomlčka)</div>
-                <div className="ks-muted text-[10px] italic text-center">Nič nehodené (penalizácia)</div>
+                <div className="ks-muted text-[10px] italic text-center">{t('game.dashHint')}</div>
+                <div className="ks-muted text-[10px] italic text-center">{t('game.penaltyHint')}</div>
               </div>
             </div>
           </div>
 
       <div className="px-4 mt-4 grid grid-cols-2 gap-2">
         <GoldButton onClick={() => setShowStandings(true)} icon={TrendingUp} variant="ghost">Priebeh hry</GoldButton>
-        <GoldButton onClick={() => setShowrules(true)} icon={ScrollText} variant="ghost">Pravidlá</GoldButton>
+        <GoldButton onClick={() => setShowrules(true)} icon={ScrollText} variant="ghost">{t('game.rules')}</GoldButton>
       </div>
       </>
       )}
@@ -3312,959 +2913,12 @@ function FullscreenProgressView({ onClose, tournament, totals, target, highlight
 
 // ─── Modal + tabuľka poradia ──────────────────────────────────────────────
 
-function Modal({ children, onClose, title }) {
-  const dialogRef = useRef(null);
-  useFocusTrap(dialogRef);
-  useBackHandler(onClose);
-  return (
-    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} className="fixed inset-0 z-40 flex items-end sm:items-center justify-center p-0 sm:p-4"
-         style={{ background: 'rgba(0,0,0,0.7)' }} onClick={onClose}>
-      <div className="ks-card w-full max-w-lg max-h-[85vh] flex flex-col rounded-t-lg sm:rounded-sm ks-fade"
-           onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-4 border-b ks-border-sub">
-          <h3 className="ks-display ks-gold text-xl font-semibold">{title}</h3>
-          <button aria-label="Zatvoriť" onClick={onClose} className="ks-press ks-cream p-1"><X size={22} /></button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4" style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}>{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function Standings({ players, totals, target }) {
-  const ranked = players
-    .map((name, i) => ({ name, total: totals[i], i }))
-    .sort((a, b) => b.total - a.total);
-
-  return (
-    <div className="space-y-2">
-      {ranked.map((p, idx) => {
-        const pct = target ? Math.min(100, Math.max(0, (p.total / target) * 100)) : 0;
-        return (
-          <div key={p.i} className="flex items-center gap-3 p-3 rounded-sm border ks-border-sub">
-            <div className={`w-10 h-10 rounded-sm flex items-center justify-center ks-display text-xl font-bold
-              ${idx === 0 ? 'ks-gold-bg' : 'border ks-border-sub ks-gold'}`}>
-              {idx + 1}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="ks-display ks-cream text-lg font-semibold truncate">{p.name}</div>
-              {target && (
-                <div className="h-1 bg-stone-900 rounded-full overflow-hidden mt-1">
-                  <div className="h-full ks-gold-bg" style={{ width: `${pct}%` }} />
-                </div>
-              )}
-            </div>
-            <div className={`ks-display text-2xl font-bold ${p.total < 0 ? 'ks-text-accent' : 'ks-gold'}`}>
-              {p.total.toLocaleString('sk-SK')}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 // ─── Pravidlá ─────────────────────────────────────────────────────────────
-
-function RulesView({ rules, onBack }) {
-  const minWO     = Number(rules.find(r => r.id === 'r14')?.points) || 300;
-  const target    = Number(rules.find(r => r.id === 'r15')?.points) || 10000;
-  const penalty   = Number(rules.find(r => r.id === 'r16')?.points) || -1000;
-  const overshoot = rules.find(r => r.id === 'r17')?.selected;
-  const confirm   = rules.find(r => r.id === 'r18')?.selected;
-  const sixOfKind = rules.find(r => r.id === 'r13')?.selected;
-
-  const combinationrules = RULE_CATEGORIES
-    .flatMap(cat => cat.ruleIds)
-    .map(id => rules.find(r => r.id === id))
-    .filter(Boolean);
-
-  return (
-    <div className="min-h-screen ks-fade pb-8">
-      <Header title="Pravidlá hry" onBack={onBack} />
-      <div className="p-4 max-w-2xl mx-auto space-y-3">
-        <div className="ks-card rounded-sm p-5">
-          <p className="ks-body ks-cream leading-relaxed">
-            Cieľom hry <em className="ks-gold">Kocky</em> je byť prvým hráčom, ktorý dosiahne cieľové skóre —
-            <strong className="ks-gold"> {target.toLocaleString('sk-SK')}</strong> v klasickej hre alebo
-            <strong className="ks-gold"> 5 000</strong> v skrátenej. Hráči sa striedajú v hodoch šesťkociek.
-          </p>
-          <p className="ks-body ks-cream leading-relaxed mt-2">
-            Každý zápis musí byť aspoň <strong className="ks-gold">{minWO} bodov</strong> (minimálny zápis) — alebo daj <em>čiarku</em>.
-            Ak v hode nepadla žiadna bodujúca kocka, z aktuálneho skóre sa odpočíta
-            <strong className="ks-text-accent"> −{Math.abs(penalty).toLocaleString('sk-SK')} bodov</strong>.
-            Nad <strong className="ks-gold">{(target - minWO).toLocaleString('sk-SK')} bodov</strong> nastáva <em className="ks-gold">koncovka</em> —
-            treba dohodiť presne do cieľa.
-          </p>
-          <p className="ks-body ks-cream leading-relaxed mt-2">
-            {overshoot === 'Hod sa neuznáva'
-              ? 'Ak hod prekročí cieľ (alebo v koncovke netrafí presne nad cieľ), nič sa nezapíše a hráč hádže znova.'
-              : 'Ak hod prekročí cieľ (alebo v koncovke netrafí presne), body sa nezapočítajú a zapíše sa čiarka.'}
-            {' '}Hráč, ktorý dosiahne cieľ, vyhrá na konci kola; ak ho v tom istom kole dosiahne viac hráčov, je to remíza.
-            {confirm === 'Áno' && ' Presný zásah v koncovke musí skupina potvrdiť (Potvrdil / Nepotvrdil); nepotvrdený zásah sa zapíše ako čiarka.'}
-            {sixOfKind === 'Automatická výhra' && ' Šesť rovnakých kociek znamená okamžitú výhru.'}
-          </p>
-          <p className="ks-muted ks-body text-xs italic mt-3">
-            Hodnoty cieľa, minimálneho odpisu a penalizácie sa dajú upraviť v <em>Nastavenia → Úprava pravidiel</em>.
-          </p>
-        </div>
-
-        <div className="ks-mono ks-gold text-xs px-1 pt-2">BODOVÉ KOMBINÁCIE</div>
-
-        <RulesContent rules={combinationrules} />
-      </div>
-    </div>
-  );
-}
-
-function RulesContent({ rules, compact = false }) {
-  return (
-    <div className="space-y-2">
-      {rules.map(rule => (
-        <div key={rule.id}
-             className={`ks-card rounded-sm ${compact ? 'p-3' : 'p-4'} flex items-start gap-3`}>
-          <div className="flex-1">
-            <div className="flex items-baseline justify-between gap-2 mb-1">
-              <h4 className="ks-display ks-cream text-lg font-semibold">{rule.name}</h4>
-              <div className={`ks-display text-xl font-bold whitespace-nowrap ${Number(rule.points) < 0 ? 'ks-text-accent' : 'ks-gold'}`}>
-                {rule.type === 'select'
-                  ? <span className="text-sm italic">{rule.selected}</span>
-                  : `${Number(rule.points).toLocaleString('sk-SK')} b.`}
-              </div>
-            </div>
-            <p className="ks-muted text-sm leading-snug mb-2">{rule.description}</p>
-            <DiceRow dice={rule.dice} size={compact ? 20 : 24} />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 // ─── Editor pravidiel ─────────────────────────────────────────────────────
 
-function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
-  const [draft, setDraft] = useState(rules);
-  const [activeCategory, setActiveCategory] = useState(null);
-  const [editingId, setEditingId] = useState(null);
-  // Späť vo vnútri editora ide o úroveň vyššie: úprava pravidla → kategória → zoznam kategórií.
-  useBackHandler(() => {
-    if (editingId) { setEditingId(null); return; }
-    setActiveCategory(null);
-  }, !!(activeCategory || editingId));
-
-  function update(id, patch) { setDraft(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r)); }
-  function remove(id) { if (window.confirm('Vymazať toto pravidlo?')) setDraft(prev => prev.filter(r => r.id !== id)); }
-  function add() {
-    const id = 'r' + Date.now();
-    const newRule = { id, name: 'Nové pravidlo', description: 'Popis pravidla', points: 100, type: 'numeric', dice: [] };
-    setDraft(prev => [...prev, newRule]);
-    setEditingId(id);
-  }
-  function save() { onSave(draft); onBack(); }
-
-  function rulesInCategory(catId) {
-    const cat = RULE_CATEGORIES.find(c => c.id === catId);
-    if (!cat) return [];
-    return cat.ruleIds.map(id => draft.find(r => r.id === id)).filter(Boolean);
-  }
-
-  const settingrules = useMemo(() =>
-    SETTING_RULE_IDS.map(id => draft.find(r => r.id === id)).filter(Boolean),
-    [draft]);
-
-  const customrules = useMemo(() => {
-    const knownIds = new Set([...RULE_CATEGORIES.flatMap(c => c.ruleIds), ...SETTING_RULE_IDS]);
-    return draft.filter(r => !knownIds.has(r.id));
-  }, [draft]);
-
-  if (activeCategory === 'cat-settings') {
-    return (
-      <div className="min-h-screen ks-fade ks-bg pb-32">
-        <Header title="Hodnoty hry" onBack={() => setActiveCategory(null)} />
-
-        <div className="p-4 max-w-2xl mx-auto space-y-3">
-          <div className="ks-card rounded-sm p-3 ks-body text-sm ks-muted">
-            Hodnoty cieľa, prvého zápisu, penalizácie za ničnehodenie, správania pri prekročení cieľa a potvrdenia výhry. Tieto sa premietnu aj do popisu v Pravidlách hry.
-          </div>
-
-          {settingrules.map(rule => (
-            <SettingEditCard
-              key={rule.id}
-              rule={rule}
-              onUpdate={(patch) => update(rule.id, patch)}
-            />
-          ))}
-        </div>
-
-        <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
-             style={{ background: 'color-mix(in srgb, var(--ks-bg-main, #0e0c0a) 95%, transparent)' }}>
-          <div className="max-w-2xl mx-auto grid grid-cols-2 gap-2">
-            <GoldButton onClick={() => setActiveCategory(null)} variant="outline" icon={ChevronLeft}>Späť</GoldButton>
-            <GoldButton onClick={save} icon={Save}>Uložiť všetko</GoldButton>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (activeCategory) {
-    const cat = activeCategory === 'cat-custom'
-      ? { id: 'cat-custom', title: 'Vlastné pravidlá', subtitle: 'Tebou pridané pravidlá' }
-      : RULE_CATEGORIES.find(c => c.id === activeCategory);
-
-    const categoryrules = activeCategory === 'cat-custom' ? customrules : rulesInCategory(activeCategory);
-
-    return (
-      <div className="min-h-screen ks-fade ks-bg pb-32">
-        <Header title={cat.title} onBack={() => { setActiveCategory(null); setEditingId(null); }} />
-
-        <div className="p-4 max-w-2xl mx-auto space-y-3">
-          <div className="ks-card rounded-sm p-3 ks-body text-sm ks-muted">
-            {cat.subtitle}. Klepni na pravidlo pre úpravu hodnôt.
-          </div>
-
-          {categoryrules.length === 0 && (
-            <div className="ks-card rounded-sm p-6 text-center ks-muted italic ks-body">
-              Žiadne pravidlá v tejto kategórii.
-            </div>
-          )}
-
-          {categoryrules.map(rule => (
-            <RuleEditCard
-              key={rule.id}
-              rule={rule}
-              isEditing={editingId === rule.id}
-              onEdit={() => setEditingId(editingId === rule.id ? null : rule.id)}
-              onUpdate={(patch) => update(rule.id, patch)}
-              onRemove={() => remove(rule.id)}
-            />
-          ))}
-
-          {activeCategory === 'cat-custom' && (
-            <button onClick={add}
-              className="ks-press ks-card w-full p-3 rounded-sm flex items-center justify-center gap-2 border-dashed">
-              <ListPlus size={18} className="ks-gold" />
-              <span className="ks-display ks-gold">Pridať vlastné pravidlo</span>
-            </button>
-          )}
-        </div>
-
-        <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
-             style={{ background: 'color-mix(in srgb, var(--ks-bg-main, #0e0c0a) 95%, transparent)' }}>
-          <div className="max-w-2xl mx-auto grid grid-cols-2 gap-2">
-            <GoldButton onClick={() => { setActiveCategory(null); setEditingId(null); }} variant="outline" icon={ChevronLeft}>Späť</GoldButton>
-            <GoldButton onClick={save} icon={Save}>Uložiť všetko</GoldButton>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen ks-fade ks-bg pb-32">
-      <Header title="Úprava pravidiel" onBack={onBack} />
-
-      <div className="p-4 max-w-2xl mx-auto space-y-2">
-        <div className="ks-mono ks-gold text-xs px-1 pt-2">BODOVÉ KOMBINÁCIE</div>
-
-        {RULE_CATEGORIES.map(cat => {
-          const catrules = rulesInCategory(cat.id);
-          return (
-            <button key={cat.id} onClick={() => setActiveCategory(cat.id)}
-              className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
-              <div className="w-10 h-10 rounded-sm border ks-border-accent ks-gold ks-display flex items-center justify-center text-lg font-bold">
-                {catrules.length}
-              </div>
-              <div className="flex-1">
-                <div className="ks-display ks-cream text-lg font-semibold">{cat.title}</div>
-                <div className="ks-muted text-sm">{cat.subtitle}</div>
-              </div>
-              <ChevronRight className="ks-muted" size={20} />
-            </button>
-          );
-        })}
-
-        <button onClick={() => setActiveCategory('cat-custom')}
-          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left border-dashed">
-          <div className="w-10 h-10 rounded-sm border ks-border-accent ks-gold flex items-center justify-center">
-            <ListPlus size={18} />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-lg font-semibold">Vlastné pravidlá</div>
-            <div className="ks-muted text-sm">{customrules.length} pridaných pravidiel</div>
-          </div>
-          <ChevronRight className="ks-muted" size={20} />
-        </button>
-
-        <div className="ks-mono ks-gold text-xs px-1 pt-3">NASTAVENIA HRY</div>
-
-        <button onClick={() => setActiveCategory('cat-settings')}
-          className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left border-l-4"
-          style={{ borderLeftColor: '#d4b86a' }}>
-          <div className="w-10 h-10 rounded-sm ks-gold-bg flex items-center justify-center">
-            <Settings size={18} />
-          </div>
-          <div className="flex-1">
-            <div className="ks-display ks-cream text-lg font-semibold">Hodnoty hry</div>
-            <div className="ks-muted text-sm">Cieľ · prvý zápis · koncovka · potvrdenie výhry · penalizácia</div>
-          </div>
-          <ChevronRight className="ks-muted" size={20} />
-        </button>
-      </div>
-
-      <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
-           style={{ background: 'color-mix(in srgb, var(--ks-bg-main, #0e0c0a) 95%, transparent)' }}>
-        <div className="max-w-2xl mx-auto grid grid-cols-3 gap-2">
-          <GoldButton onClick={onReset} variant="danger" icon={RotateCcw}>Reset</GoldButton>
-          <GoldButton onClick={onBack} variant="outline" icon={X}>Zrušiť</GoldButton>
-          <GoldButton onClick={save} icon={Save}>Uložiť</GoldButton>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SettingEditCard({ rule, onUpdate }) {
-  const isNumeric = rule.type === 'numeric';
-  const isNeg = Number(rule.points) < 0;
-
-  return (
-    <div className="ks-card rounded-sm p-4">
-      <div className="flex items-baseline justify-between gap-3 mb-2">
-        <div className="ks-display ks-cream text-lg font-semibold">{rule.name}</div>
-      </div>
-      <p className="ks-muted text-sm leading-snug mb-3">{rule.description}</p>
-
-      {isNumeric ? (
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            value={rule.points}
-            onChange={(e) => onUpdate({ points: parseInt(e.target.value, 10) || 0 })}
-            className={`flex-1 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-display text-2xl font-semibold outline-none focus:border-amber-700 ${isNeg ? 'ks-text-accent' : 'ks-gold'}`}
-          />
-          <div className="ks-mono ks-muted text-xs">BODOV</div>
-        </div>
-      ) : (
-        <select
-          value={rule.selected}
-          onChange={(e) => onUpdate({ selected: e.target.value })}
-          className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body text-base outline-none focus:border-amber-700"
-        >
-          {(rule.options || []).map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-      )}
-    </div>
-  );
-}
-
-function RuleEditCard({ rule, isEditing, onEdit, onUpdate, onRemove }) {
-  const isNeg = Number(rule.points) < 0;
-  return (
-    <div className="ks-card rounded-sm overflow-hidden">
-      <div className="flex items-center gap-3 p-3" onClick={onEdit}>
-        <div className="flex-1 cursor-pointer">
-          <div className="ks-display ks-cream text-lg font-semibold">{rule.name}</div>
-          <div className={`text-xs italic ${isNeg ? 'ks-text-accent' : 'ks-muted'}`}>
-            {rule.type === 'select' ? rule.selected : `${rule.points} bodov`}
-          </div>
-        </div>
-        <DiceRow dice={rule.dice?.slice(0, 6)} size={18} />
-        <button aria-label="Upraviť" onClick={(e) => { e.stopPropagation(); onEdit(); }} className="ks-press ks-gold p-1">
-          <Pencil size={16} />
-        </button>
-      </div>
-
-      {isEditing && (
-        <div className="border-t ks-border-sub p-3 space-y-3 ks-fade">
-          <Field label="Názov">
-            <input value={rule.name} onChange={(e) => onUpdate({ name: e.target.value })}
-              className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
-          </Field>
-          <Field label="Popis">
-            <textarea value={rule.description} onChange={(e) => onUpdate({ description: e.target.value })} rows={2}
-              className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700 resize-none" />
-          </Field>
-
-          <Field label="Typ pravidla">
-            <select value={rule.type}
-              onChange={(e) => {
-                const newType = e.target.value;
-                if (newType === 'select') {
-                  onUpdate({ type: 'select', options: rule.options || ['Možnosť 1', 'Možnosť 2'], selected: rule.selected || (rule.options?.[0] || 'Možnosť 1') });
-                } else onUpdate({ type: 'numeric' });
-              }}
-              className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700">
-              <option value="numeric">Číselné (pevný počet bodov)</option>
-              <option value="select">Výber zo zoznamu</option>
-            </select>
-          </Field>
-
-          {rule.type === 'numeric' ? (
-            <Field label="Body (môže byť aj záporné)">
-              <input type="number" value={rule.points}
-                onChange={(e) => onUpdate({ points: parseInt(e.target.value, 10) || 0 })}
-                className={`w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-display text-xl font-semibold outline-none focus:border-amber-700 ${isNeg ? 'ks-text-accent' : 'ks-gold'}`} />
-            </Field>
-          ) : (
-            <>
-              <Field label="Aktívna možnosť">
-                <select value={rule.selected} onChange={(e) => onUpdate({ selected: e.target.value })}
-                  className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700">
-                  {(rule.options || []).map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              </Field>
-              <Field label="Možnosti (oddelené čiarkou)">
-                <input value={(rule.options || []).join(', ')}
-                  onChange={(e) => {
-                    const opts = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                    const sel = opts.includes(rule.selected) ? rule.selected : (opts[0] || '');
-                    onUpdate({ options: opts, selected: sel });
-                  }}
-                  className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
-              </Field>
-            </>
-          )}
-
-          <Field label="Kocky (piktogramy)">
-            <DicePicker dice={rule.dice || []} onChange={(d) => onUpdate({ dice: d })} />
-          </Field>
-
-          <button onClick={onRemove} className="ks-press ks-text-accent ks-mono text-xs flex items-center gap-1">
-            <Trash2 size={14} /> Vymazať pravidlo
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Field({ label, children }) {
-  return (
-    <div>
-      <div className="ks-mono ks-gold text-xs mb-1.5">{label.toUpperCase()}</div>
-      {children}
-    </div>
-  );
-}
-
-function DicePicker({ dice, onChange }) {
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2 min-h-[36px] p-2 rounded-sm border ks-border-sub bg-stone-950/40">
-        {dice.length === 0 && <span className="ks-muted text-sm italic">Žiadne kocky</span>}
-        {dice.map((d, i) => (
-          <button key={i} aria-label={`Odstrániť kocku ${d}`} onClick={() => onChange(dice.filter((_, idx) => idx !== i))}
-            className="ks-press ks-gold relative">
-            <DiceIcon value={d} size={26} />
-          </button>
-        ))}
-      </div>
-      <div className="flex gap-1.5">
-        {[1,2,3,4,5,6].map(v => (
-          <button key={v} aria-label={`Pridať kocku ${v}`} onClick={() => dice.length < 6 && onChange([...dice, v])}
-            className="ks-press ks-cream hover:text-amber-300 p-1.5 border ks-border-sub rounded-sm">
-            <DiceIcon value={v} size={22} />
-          </button>
-        ))}
-        {dice.length > 0 && (
-          <button onClick={() => onChange([])}
-            className="ks-press ml-auto ks-text-accent ks-mono text-xs px-2">
-            VYMAZAŤ
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ─── Archív ───────────────────────────────────────────────────────────────
-
-function ArchiveScreen({ tournaments, onBack, onView, onDelete, readOnly }) {
-  return (
-    <div className="min-h-screen ks-fade pb-8">
-      <Header title={readOnly ? 'Archív turnajov' : 'Editácia archívu'} onBack={onBack} />
-      <div className="p-4 max-w-2xl mx-auto">
-        {!readOnly && (
-          <div className="ks-card rounded-sm p-3 mb-3 ks-body text-xs ks-muted italic flex items-start gap-2">
-            <Edit3 size={14} className="ks-gold shrink-0 mt-0.5" />
-            <div>Klepni na turnaj pre úpravu skóre, víťaza alebo kôl. Mazanie cez tlačidlo dolu.</div>
-          </div>
-        )}
-        {tournaments.length === 0 ? (
-          <div className="ks-card rounded-sm p-8 text-center">
-            <ArchiveIcon className="ks-gold mx-auto opacity-40" size={48} />
-            <p className="ks-muted ks-body mt-3 italic">Zatiaľ žiadne turnaje v archíve.</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {tournaments.map(t => <ArchiveItem key={t.id} t={t} onView={() => onView(t)} onDelete={() => onDelete(t.id)} readOnly={readOnly} />)}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ArchiveItem({ t, onView, onDelete, readOnly }) {
-  if (!t || !Array.isArray(t.players) || !Array.isArray(t.rounds) || t.players.length === 0) return <SafeTournamentFallback title="Poškodený turnaj v archíve" />;
-  const totals = computeTotals(t.rounds, t.players.length);
-  const winnerArr = t.winner === null || t.winner === undefined
-    ? []
-    : (Array.isArray(t.winner) ? t.winner : [t.winner]);
-  const winnerLabel = winnerArr.length === 0
-    ? null
-    : (winnerArr.length === 1
-        ? t.players[winnerArr[0]]
-        : `Remíza: ${winnerArr.map(i => t.players[i]).join(', ')}`);
-  const target = t.targetScore || 10000;
-  const duration = formatDuration(t.date, t.finishedAt);
-
-  return (
-    <div className="ks-card rounded-sm overflow-hidden">
-      <button onClick={onView} className="ks-press w-full p-4 text-left flex items-center gap-3">
-        <div className={`w-12 h-12 rounded-sm flex items-center justify-center
-          ${t.status === 'finished' ? 'ks-gold-bg' : 'border ks-border-sub ks-muted'}`}>
-          {t.status === 'finished' ? <Trophy size={22} /> : <X size={22} />}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="ks-display ks-cream text-lg font-semibold truncate">
-            {winnerLabel
-              ? <>{winnerArr.length > 1 ? '' : 'Víťaz: '}<span className="ks-gold">{winnerLabel}</span></>
-              : <span className="italic ks-muted">Nedokončený turnaj</span>}
-          </div>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <Calendar size={11} className="ks-muted" />
-            <div className="ks-mono ks-muted text-xs truncate">
-              {formatDateTime(t.date)}{duration ? ` · ${duration}` : ''}
-            </div>
-          </div>
-          <div className="ks-muted text-xs truncate mt-0.5">
-            {t.players.length} hráčov · do {target.toLocaleString('sk-SK')} · {t.players.join(' · ')}
-          </div>
-        </div>
-        <ChevronRight className="ks-muted" size={20} />
-      </button>
-      <div className="border-t border-amber-900/20 px-4 py-2 flex items-center justify-between">
-        <div className="ks-mono ks-gold text-sm">
-          {Math.max(...totals).toLocaleString('sk-SK')} bodov
-        </div>
-        {!readOnly && (
-          <button onClick={onDelete} className="ks-press ks-text-accent text-xs ks-mono flex items-center gap-1">
-            <Trash2 size={12} /> VYMAZAŤ
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMode, onToggleScoreMode, selectedSkin }) {
-  if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback title="Poškodený turnaj v archíve" />;
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(null);
-  // Späť počas úprav najprv zruší úpravy (rovnako ako tlačidlo Späť v hlavičke).
-  useBackHandler(() => { setDraft(null); setEditing(false); }, editing);
-
-  function startEdit() {
-    setDraft({
-      players: [...tournament.players],
-      rounds: (tournament.rounds || []).map(r => [...r]),
-      winner: tournament.winner,
-      targetScore: tournament.targetScore || 10000,
-      winnerTouched: false,
-    });
-    setEditing(true);
-  }
-
-  function cancelEdit() {
-    setDraft(null);
-    setEditing(false);
-  }
-
-  function saveEdit() {
-    const edited = {
-      ...tournament,
-      players: draft.players,
-      rounds: draft.rounds,
-      targetScore: draft.targetScore,
-      pendingDecision: null,
-      // potvrdenia viazané na kolá, ktoré už neexistujú, sa zahodia
-      _confirmedDetailed: Array.isArray(tournament._confirmedDetailed)
-        ? tournament._confirmedDetailed.filter(c => c.round < draft.rounds.length)
-        : tournament._confirmedDetailed,
-    };
-    const computed = computeWinners(edited);
-    // Ručne zvolený víťaz má prednosť; inak sa víťaz prepočíta zo súčtov.
-    const winners = draft.winnerTouched
-      ? (draft.winner === null || draft.winner === undefined ? [] : (Array.isArray(draft.winner) ? draft.winner : [draft.winner]))
-      : (computed.valid ? computed.winners : []);
-    const winner = winners.length === 0 ? null : (winners.length === 1 ? winners[0] : [...winners].sort((a, b) => a - b));
-    const status = winner !== null ? 'finished' : (tournament.status === 'finished' ? 'aborted' : tournament.status);
-    onUpdate({
-      players: edited.players,
-      rounds: edited.rounds,
-      targetScore: edited.targetScore,
-      _confirmedDetailed: edited._confirmedDetailed,
-      _validatedTotals: computeTotals(edited.rounds, edited.players.length),
-      winner,
-      status,
-      finishedAt: tournament.finishedAt || (status !== 'active' ? new Date().toISOString() : undefined),
-    });
-    setEditing(false);
-    setDraft(null);
-  }
-
-  function updateCell(roundIdx, playerIdx, newValue) {
-    setDraft(prev => {
-      const rounds = prev.rounds.map(r => [...r]);
-      while (rounds.length <= roundIdx) {
-        rounds.push(new Array(prev.players.length).fill(null));
-      }
-      rounds[roundIdx][playerIdx] = newValue;
-      return { ...prev, rounds };
-    });
-  }
-
-  function addRound() {
-    setDraft(prev => ({
-      ...prev,
-      rounds: [...prev.rounds, new Array(prev.players.length).fill(null)],
-    }));
-  }
-
-  function removeRound(idx) {
-    if (!window.confirm(`Vymazať kolo ${idx + 1}?`)) return;
-    setDraft(prev => ({
-      ...prev,
-      rounds: prev.rounds.filter((_, i) => i !== idx),
-    }));
-  }
-
-  function setWinner(playerIdx) {
-    setDraft(prev => {
-      const cur = prev.winner;
-      const arr = cur === null || cur === undefined
-        ? []
-        : (Array.isArray(cur) ? [...cur] : [cur]);
-      const idx = arr.indexOf(playerIdx);
-      if (idx >= 0) arr.splice(idx, 1);
-      else arr.push(playerIdx);
-      const newWinner = arr.length === 0 ? null : (arr.length === 1 ? arr[0] : arr.sort((a,b)=>a-b));
-      return { ...prev, winner: newWinner, winnerTouched: true };
-    });
-  }
-
-  const display = editing && draft ? draft : tournament;
-  const totals = computeTotals(display.rounds, display.players.length);
-  const target = display.targetScore || 10000;
-  const duration = formatDuration(tournament.date, tournament.finishedAt);
-
-  const winnerComputation = useMemo(() => {
-    if (tournament.status !== 'finished') return null;
-    return computeWinners({
-      ...display,
-      _confirmedDetailed: tournament._confirmedDetailed,
-      rules: tournament.rules,
-    });
-  }, [display, tournament]);
-
-  const declaredWinners = display.winner === null || display.winner === undefined
-    ? []
-    : (Array.isArray(display.winner) ? [...display.winner] : [display.winner]);
-
-  const hasDiscrepancy = winnerComputation && (() => {
-    if (winnerComputation.winners.length !== declaredWinners.length) return true;
-    const a = [...winnerComputation.winners].sort();
-    const b = [...declaredWinners].sort();
-    return !a.every((v, i) => v === b[i]);
-  })();
-
-  return (
-    <div className="min-h-screen ks-fade ks-bg pb-32">
-      <Header title="Detail turnaja" onBack={editing ? cancelEdit : onBack}
-        right={
-          <div className="flex items-center gap-2">
-            {!editing && (
-              <button
-                onClick={onToggleScoreMode}
-                className="ks-press ks-gold p-1.5 rounded-sm border border-amber-700/40 hover:bg-amber-900/20"
-                title={scoreDisplayMode === 'delta' ? 'Prepnúť na kumulatívne' : 'Prepnúť na prípisy'}
-                aria-label={scoreDisplayMode === 'delta' ? 'Prepnúť na kumulatívne' : 'Prepnúť na prípisy'}
-              >
-                {scoreDisplayMode === 'delta'
-                  ? <Sigma size={16} />
-                  : <Layers size={16} />}
-              </button>
-            )}
-            {editing || readOnly ? null : (
-              <button onClick={startEdit} className="ks-press ks-gold flex items-center gap-1 text-xs ks-mono">
-                <Edit3 size={14} /> UPRAVIŤ
-              </button>
-            )}
-          </div>
-        }
-      />
-      <div className="p-4 max-w-2xl mx-auto space-y-4">
-        <div className="ks-card rounded-sm p-5 text-center">
-          {tournament.status === 'finished' && display.winner !== null && display.winner !== undefined ? (() => {
-            const winnerArr = Array.isArray(display.winner) ? display.winner : [display.winner];
-            const isDraw = winnerArr.length > 1;
-            return (
-              <>
-                <Crown className="ks-gold mx-auto" size={40} />
-                <div className="ks-mono ks-gold text-xs mt-2">{isDraw ? `REMÍZA · ${winnerArr.length} VÍŤAZI` : 'VÍŤAZ'}</div>
-                <div className="space-y-1.5 mt-1">
-                  {winnerArr.map(idx => (
-                    <div key={idx}>
-                      <div className="ks-display ks-cream text-2xl font-bold">{display.players[idx]}</div>
-                      <div className="ks-display ks-gold text-xl">{totals[idx].toLocaleString('sk-SK')}</div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            );
-          })() : (
-            <div className="ks-muted italic">{tournament.status === 'aborted' ? 'Zrušený turnaj' : 'Nedokončený turnaj'}</div>
-          )}
-
-          <div className="mt-4 pt-4 border-t ks-border-sub grid grid-cols-2 gap-3 text-left">
-            <div>
-              <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Play size={10} /> ZAČIATOK</div>
-              <div className="ks-body ks-cream text-sm mt-0.5">{formatDateTime(tournament.date)}</div>
-            </div>
-            <div>
-              <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Check size={10} /> KONIEC</div>
-              <div className="ks-body ks-cream text-sm mt-0.5">
-                {tournament.finishedAt ? formatDateTime(tournament.finishedAt) : '—'}
-              </div>
-            </div>
-            {duration && (
-              <div className="col-span-2">
-                <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Clock size={10} /> TRVANIE</div>
-                <div className="ks-body ks-cream text-sm mt-0.5">{duration}</div>
-              </div>
-            )}
-            <div>
-              <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Target size={10} /> CIEĽ</div>
-              {editing ? (
-                <select
-                  value={draft.targetScore}
-                  onChange={(e) => setDraft(prev => ({ ...prev, targetScore: Number(e.target.value) }))}
-                  aria-label="Cieľové skóre turnaja"
-                  className="ks-body ks-cream text-sm mt-0.5 bg-transparent border ks-border-sub rounded-sm px-1 py-0.5"
-                >
-                  {[...new Set([...TARGET_OPTIONS.map(o => o.value), draft.targetScore])].map(v => (
-                    <option key={v} value={v} style={{ color: '#111' }}>{v.toLocaleString('sk-SK')} b.</option>
-                  ))}
-                </select>
-              ) : (
-                <div className="ks-body ks-cream text-sm mt-0.5">{target.toLocaleString('sk-SK')} b.</div>
-              )}
-            </div>
-            <div>
-              <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Users size={10} /> HRÁČI</div>
-              <div className="ks-body ks-cream text-sm mt-0.5">{display.players.length}</div>
-            </div>
-          </div>
-        </div>
-
-        {hasDiscrepancy && winnerComputation && (
-          <div className="ks-card rounded-sm p-3 border-2 border-red-700/60 bg-red-950/30">
-            <div className="flex items-start gap-2">
-              <AlertTriangle size={20} className="ks-text-accent shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <div className="ks-mono ks-text-accent text-xs tracking-widest mb-1">⚠ NEZHODA V URČENÍ VÍŤAZA</div>
-                <div className="ks-body ks-cream text-sm leading-snug">
-                  Hlavička uvádza:{' '}
-                  <strong className="ks-gold">
-                    {declaredWinners.length === 0 ? '—' : declaredWinners.map(i => display.players[i]).join(', ')}
-                  </strong>
-                  <br/>
-                  Súčty kôl však dávajú:{' '}
-                  <strong className="ks-gold">
-                    {winnerComputation.winners.length === 0
-                      ? '— (nikto nedosiahol cieľ)'
-                      : winnerComputation.winners.map(i => `${display.players[i]} (${(totals[i] || 0).toLocaleString('sk-SK')})`).join(', ')}
-                  </strong>
-                </div>
-                {winnerComputation.errors.length > 0 && (
-                  <div className="ks-body ks-text-accent text-xs mt-2">
-                    {winnerComputation.errors.join(' · ')}
-                  </div>
-                )}
-                {!readOnly && (
-                  <div className="ks-body ks-text-accent text-xs mt-2 italic">
-                    Použi tlačidlo UPRAVIŤ na opravu zoznamu víťazov.
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {!editing && (
-          <div>
-            <div className="ks-mono ks-gold text-xs mb-2">FINÁLNA TABUĽKA</div>
-            <Standings players={display.players} totals={totals} target={target} />
-          </div>
-        )}
-
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <div className="ks-mono ks-gold text-xs">{editing ? 'ÚPRAVA TABUĽKY' : 'HISTÓRIA KÔL'}</div>
-            {editing && (
-              <button onClick={addRound} className="ks-press ks-gold ks-mono text-xs flex items-center gap-1">
-                <Plus size={12} /> PRIDAŤ KOLO
-              </button>
-            )}
-          </div>
-          {editing ? (
-            <EditableScoreTable
-              players={draft.players}
-              rounds={draft.rounds}
-              totals={totals}
-              target={target}
-              winner={draft.winner}
-              onChangeCell={updateCell}
-              onRemoveRound={removeRound}
-              onSetWinner={setWinner}
-            />
-          ) : (
-            <ScoreTable
-              tournament={{ ...display, currentRound: -1 }}
-              totals={totals}
-              highlightPlayer={display.winner ?? -1}
-              highlightVariant="winner"
-              target={target}
-              displayMode={scoreDisplayMode}
-              onToggleMode={onToggleScoreMode}
-              hideModeToolbar={true}
-            />
-          )}
-        </div>
-      </div>
-
-      {editing && (
-        <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
-             style={{ background: 'color-mix(in srgb, var(--ks-bg-main, #0e0c0a) 95%, transparent)' }}>
-          <div className="max-w-2xl mx-auto grid grid-cols-2 gap-2">
-            <GoldButton onClick={cancelEdit} variant="outline" icon={X}>Zrušiť</GoldButton>
-            <GoldButton onClick={saveEdit} icon={Save}>Uložiť zmeny</GoldButton>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // Bunka editora archívu: počas písania drží surový text, hodnotu uloží až pri
 // opustení poľa alebo Enter. Neplatný text vráti pôvodnú hodnotu.
-function ScoreCellInput({ value, onCommit, className }) {
-  const [text, setText] = useState(formatScoreCell(value));
-  const [invalid, setInvalid] = useState(false);
-  useEffect(() => { setText(formatScoreCell(value)); setInvalid(false); }, [value]);
-  function commit() {
-    const res = parseScoreCell(text);
-    if (!res.ok) { setInvalid(true); setText(formatScoreCell(value)); return; }
-    setInvalid(false);
-    if (res.value !== value) onCommit(res.value);
-    else setText(formatScoreCell(value));
-  }
-  return (
-    <input
-      value={text}
-      inputMode="text"
-      onChange={(e) => { setText(e.target.value); setInvalid(false); }}
-      onBlur={commit}
-      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } }}
-      placeholder="·"
-      aria-invalid={invalid}
-      title="Číslo (napr. 500, -1000), — alebo prázdne"
-      className={`${className} ${invalid ? 'border-red-700' : ''}`}
-    />
-  );
-}
 
-function EditableScoreTable({ players, rounds, totals, target, winner, onChangeCell, onRemoveRound, onSetWinner }) {
-
-  return (
-    <div className="ks-card rounded-sm overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse" style={{ tableLayout: 'fixed', minWidth: `${36 + Math.max(players.length, 1) * Math.max(80, 300 / Math.max(players.length, 1))}px` }}>
-          <colgroup>
-            <col style={{ width: 36 }} />
-            {players.map((_, i) => (<col key={i} style={{ width: `${100 / (players.length + 0.25)}%`, minWidth: `${Math.max(80, 300 / Math.max(players.length, 1))}px` }} />))}
-            <col style={{ width: 36 }} />
-          </colgroup>
-          <thead>
-            <tr className="border-b ks-border-sub">
-              <th className="ks-mono ks-muted text-xs font-normal py-2 px-2 text-center sticky left-0" style={{ width: 36, background: 'var(--ks-sticky-bg, rgba(14,12,10,0.97))' }}>K</th>
-              {players.map((p, i) => (
-                <th key={i} className="ks-display ks-cream py-2 px-1 text-sm font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis">{p}</th>
-              ))}
-              <th style={{ width: 36 }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rounds.map((round, rIdx) => (
-              <tr key={rIdx} className="border-b border-amber-900/15">
-                <td className="ks-mono ks-muted text-xs py-1.5 px-2 text-center sticky left-0" style={{ background: 'var(--ks-sticky-bg, rgba(14,12,10,0.97))' }}>{rIdx + 1}</td>
-                {players.map((_, pIdx) => {
-                  const v = round[pIdx];
-                  return (
-                    <td key={pIdx} className="p-0.5">
-                      <ScoreCellInput
-                        value={v}
-                        onCommit={(nv) => onChangeCell(rIdx, pIdx, nv)}
-                        className={`w-full bg-stone-950/40 border ks-border-sub rounded-sm px-2 py-1 ks-display text-center text-sm outline-none focus:border-amber-700 ${
-                          v === 'dash' ? 'ks-muted' : (typeof v === 'number' && v < 0 ? 'ks-text-accent' : 'ks-cream')
-                        }`}
-                      />
-                    </td>
-                  );
-                })}
-                <td className="text-center">
-                  <button aria-label="Vymazať kolo" onClick={() => onRemoveRound(rIdx)}
-                    className="ks-press ks-text-accent hover:ks-text-accent p-1">
-                    <Trash2 size={12} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="border-t-2 ks-border-accent">
-              <td className="ks-mono ks-gold text-xs py-2 px-2 text-center sticky left-0" style={{ background: 'var(--ks-sticky-bg2, rgba(10,8,6,0.98))' }}>∑</td>
-              {totals.map((t, i) => {
-                const reached = t >= target;
-                const winnerSet = winner === null || winner === undefined
-                  ? new Set()
-                  : (Array.isArray(winner) ? new Set(winner) : new Set([winner]));
-                const isWinner = winnerSet.has(i);
-                return (
-                  <td key={i} className="text-center py-2 px-2">
-                    <button onClick={() => onSetWinner(i)}
-                      className={`ks-press w-full ks-display text-base font-bold rounded-sm py-1 px-2 ${
-                        isWinner ? 'ks-gold-bg'
-                        : reached ? 'ks-gold border border-amber-700/40'
-                        : t < 0 ? 'ks-text-accent' : 'ks-cream'
-                      }`}>
-                      {isWinner && <Crown size={12} className="inline mr-1" />}
-                      {t.toLocaleString('sk-SK')}
-                    </button>
-                  </td>
-                );
-              })}
-              <td></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-      <div className="p-2 border-t border-amber-900/20 ks-muted text-xs italic text-center ks-body">
-        Klepni na bunku pre úpravu · Klepni na súčet pre nastavenie víťaza · Číslo, „—" alebo prázdne pre vymazanie
-      </div>
-    </div>
-  );
-}

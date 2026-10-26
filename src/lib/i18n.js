@@ -60,6 +60,41 @@ const T = {
     'game.winner': 'VÍŤAZ',
     'game.draw': 'REMÍZA',
     'game.custom': 'Vlastná hodnota…',
+    'game.playerN': 'Hráč {n}',
+    'game.addFromThrow': 'PRIDAJ BODY Z HODU',
+    'game.customPlaceholder': 'Vlastná hodnota',
+    'game.addBtn': 'Pridaj',
+    'game.adding': 'PRÁVE PRIPISUJEŠ',
+    'game.dashChip': '— čiarka',
+    'game.addHint': 'Pridaj body alebo čiarku z hodu nižšie…',
+    'game.commit': 'Zapísať',
+    'game.editButtons': 'UPRAVIŤ TLAČIDLÁ',
+    'game.dashBtn': 'ČIARKA',
+    'game.dashHint': 'Hod bez zápisu (— pomlčka)',
+    'game.penaltyHint': 'Nič nehodené (penalizácia)',
+    'game.rules': 'Pravidlá',
+    'game.toggle.toCumulative': 'Prepnúť na kumulatívne',
+    'game.toggle.toDelta': 'Prepnúť na prípisy',
+    'game.undo': 'VRÁTIŤ POSLEDNÝ ZÁPIS',
+    'game.undo.armed': 'ŤUKNI ZNOVA PRE VRÁTENIE',
+    'game.undo.aria': 'Vrátiť posledný zápis',
+    'game.undo.aria.armed': 'Potvrdiť vrátenie posledného zápisu',
+    'game.six': '6 ROVNAKÝCH = VÝHRA',
+    'game.six.armed': 'ŤUKNI ZNOVA: VÝHRA {name}',
+    'game.six.aria': 'Šesť rovnakých kociek – automatická výhra',
+    'game.six.aria.armed': 'Potvrdiť výhru hráča {name} – šesť rovnakých',
+    'toast.turn': 'Na rade: {name}',
+    'toast.dashRequired': 'Musíš potvrdiť ničnehodením (čiarka)!',
+    'toast.undone': 'Posledný zápis bol vrátený.',
+    'toast.undoConflict': 'Medzitým zapisovalo iné zariadenie – posledný zápis sa už nedá vrátiť.',
+    'toast.penaltyAlone': 'Penalizácia {penalty} sa nedá kombinovať s inými bodmi.',
+    'toast.reachedTarget': '{name} dosiahol cieľ {target}! Kolo sa dohrá a hra skončí.',
+    'toast.exactRethrow': 'Koncovka — treba presne {n} bodov. Hod sa neuznáva, hádž znova.',
+    'toast.exactDash': 'Koncovka — treba presne {n} bodov. Automatická čiarka!',
+    'toast.minEntry': 'Každý zápis musí byť aspoň {min} bodov, alebo daj čiarku.',
+    'toast.overRethrow': 'Prekročenie {target} – hod sa neuznáva, hádž znova.',
+    'toast.overDash': 'Prekročenie {target} – automatická čiarka!',
+    'toast.mult50': 'Hodnota musí byť násobok 50 (50, 100, 150…)',
 
     // Nastavenia
     'settings.title': 'Nastavenia',
@@ -192,6 +227,41 @@ const T = {
     'game.winner': 'WINNER',
     'game.draw': 'DRAW',
     'game.custom': 'Custom value…',
+    'game.playerN': 'Player {n}',
+    'game.addFromThrow': 'ADD POINTS FROM THE THROW',
+    'game.customPlaceholder': 'Custom value',
+    'game.addBtn': 'Add',
+    'game.adding': 'ADDING NOW',
+    'game.dashChip': '— pass',
+    'game.addHint': 'Add points or a pass from the throw below…',
+    'game.commit': 'Record',
+    'game.editButtons': 'EDIT BUTTONS',
+    'game.dashBtn': 'PASS',
+    'game.dashHint': 'Throw with no score (— dash)',
+    'game.penaltyHint': 'Nothing thrown (penalty)',
+    'game.rules': 'Rules',
+    'game.toggle.toCumulative': 'Switch to cumulative',
+    'game.toggle.toDelta': 'Switch to per-turn',
+    'game.undo': 'UNDO LAST ENTRY',
+    'game.undo.armed': 'TAP AGAIN TO UNDO',
+    'game.undo.aria': 'Undo last entry',
+    'game.undo.aria.armed': 'Confirm undoing the last entry',
+    'game.six': '6 OF A KIND = WIN',
+    'game.six.armed': 'TAP AGAIN: {name} WINS',
+    'game.six.aria': 'Six of a kind – instant win',
+    'game.six.aria.armed': 'Confirm win for {name} – six of a kind',
+    'toast.turn': 'Up now: {name}',
+    'toast.dashRequired': 'You must confirm the empty throw (pass)!',
+    'toast.undone': 'Last entry was undone.',
+    'toast.undoConflict': 'Another device recorded in the meantime – the last entry can no longer be undone.',
+    'toast.penaltyAlone': 'Penalty {penalty} can\'t be combined with other points.',
+    'toast.reachedTarget': '{name} reached the target {target}! The round will be finished and the game ends.',
+    'toast.exactRethrow': 'Endgame — exactly {n} points needed. Throw doesn\'t count, throw again.',
+    'toast.exactDash': 'Endgame — exactly {n} points needed. Automatic pass!',
+    'toast.minEntry': 'Each entry must be at least {min} points, or record a pass.',
+    'toast.overRethrow': 'Over {target} – throw doesn\'t count, throw again.',
+    'toast.overDash': 'Over {target} – automatic pass!',
+    'toast.mult50': 'Value must be a multiple of 50 (50, 100, 150…)',
 
     // Settings
     'settings.title': 'Settings',
@@ -270,9 +340,21 @@ const T = {
 
 export const LangContext = createContext('sk');
 
+// t('toast.turn', { name: 'Jano' }) → doplní {name} v preklade
+export function translate(lang, key, vars) {
+  const text = T[lang]?.[key] ?? T.sk[key] ?? key;
+  if (!vars) return text;
+  return text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+}
+
 export function useT() {
   const lang = useContext(LangContext);
-  return (key) => T[lang]?.[key] ?? T.sk[key] ?? key;
+  return (key, vars) => translate(lang, key, vars);
+}
+
+// Formátovanie čísel podľa jazyka (1 000 vs 1,000)
+export function numberLocale(lang) {
+  return lang === 'en' ? 'en-GB' : 'sk-SK';
 }
 
 export function useLang() {
