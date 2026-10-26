@@ -1,10 +1,3 @@
-/* ── Google Fonts ──────────────────────────────────────────────────────────
-   Presunuté zo STYLES JS reťazca — CSS @import je spájaný buildtoolom
-   a prehliadač ho cachuje samostatne. font-display:swap zabraňuje FOIT.
-   Preconnect hinty sú v index.html.
-   ──────────────────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Crimson+Pro:wght@300;400;500;600&family=Bebas+Neue&family=Caveat+Brush&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

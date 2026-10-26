@@ -104,7 +104,8 @@ jobs:
           KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
-        run: gradle assembleRelease --no-daemon
+        # APK na priamu inštaláciu + AAB, ktorý vyžaduje Google Play
+        run: gradle assembleRelease bundleRelease --no-daemon
 
       - name: ✅ Verify release APK signature and certificate
         if: ${{ inputs.build_type == 'release' }}
@@ -126,6 +127,15 @@ jobs:
           path: android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: 📤 Upload AAB artifact (Google Play)
+        if: ${{ inputs.build_type == 'release' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: kocky-sveta-release-aab
+          path: android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 90
 
       - name: 🧹 Remove temporary signing material
         if: ${{ always() && inputs.build_type == 'release' }}

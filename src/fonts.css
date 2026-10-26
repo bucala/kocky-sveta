@@ -1,0 +1,23 @@
+/* Písma sú súčasťou aplikácie (nie Google Fonts): žiadne blokovanie prvého
+   vykreslenia externým CSS a fungujú aj offline a v Android aplikácii.
+   Iba latin + latin-ext (slovenčina); rezy podľa toho, čo appka používa. */
+@import '@fontsource/cormorant-garamond/latin-400.css';
+@import '@fontsource/cormorant-garamond/latin-ext-400.css';
+@import '@fontsource/cormorant-garamond/latin-500.css';
+@import '@fontsource/cormorant-garamond/latin-ext-500.css';
+@import '@fontsource/cormorant-garamond/latin-600.css';
+@import '@fontsource/cormorant-garamond/latin-ext-600.css';
+@import '@fontsource/cormorant-garamond/latin-700.css';
+@import '@fontsource/cormorant-garamond/latin-ext-700.css';
+@import '@fontsource/crimson-pro/latin-300.css';
+@import '@fontsource/crimson-pro/latin-ext-300.css';
+@import '@fontsource/crimson-pro/latin-400.css';
+@import '@fontsource/crimson-pro/latin-ext-400.css';
+@import '@fontsource/crimson-pro/latin-500.css';
+@import '@fontsource/crimson-pro/latin-ext-500.css';
+@import '@fontsource/crimson-pro/latin-600.css';
+@import '@fontsource/crimson-pro/latin-ext-600.css';
+@import '@fontsource/bebas-neue/latin-400.css';
+@import '@fontsource/bebas-neue/latin-ext-400.css';
+@import '@fontsource/caveat-brush/latin-400.css';
+@import '@fontsource/caveat-brush/latin-ext-400.css';
