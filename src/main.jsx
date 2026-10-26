@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
+import { Capacitor } from '@capacitor/core';
 import { ErrorBoundary } from './atoms/ErrorBoundary.jsx';
 import './index.css';
 import './skin-effects.css';
@@ -39,21 +40,31 @@ if (typeof window !== 'undefined' && !window.storage) {
 }
 
 // ─── PWA — Service Worker registrácia ──────────────────────────────────
-// Registruje sa len v produkčnom buildi cez https / http,
-// NIE v Android WebView (file://) — tam SW aj tak nefunguje a robí len chyby.
-const isHttpContext = typeof window !== 'undefined' &&
-  (window.location.protocol === 'https:' || window.location.protocol === 'http:');
-
-if ('serviceWorker' in navigator && import.meta.env.PROD && isHttpContext) {
+// Iba v produkčnom webe. V Android aplikácii (Capacitor, origin https://localhost)
+// sa neregistruje – súbory sú priamo v APK a service worker tam nemá zmysel.
+if ('serviceWorker' in navigator && import.meta.env.PROD && !Capacitor.isNativePlatform()) {
   window.addEventListener('load', () => {
     const swUrl = `${import.meta.env.BASE_URL}sw.js`;
-    navigator.serviceWorker.register(swUrl).then((reg) => {
-      console.log('SW registered:', reg.scope);
-    }).catch((err) => {
+    navigator.serviceWorker.register(swUrl).catch((err) => {
       console.warn('SW registration failed:', err);
     });
   });
 }
+
+// Po deployi môže otvorená stránka žiadať starý lazy chunk (napr. Excel), ktorý
+// už na serveri nie je. Vite vtedy vyvolá 'vite:preloadError' – stránku raz
+// obnovíme, čím sa načíta nová verzia.
+window.addEventListener('vite:preloadError', (event) => {
+  try {
+    if (sessionStorage.getItem('ks-reloaded-after-deploy')) return;
+    sessionStorage.setItem('ks-reloaded-after-deploy', '1');
+  } catch { /* bez sessionStorage len obnovíme */ }
+  event.preventDefault();
+  window.location.reload();
+});
+window.addEventListener('load', () => {
+  setTimeout(() => { try { sessionStorage.removeItem('ks-reloaded-after-deploy'); } catch { /* ignore */ } }, 10000);
+});
 
 // ─── Potlačenie kontextového menu (dlhý stisk na mobile) ────────────────
 document.addEventListener('contextmenu', (e) => {
