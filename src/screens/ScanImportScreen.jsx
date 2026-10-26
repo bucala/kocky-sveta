@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Capacitor } from '@capacitor/core';
 import {
   ChevronLeft, Camera, Upload, Loader2, AlertCircle,
   Check, Pencil, Trash2, Plus, RefreshCw
@@ -6,7 +7,9 @@ import {
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-function compressImage(file, maxPx = 1600, quality = 0.85) {
+// 1568 px na dlhšej strane je maximum, ktoré model využije; väčšia fotka
+// by sa len zbytočne posielala a stála viac tokenov.
+function compressImage(file, maxPx = 1568, quality = 0.82) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -34,8 +37,14 @@ function compressImage(file, maxPx = 1600, quality = 0.85) {
   });
 }
 
+// V Android aplikácii beží web na https://localhost, kde žiadny server nie je,
+// preto volá produkčný endpoint na Verceli priamo.
+const SCAN_URL = Capacitor.isNativePlatform()
+  ? (import.meta.env.VITE_SCAN_API_URL || 'https://kocky-sveta.vercel.app/api/scan')
+  : '/api/scan';
+
 async function callScanAPI(base64, mimeType) {
-  const res = await fetch('/api/scan', {
+  const res = await fetch(SCAN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ image: base64, mimeType }),
@@ -46,8 +55,7 @@ async function callScanAPI(base64, mimeType) {
     json = JSON.parse(text);
   } catch {
     throw new Error(
-      `Skenovací server nie je dostupný (HTTP ${res.status}). ` +
-      `Skontroluj, či je app nasadená na Vercel (nie GitHub Pages).`
+      `Skenovací server nie je dostupný (HTTP ${res.status}). Skontroluj pripojenie na internet.`
     );
   }
   if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
@@ -186,10 +194,21 @@ export function ScanImportScreen({ onBack, onImport }) {
   const [rounds, setRounds] = useState([]);
   const [targetScore, setTargetScore] = useState(10000);
 
-  const processFile = async (file) => {
+  const [pendingFile, setPendingFile] = useState(null);
+
+  // Výber fotky ju ešte neodošle – najprv náhľad a potvrdenie (šetrí kredit
+  // aj súkromie, fotka opúšťa zariadenie až po ťuknutí na „Rozpoznať“).
+  const processFile = (file) => {
     if (!file) return;
     setError('');
     setPreview(URL.createObjectURL(file));
+    setPendingFile(file);
+    setPhase('confirm');
+  };
+
+  const sendPendingFile = async () => {
+    const file = pendingFile;
+    if (!file) return;
     setPhase('scanning');
 
     try {
@@ -215,6 +234,7 @@ export function ScanImportScreen({ onBack, onImport }) {
   const reset = () => {
     setPhase('pick');
     setPreview(null);
+    setPendingFile(null);
     setError('');
     setScanResult(null);
     setPlayers([]);
@@ -269,8 +289,39 @@ export function ScanImportScreen({ onBack, onImport }) {
           </div>
 
           <div className="ks-muted text-xs text-center max-w-xs leading-relaxed">
-            Fotka sa spracuje cez AI (Anthropic Claude Vision).
-            Pred importom budeš mať možnosť opraviť chyby.
+            Fotku pred odoslaním uvidíš a potvrdíš. Pred importom môžeš výsledok opraviť.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── confirm ──
+  if (phase === 'confirm') {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <div className="flex items-center gap-3 px-4 pt-[max(14px,env(safe-area-inset-top))] pb-3 border-b ks-border-sub">
+          <button onClick={reset} className="ks-press p-1" aria-label="Späť"><ChevronLeft size={22} className="ks-gold" /></button>
+          <h1 className="ks-display ks-gold text-2xl font-bold flex-1">Odoslať fotku?</h1>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center gap-5 px-6 py-6">
+          {preview && (
+            <img src={preview} alt="náhľad fotky" className="max-h-72 max-w-full rounded-sm object-contain border ks-border-sub" />
+          )}
+          <div className="ks-body ks-cream text-sm max-w-sm leading-relaxed">
+            Fotka sa odošle cez náš server na rozpoznanie službe Anthropic (Claude, USA).
+            My ju neukladáme. Anthropic ju spracuje podľa svojich zásad ochrany súkromia
+            (<span className="ks-gold">anthropic.com/legal/privacy</span>). Na fotke by mala byť iba tabuľka, bez tvárí.
+          </div>
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            <button onClick={sendPendingFile}
+              className="ks-gold-bg w-full py-3.5 rounded-sm ks-mono font-bold text-black ks-press flex items-center justify-center gap-2 text-sm">
+              <Check size={18} /> ROZPOZNAŤ TABUĽKU
+            </button>
+            <button onClick={reset}
+              className="border ks-border-sub w-full py-3 rounded-sm ks-mono font-bold ks-gold ks-press flex items-center justify-center gap-2 text-sm">
+              <RefreshCw size={16} /> VYBRAŤ INÚ FOTKU
+            </button>
           </div>
         </div>
       </div>
