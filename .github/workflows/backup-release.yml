@@ -1,0 +1,50 @@
+name: 🗄️ Záloha – GitHub release
+
+# Spustí sa po pushnutí tagu v tvare v<verzia>-backup-<dátum>.
+# Overí stav (testy + build) a vytvorí release so zálohou zdrojákov,
+# webového buildu, uloženého APK a kontrolnými súčtami.
+on:
+  push:
+    tags: ['v*-backup-*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npx vitest run
+      - run: npm run build
+
+      - name: 📦 Zabaliť zálohu
+        run: |
+          mkdir -p out
+          tag="$GITHUB_REF_NAME"
+          git archive --format=tar.gz --prefix="kocky-sveta-$tag/" -o "out/kocky-sveta-source-$tag.tar.gz" HEAD
+          git bundle create "out/kocky-sveta-full-history-$tag.bundle" --all
+          (cd dist && zip -qr "../out/kocky-sveta-web-dist-$tag.zip" .)
+          if [ -f android/app/release/app-release.apk ]; then
+            cp android/app/release/app-release.apk "out/kocky-sveta-committed-apk-$tag.apk"
+          fi
+          (cd out && sha256sum * > SHA256SUMS.txt)
+          ls -la out
+
+      - name: 🚀 Vytvoriť release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" out/* \
+            --title "Záloha pred refaktorom – $GITHUB_REF_NAME" \
+            --notes-file .github/backup-release-notes.md \
+            --prerelease
