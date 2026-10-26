@@ -30,6 +30,65 @@ export const DEFAULT_RULES = [
   { id: 'r18', name: 'Režim potvrdenia víťazstva', description: 'Určuje, či sa po presnom dosiahnutí cieľa ešte vyžaduje overenie víťazstva v ďalšom ťahu ničnehodením (čiarkou), alebo sa výhra uzná okamžite po dokončení kola.', points: 0, type: 'select', options: ['Áno', 'Nie'], selected: 'Áno', dice: [] },
 ];
 
+// Anglické texty predvolených pravidiel, kategórií a volieb. Používajú sa len
+// na zobrazenie a len keď používateľ text pravidla neupravil; uložené hodnoty
+// (napr. selected: 'Áno') zostávajú slovenské, lebo s nimi pracuje herná logika.
+const RULE_TEXT_EN = {
+  r1:  ['One', 'A single die showing 1'],
+  r2:  ['Five', 'A single die showing 5'],
+  r3:  ['Three ones', 'Three of a kind: ones'],
+  r4:  ['Three twos', 'Three of a kind: twos'],
+  r5:  ['Three threes', 'Three of a kind: threes'],
+  r6:  ['Three fours', 'Three of a kind: fours'],
+  r7:  ['Three fives', 'Three of a kind: fives'],
+  r8:  ['Three sixes', 'Three of a kind: sixes'],
+  r9:  ['Straight 1–6', 'Six dice in a row: 1·2·3·4·5·6'],
+  r10: ['Three pairs', 'Three different pairs of dice'],
+  r11: ['Four of a kind', 'Four identical dice'],
+  r12: ['Five of a kind', 'Five identical dice'],
+  r13: ['Six of a kind', 'All six dice the same'],
+  r14: ['Minimum entry', 'Every score entry must be at least 300 points. A pass (—) can always be recorded instead.'],
+  r15: ['Target score', 'Default target when creating a tournament. Classic game to 10,000, short game to 5,000; any other value (at least 2,000) is offered as a custom target.'],
+  r16: ['Nothing thrown', 'A throw with no scoring combination – no one, no five, no three of a kind, no straight. The penalty is subtracted from the current score (1,000 points by default).'],
+  r17: ['Overshooting the target', 'If a throw would exceed the target score, the points are not recorded. "Automatic pass" records a pass (—) and the turn moves on; "Throw does not count" records nothing and the same player throws again.'],
+  r18: ['Win confirmation mode', 'Whether reaching the target exactly still needs the win to be verified by a nothing-thrown pass on the next turn, or the win counts as soon as the round is finished.'],
+};
+const CATEGORY_TEXT_EN = {
+  'cat-basic':   ['Single dice values', 'Single dice'],
+  'cat-trio':    ['Three of a kind', 'Three identical dice'],
+  'cat-special': ['Special combinations', 'Straight and three pairs'],
+  'cat-multi':   ['Multiples', 'Four, five, six of a kind'],
+};
+const OPTION_TEXT_EN = {
+  'Dvojnásobok trojice': 'Double the three of a kind',
+  'Štvornásobok trojice': 'Four times the three of a kind',
+  'Pevná hodnota': 'Fixed value',
+  'Automatická výhra': 'Instant win',
+  'Pevná hodnota 3000': 'Fixed value 3,000',
+  'Automatická čiarka': 'Automatic pass',
+  'Hod sa neuznáva': 'Throw does not count',
+  'Áno': 'Yes',
+  'Nie': 'No',
+};
+
+export function ruleText(rule, lang) {
+  const def = DEFAULT_RULES.find(r => r.id === rule?.id);
+  const en = lang === 'en' && def && RULE_TEXT_EN[rule.id];
+  return {
+    name: en && rule.name === def.name ? en[0] : rule?.name,
+    description: en && rule.description === def.description ? en[1] : rule?.description,
+  };
+}
+
+export function categoryText(cat, lang) {
+  const en = lang === 'en' && CATEGORY_TEXT_EN[cat?.id];
+  return { title: en ? en[0] : cat?.title, subtitle: en ? en[1] : cat?.subtitle };
+}
+
+export function optionText(option, lang) {
+  return (lang === 'en' && OPTION_TEXT_EN[option]) || option;
+}
+
 export function mergeRulesWithDefaults(saved) {
   if (!Array.isArray(saved)) return DEFAULT_RULES;
   const byId = new Map(saved.filter(r => r && r.id).map(r => [r.id, r]));

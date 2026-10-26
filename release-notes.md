@@ -1,6 +1,8 @@
 ## Čo je nové v 1.7.5
 
 - 👑 „6 rovnakých“ sa po druhom ťuknutí objaví v „Práve pripisuješ“ ako Víťazstvo 6 rovnakých kociek; výhru zapíšeš tlačidlom Zapísať.
+- 🇬🇧 Angličtina aj v nastaveniach, archíve, štatistikách, pravidlách a oknách počas hry.
+- 🧪 Automatické testy pravidiel hry v prehliadači.
 
 ---
 

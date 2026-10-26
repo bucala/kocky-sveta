@@ -3,12 +3,15 @@ import { Trash2, Save, X, ChevronLeft, Settings, RotateCcw, ChevronRight, ListPl
 import { useBackHandler } from '../hooks/useBackHandler.js';
 import { showConfirm } from '../components/Dialogs.jsx';
 import { DiceIcon, DiceRow, GoldButton, Header } from '../components/ui.jsx';
-import { RULE_CATEGORIES, SETTING_RULE_IDS } from '../constants/rules.js';
+import { RULE_CATEGORIES, SETTING_RULE_IDS, ruleText, categoryText, optionText } from '../constants/rules.js';
 import { MIN_TARGET } from '../constants/game.js';
+import { useT, useLang, numberLocale } from '../lib/i18n.js';
 
 // ─── Pravidlá: prehľad a editor ─────────────────────────────────────────
 
 export function RulesView({ rules, onBack }) {
+  const t = useT();
+  const loc = numberLocale(useLang());
   const minWO     = Number(rules.find(r => r.id === 'r14')?.points) || 300;
   const target    = Number(rules.find(r => r.id === 'r15')?.points) || 10000;
   const penalty   = Number(rules.find(r => r.id === 'r16')?.points) || -1000;
@@ -23,36 +26,33 @@ export function RulesView({ rules, onBack }) {
 
   return (
     <div className="min-h-screen ks-fade pb-8">
-      <Header title="Pravidlá hry" onBack={onBack} />
+      <Header title={t('rules.title')} onBack={onBack} />
       <div className="p-4 max-w-2xl mx-auto space-y-3">
         <div className="ks-card rounded-sm p-5">
           <p className="ks-body ks-cream leading-relaxed">
-            Cieľom hry <em className="ks-gold">Kocky</em> je byť prvým hráčom, ktorý dosiahne cieľové skóre —
-            <strong className="ks-gold"> {target.toLocaleString('sk-SK')}</strong> v klasickej hre alebo
-            <strong className="ks-gold"> 5 000</strong> v skrátenej. Hráči sa striedajú v hodoch šesťkociek.
+            {t('rules.intro.a')}<em className="ks-gold">Kocky</em>{t('rules.intro.b')}
+            <strong className="ks-gold"> {target.toLocaleString(loc)}</strong>{t('rules.intro.c')}
+            <strong className="ks-gold"> {t('rules.intro.short')}</strong>{t('rules.intro.d')}
           </p>
           <p className="ks-body ks-cream leading-relaxed mt-2">
-            Každý zápis musí byť aspoň <strong className="ks-gold">{minWO} bodov</strong> (minimálny zápis) — alebo daj <em>čiarku</em>.
-            Ak v hode nepadla žiadna bodujúca kocka, z aktuálneho skóre sa odpočíta
-            <strong className="ks-text-accent"> −{Math.abs(penalty).toLocaleString('sk-SK')} bodov</strong>.
-            Nad <strong className="ks-gold">{(target - minWO).toLocaleString('sk-SK')} bodov</strong>
-            {target !== 5000 && <> (pri hre do 5 000 nad <strong className="ks-gold">{(5000 - minWO).toLocaleString('sk-SK')}</strong>)</>} nastáva <em className="ks-gold">koncovka</em> —
-            treba dohodiť presne do cieľa.
+            {t('rules.minEntry.a')}<strong className="ks-gold">{t('rules.pointsN', { n: minWO })}</strong>{t('rules.minEntry.b')}<em>{t('rules.minEntry.dash')}</em>{t('rules.penalty.a')}
+            <strong className="ks-text-accent"> −{t('rules.pointsN', { n: Math.abs(penalty).toLocaleString(loc) })}</strong>{t('rules.endgame.a')}<strong className="ks-gold">{t('rules.pointsN', { n: (target - minWO).toLocaleString(loc) })}</strong>
+            {target !== 5000 && <>{t('rules.endgame.short')}<strong className="ks-gold">{(5000 - minWO).toLocaleString(loc)}</strong>)</>}{t('rules.endgame.b')}<em className="ks-gold">{t('rules.endgame.word')}</em>{t('rules.endgame.c')}
           </p>
           <p className="ks-body ks-cream leading-relaxed mt-2">
             {overshoot === 'Hod sa neuznáva'
-              ? 'Ak hod prekročí cieľ (alebo v koncovke netrafí presne nad cieľ), nič sa nezapíše a hráč hádže znova.'
-              : 'Ak hod prekročí cieľ (alebo v koncovke netrafí presne), body sa nezapočítajú a zapíše sa čiarka.'}
-            {' '}Hráč, ktorý dosiahne cieľ, vyhrá na konci kola; ak ho v tom istom kole dosiahne viac hráčov, je to remíza.
-            {confirm === 'Áno' && ' Presný zásah v koncovke musí skupina potvrdiť (Potvrdil / Nepotvrdil); nepotvrdený zásah sa zapíše ako čiarka.'}
-            {sixOfKind === 'Automatická výhra' && ' Šesť rovnakých kociek znamená okamžitú výhru.'}
+              ? t('rules.overshoot.rethrow')
+              : t('rules.overshoot.dash')}
+            {' '}{t('rules.winRound')}
+            {confirm === 'Áno' && t('rules.confirm')}
+            {sixOfKind === 'Automatická výhra' && t('rules.sixOfKind')}
           </p>
           <p className="ks-muted ks-body text-xs italic mt-3">
-            Hodnoty cieľa, minimálneho odpisu a penalizácie sa dajú upraviť v <em>Nastavenia → Úprava pravidiel</em>.
+            {t('rules.hint.a')}<em>{t('rules.hint.path')}</em>{t('rules.hint.b')}
           </p>
         </div>
 
-        <div className="ks-mono ks-gold text-xs px-1 pt-2">BODOVÉ KOMBINÁCIE</div>
+        <div className="ks-mono ks-gold text-xs px-1 pt-2">{t('rules.combos')}</div>
 
         <RulesContent rules={combinationrules} />
       </div>
@@ -61,6 +61,9 @@ export function RulesView({ rules, onBack }) {
 }
 
 export function RulesContent({ rules, compact = false }) {
+  const t = useT();
+  const lang = useLang();
+  const loc = numberLocale(lang);
   return (
     <div className="space-y-2">
       {rules.map(rule => (
@@ -68,14 +71,14 @@ export function RulesContent({ rules, compact = false }) {
              className={`ks-card rounded-sm ${compact ? 'p-3' : 'p-4'} flex items-start gap-3`}>
           <div className="flex-1">
             <div className="flex items-baseline justify-between gap-2 mb-1">
-              <h4 className="ks-display ks-cream text-lg font-semibold">{rule.name}</h4>
+              <h4 className="ks-display ks-cream text-lg font-semibold">{ruleText(rule, lang).name}</h4>
               <div className={`ks-display text-xl font-bold whitespace-nowrap ${Number(rule.points) < 0 ? 'ks-text-accent' : 'ks-gold'}`}>
                 {rule.type === 'select'
-                  ? <span className="text-sm italic">{rule.selected}</span>
-                  : `${Number(rule.points).toLocaleString('sk-SK')} b.`}
+                  ? <span className="text-sm italic">{optionText(rule.selected, lang)}</span>
+                  : t('rules.pts', { n: Number(rule.points).toLocaleString(loc) })}
               </div>
             </div>
-            <p className="ks-muted text-sm leading-snug mb-2">{rule.description}</p>
+            <p className="ks-muted text-sm leading-snug mb-2">{ruleText(rule, lang).description}</p>
             <DiceRow dice={rule.dice} size={compact ? 20 : 24} />
           </div>
         </div>
@@ -85,6 +88,8 @@ export function RulesContent({ rules, compact = false }) {
 }
 
 export function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
+  const t = useT();
+  const lang = useLang();
   const [draft, setDraft] = useState(rules);
   const [activeCategory, setActiveCategory] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -95,7 +100,7 @@ export function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
   }, !!(activeCategory || editingId));
 
   function update(id, patch) { setDraft(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r)); }
-  async function remove(id) { if (await showConfirm('Pravidlo sa odstráni.', { title: 'Vymazať pravidlo?', confirmLabel: 'Vymazať', danger: true })) setDraft(prev => prev.filter(r => r.id !== id)); }
+  async function remove(id) { if (await showConfirm(t('rules.remove.msg'), { title: t('rules.remove.title'), confirmLabel: t('rules.remove.confirm'), danger: true })) setDraft(prev => prev.filter(r => r.id !== id)); }
   function add() {
     const id = 'r' + Date.now();
     const newRule = { id, name: 'Nové pravidlo', description: 'Popis pravidla', points: 100, type: 'numeric', dice: [] };
@@ -122,11 +127,11 @@ export function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
   if (activeCategory === 'cat-settings') {
     return (
       <div className="min-h-screen ks-fade ks-bg pb-32">
-        <Header title="Hodnoty hry" onBack={() => setActiveCategory(null)} />
+        <Header title={t('rules.values.title')} onBack={() => setActiveCategory(null)} />
 
         <div className="p-4 max-w-2xl mx-auto space-y-3">
           <div className="ks-card rounded-sm p-3 ks-body text-sm ks-muted">
-            Hodnoty cieľa, prvého zápisu, penalizácie za ničnehodenie, správania pri prekročení cieľa a potvrdenia výhry. Tieto sa premietnu aj do popisu v Pravidlách hry.
+            {t('rules.values.hint')}
           </div>
 
           {settingrules.map(rule => (
@@ -141,8 +146,8 @@ export function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
         <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
              style={{ background: 'color-mix(in srgb, var(--ks-bg-main, #0e0c0a) 95%, transparent)' }}>
           <div className="max-w-2xl mx-auto grid grid-cols-2 gap-2">
-            <GoldButton onClick={() => setActiveCategory(null)} variant="outline" icon={ChevronLeft}>Späť</GoldButton>
-            <GoldButton onClick={save} icon={Save}>Uložiť všetko</GoldButton>
+            <GoldButton onClick={() => setActiveCategory(null)} variant="outline" icon={ChevronLeft}>{t('back')}</GoldButton>
+            <GoldButton onClick={save} icon={Save}>{t('rules.saveAll')}</GoldButton>
           </div>
         </div>
       </div>
@@ -151,8 +156,8 @@ export function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
 
   if (activeCategory) {
     const cat = activeCategory === 'cat-custom'
-      ? { id: 'cat-custom', title: 'Vlastné pravidlá', subtitle: 'Tebou pridané pravidlá' }
-      : RULE_CATEGORIES.find(c => c.id === activeCategory);
+      ? { id: 'cat-custom', title: t('rules.custom.title'), subtitle: t('rules.custom.subtitle') }
+      : categoryText(RULE_CATEGORIES.find(c => c.id === activeCategory), lang);
 
     const categoryrules = activeCategory === 'cat-custom' ? customrules : rulesInCategory(activeCategory);
 
@@ -162,12 +167,12 @@ export function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
 
         <div className="p-4 max-w-2xl mx-auto space-y-3">
           <div className="ks-card rounded-sm p-3 ks-body text-sm ks-muted">
-            {cat.subtitle}. Klepni na pravidlo pre úpravu hodnôt.
+            {cat.subtitle}{t('rules.cat.hint')}
           </div>
 
           {categoryrules.length === 0 && (
             <div className="ks-card rounded-sm p-6 text-center ks-muted italic ks-body">
-              Žiadne pravidlá v tejto kategórii.
+              {t('rules.cat.empty')}
             </div>
           )}
 
@@ -186,7 +191,7 @@ export function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
             <button onClick={add}
               className="ks-press ks-card w-full p-3 rounded-sm flex items-center justify-center gap-2 border-dashed">
               <ListPlus size={18} className="ks-gold" />
-              <span className="ks-display ks-gold">Pridať vlastné pravidlo</span>
+              <span className="ks-display ks-gold">{t('rules.custom.add')}</span>
             </button>
           )}
         </div>
@@ -194,8 +199,8 @@ export function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
         <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
              style={{ background: 'color-mix(in srgb, var(--ks-bg-main, #0e0c0a) 95%, transparent)' }}>
           <div className="max-w-2xl mx-auto grid grid-cols-2 gap-2">
-            <GoldButton onClick={() => { setActiveCategory(null); setEditingId(null); }} variant="outline" icon={ChevronLeft}>Späť</GoldButton>
-            <GoldButton onClick={save} icon={Save}>Uložiť všetko</GoldButton>
+            <GoldButton onClick={() => { setActiveCategory(null); setEditingId(null); }} variant="outline" icon={ChevronLeft}>{t('back')}</GoldButton>
+            <GoldButton onClick={save} icon={Save}>{t('rules.saveAll')}</GoldButton>
           </div>
         </div>
       </div>
@@ -204,10 +209,10 @@ export function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
 
   return (
     <div className="min-h-screen ks-fade ks-bg pb-32">
-      <Header title="Úprava pravidiel" onBack={onBack} />
+      <Header title={t('rules.editor.title')} onBack={onBack} />
 
       <div className="p-4 max-w-2xl mx-auto space-y-2">
-        <div className="ks-mono ks-gold text-xs px-1 pt-2">BODOVÉ KOMBINÁCIE</div>
+        <div className="ks-mono ks-gold text-xs px-1 pt-2">{t('rules.combos')}</div>
 
         {RULE_CATEGORIES.map(cat => {
           const catrules = rulesInCategory(cat.id);
@@ -218,8 +223,8 @@ export function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
                 {catrules.length}
               </div>
               <div className="flex-1">
-                <div className="ks-display ks-cream text-lg font-semibold">{cat.title}</div>
-                <div className="ks-muted text-sm">{cat.subtitle}</div>
+                <div className="ks-display ks-cream text-lg font-semibold">{categoryText(cat, lang).title}</div>
+                <div className="ks-muted text-sm">{categoryText(cat, lang).subtitle}</div>
               </div>
               <ChevronRight className="ks-muted" size={20} />
             </button>
@@ -232,13 +237,13 @@ export function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
             <ListPlus size={18} />
           </div>
           <div className="flex-1">
-            <div className="ks-display ks-cream text-lg font-semibold">Vlastné pravidlá</div>
-            <div className="ks-muted text-sm">{customrules.length} pridaných pravidiel</div>
+            <div className="ks-display ks-cream text-lg font-semibold">{t('rules.custom.title')}</div>
+            <div className="ks-muted text-sm">{t('rules.custom.count', { n: customrules.length })}</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
 
-        <div className="ks-mono ks-gold text-xs px-1 pt-3">NASTAVENIA HRY</div>
+        <div className="ks-mono ks-gold text-xs px-1 pt-3">{t('rules.settings.section')}</div>
 
         <button onClick={() => setActiveCategory('cat-settings')}
           className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left border-l-4"
@@ -247,8 +252,8 @@ export function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
             <Settings size={18} />
           </div>
           <div className="flex-1">
-            <div className="ks-display ks-cream text-lg font-semibold">Hodnoty hry</div>
-            <div className="ks-muted text-sm">Cieľ · prvý zápis · koncovka · potvrdenie výhry · penalizácia</div>
+            <div className="ks-display ks-cream text-lg font-semibold">{t('rules.values.title')}</div>
+            <div className="ks-muted text-sm">{t('rules.values.sub')}</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
@@ -257,9 +262,9 @@ export function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
       <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
            style={{ background: 'color-mix(in srgb, var(--ks-bg-main, #0e0c0a) 95%, transparent)' }}>
         <div className="max-w-2xl mx-auto grid grid-cols-3 gap-2">
-          <GoldButton onClick={onReset} variant="danger" icon={RotateCcw}>Reset</GoldButton>
-          <GoldButton onClick={onBack} variant="outline" icon={X}>Zrušiť</GoldButton>
-          <GoldButton onClick={save} icon={Save}>Uložiť</GoldButton>
+          <GoldButton onClick={onReset} variant="danger" icon={RotateCcw}>{t('rules.reset')}</GoldButton>
+          <GoldButton onClick={onBack} variant="outline" icon={X}>{t('cancel')}</GoldButton>
+          <GoldButton onClick={save} icon={Save}>{t('save')}</GoldButton>
         </div>
       </div>
     </div>
@@ -267,15 +272,17 @@ export function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
 }
 
 export function SettingEditCard({ rule, onUpdate }) {
+  const t = useT();
+  const lang = useLang();
   const isNumeric = rule.type === 'numeric';
   const isNeg = Number(rule.points) < 0;
 
   return (
     <div className="ks-card rounded-sm p-4">
       <div className="flex items-baseline justify-between gap-3 mb-2">
-        <div className="ks-display ks-cream text-lg font-semibold">{rule.name}</div>
+        <div className="ks-display ks-cream text-lg font-semibold">{ruleText(rule, lang).name}</div>
       </div>
-      <p className="ks-muted text-sm leading-snug mb-3">{rule.description}</p>
+      <p className="ks-muted text-sm leading-snug mb-3">{ruleText(rule, lang).description}</p>
 
       {isNumeric ? (
         <div className="flex items-center gap-2">
@@ -287,7 +294,7 @@ export function SettingEditCard({ rule, onUpdate }) {
             min={rule.id === 'r15' ? MIN_TARGET : undefined}
             className={`flex-1 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-display text-2xl font-semibold outline-none focus:border-amber-700 ${isNeg ? 'ks-text-accent' : 'ks-gold'}`}
           />
-          <div className="ks-mono ks-muted text-xs">BODOV</div>
+          <div className="ks-mono ks-muted text-xs">{t('rules.pointsUnit')}</div>
         </div>
       ) : (
         <select
@@ -295,7 +302,7 @@ export function SettingEditCard({ rule, onUpdate }) {
           onChange={(e) => onUpdate({ selected: e.target.value })}
           className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body text-base outline-none focus:border-amber-700"
         >
-          {(rule.options || []).map(o => <option key={o} value={o}>{o}</option>)}
+          {(rule.options || []).map(o => <option key={o} value={o}>{optionText(o, lang)}</option>)}
         </select>
       )}
     </div>
@@ -303,34 +310,36 @@ export function SettingEditCard({ rule, onUpdate }) {
 }
 
 export function RuleEditCard({ rule, isEditing, onEdit, onUpdate, onRemove }) {
+  const t = useT();
+  const lang = useLang();
   const isNeg = Number(rule.points) < 0;
   return (
     <div className="ks-card rounded-sm overflow-hidden">
       <div className="flex items-center gap-3 p-3" onClick={onEdit}>
         <div className="flex-1 cursor-pointer">
-          <div className="ks-display ks-cream text-lg font-semibold">{rule.name}</div>
+          <div className="ks-display ks-cream text-lg font-semibold">{ruleText(rule, lang).name}</div>
           <div className={`text-xs italic ${isNeg ? 'ks-text-accent' : 'ks-muted'}`}>
-            {rule.type === 'select' ? rule.selected : `${rule.points} bodov`}
+            {rule.type === 'select' ? optionText(rule.selected, lang) : t('rules.pointsN', { n: rule.points })}
           </div>
         </div>
         <DiceRow dice={rule.dice?.slice(0, 6)} size={18} />
-        <button aria-label="Upraviť" onClick={(e) => { e.stopPropagation(); onEdit(); }} className="ks-press ks-gold p-1">
+        <button aria-label={t('edit')} onClick={(e) => { e.stopPropagation(); onEdit(); }} className="ks-press ks-gold p-1">
           <Pencil size={16} />
         </button>
       </div>
 
       {isEditing && (
         <div className="border-t ks-border-sub p-3 space-y-3 ks-fade">
-          <Field label="Názov">
+          <Field label={t('rules.field.name')}>
             <input value={rule.name} onChange={(e) => onUpdate({ name: e.target.value })}
               className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700" />
           </Field>
-          <Field label="Popis">
+          <Field label={t('rules.field.desc')}>
             <textarea value={rule.description} onChange={(e) => onUpdate({ description: e.target.value })} rows={2}
               className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700 resize-none" />
           </Field>
 
-          <Field label="Typ pravidla">
+          <Field label={t('rules.field.type')}>
             <select value={rule.type}
               onChange={(e) => {
                 const newType = e.target.value;
@@ -339,26 +348,26 @@ export function RuleEditCard({ rule, isEditing, onEdit, onUpdate, onRemove }) {
                 } else onUpdate({ type: 'numeric' });
               }}
               className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700">
-              <option value="numeric">Číselné (pevný počet bodov)</option>
-              <option value="select">Výber zo zoznamu</option>
+              <option value="numeric">{t('rules.type.numeric')}</option>
+              <option value="select">{t('rules.type.select')}</option>
             </select>
           </Field>
 
           {rule.type === 'numeric' ? (
-            <Field label="Body (môže byť aj záporné)">
+            <Field label={t('rules.field.points')}>
               <input type="number" value={rule.points}
                 onChange={(e) => onUpdate({ points: parseInt(e.target.value, 10) || 0 })}
                 className={`w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-display text-xl font-semibold outline-none focus:border-amber-700 ${isNeg ? 'ks-text-accent' : 'ks-gold'}`} />
             </Field>
           ) : (
             <>
-              <Field label="Aktívna možnosť">
+              <Field label={t('rules.field.selected')}>
                 <select value={rule.selected} onChange={(e) => onUpdate({ selected: e.target.value })}
                   className="w-full bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-cream ks-body outline-none focus:border-amber-700">
-                  {(rule.options || []).map(o => <option key={o} value={o}>{o}</option>)}
+                  {(rule.options || []).map(o => <option key={o} value={o}>{optionText(o, lang)}</option>)}
                 </select>
               </Field>
-              <Field label="Možnosti (oddelené čiarkou)">
+              <Field label={t('rules.field.options')}>
                 <input value={(rule.options || []).join(', ')}
                   onChange={(e) => {
                     const opts = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
@@ -370,12 +379,12 @@ export function RuleEditCard({ rule, isEditing, onEdit, onUpdate, onRemove }) {
             </>
           )}
 
-          <Field label="Kocky (piktogramy)">
+          <Field label={t('rules.field.dice')}>
             <DicePicker dice={rule.dice || []} onChange={(d) => onUpdate({ dice: d })} />
           </Field>
 
           <button onClick={onRemove} className="ks-press ks-text-accent ks-mono text-xs flex items-center gap-1">
-            <Trash2 size={14} /> Vymazať pravidlo
+            <Trash2 size={14} /> {t('rules.remove.btn')}
           </button>
         </div>
       )}
@@ -393,12 +402,13 @@ export function Field({ label, children }) {
 }
 
 export function DicePicker({ dice, onChange }) {
+  const t = useT();
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2 min-h-[36px] p-2 rounded-sm border ks-border-sub bg-stone-950/40">
-        {dice.length === 0 && <span className="ks-muted text-sm italic">Žiadne kocky</span>}
+        {dice.length === 0 && <span className="ks-muted text-sm italic">{t('rules.dice.none')}</span>}
         {dice.map((d, i) => (
-          <button key={i} aria-label={`Odstrániť kocku ${d}`} onClick={() => onChange(dice.filter((_, idx) => idx !== i))}
+          <button key={i} aria-label={t('rules.dice.remove', { n: d })} onClick={() => onChange(dice.filter((_, idx) => idx !== i))}
             className="ks-press ks-gold relative">
             <DiceIcon value={d} size={26} />
           </button>
@@ -406,7 +416,7 @@ export function DicePicker({ dice, onChange }) {
       </div>
       <div className="flex gap-1.5">
         {[1,2,3,4,5,6].map(v => (
-          <button key={v} aria-label={`Pridať kocku ${v}`} onClick={() => dice.length < 6 && onChange([...dice, v])}
+          <button key={v} aria-label={t('rules.dice.add', { n: v })} onClick={() => dice.length < 6 && onChange([...dice, v])}
             className="ks-press ks-cream hover:text-amber-300 p-1.5 border ks-border-sub rounded-sm">
             <DiceIcon value={v} size={22} />
           </button>
@@ -414,7 +424,7 @@ export function DicePicker({ dice, onChange }) {
         {dice.length > 0 && (
           <button onClick={() => onChange([])}
             className="ks-press ml-auto ks-text-accent ks-mono text-xs px-2">
-            VYMAZAŤ
+            {t('rules.dice.clear')}
           </button>
         )}
       </div>

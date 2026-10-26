@@ -1,14 +1,11 @@
 name: 🗄️ Záloha – GitHub release
 
-# Spustí sa po pushnutí vetvy backup/**; tag BACKUP_TAG vytvorí GitHub pri release.
+# Spustí sa po pushnutí vetvy backup/**; tag v<verzia z package.json> vytvorí GitHub pri release.
 # Overí stav (testy + build) a vytvorí release so zálohou zdrojákov,
 # webového buildu, uloženého APK a kontrolnými súčtami.
 on:
   push:
     branches: ['backup/**']
-
-env:
-  BACKUP_TAG: v1.6.4-backup-2026-10-26
 
 permissions:
   contents: write
@@ -25,6 +22,9 @@ jobs:
         with:
           node-version: 20
           cache: npm
+
+      - name: 🏷️ Tag podľa verzie
+        run: echo "BACKUP_TAG=v$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
 
       - run: npm ci
       - run: npx vitest run
@@ -47,8 +47,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # poznámky = najnovšia sekcia release-notes.md
+          awk '/^---$/{exit} {print}' release-notes.md > out-notes.md
           gh release create "$BACKUP_TAG" out/* \
             --target "$GITHUB_SHA" \
-            --title "Záloha pred refaktorom – $BACKUP_TAG" \
-            --notes-file .github/backup-release-notes.md \
-            --prerelease
+            --title "Kocky sveta $BACKUP_TAG" \
+            --notes-file out-notes.md
