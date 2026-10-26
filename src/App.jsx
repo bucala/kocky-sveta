@@ -125,10 +125,10 @@ const DEFAULT_RULES = [
   { id: 'r11', name: 'Štyri rovnaké',    description: 'Štyri rovnaké kocky',                                   points: 0,     type: 'select', options: ['Dvojnásobok trojice', 'Pevná hodnota'], selected: 'Dvojnásobok trojice', dice: [3,3,3,3] },
   { id: 'r12', name: 'Päť rovnakých',    description: 'Päť rovnakých kociek',                                  points: 0,     type: 'select', options: ['Štvornásobok trojice', 'Pevná hodnota'], selected: 'Štvornásobok trojice', dice: [4,4,4,4,4] },
   { id: 'r13', name: 'Šesť rovnakých',   description: 'Všetkých šesť kociek rovnakých',                        points: 0,     type: 'select', options: ['Automatická výhra', 'Pevná hodnota 3000'], selected: 'Automatická výhra', dice: [5,5,5,5,5,5] },
-  { id: 'r14', name: 'Minimálny odpis (prvý zápis)', description: 'Prvý zápis hráča v turnaji musí byť aspoň 300 bodov. Hru sa dá začať aj čiarkou (—) bez bodov.', points: 300, type: 'numeric', dice: [] },
-  { id: 'r15', name: 'Cieľové skóre',    description: 'Body potrebné na výhru turnaja. Klasická hra do 10 000 alebo krátka hra do 5 000.', points: 10000, type: 'numeric', dice: [] },
-  { id: 'r16', name: 'Nič nehodené',     description: 'Hod, pri ktorom nepadla žiadna bodujúca kombinácia – ani jednotka, ani päťka, ani trojica, ani postupka. Z aktuálneho skóre sa odpočíta 1 000 bodov.', points: -1000, type: 'numeric', dice: [2,3,4,6] },
-  { id: 'r17', name: 'Prekročenie cieľa', description: 'Ak by hod prekročil cieľové skóre, body sa nezapíšu a zapíše sa automaticky čiarka (—).', points: 0, type: 'select', options: ['Automatická čiarka', 'Hod sa neuznáva'], selected: 'Automatická čiarka', dice: [] },
+  { id: 'r14', name: 'Minimálny zápis', description: 'Každý zápis bodov musí byť aspoň 300 bodov. Namiesto bodov sa dá vždy zapísať čiarka (—).', points: 300, type: 'numeric', dice: [] },
+  { id: 'r15', name: 'Cieľové skóre',    description: 'Predvolený cieľ pri zakladaní turnaja. Klasická hra do 10 000, krátka do 5 000; iná hodnota sa ponúkne ako vlastný cieľ.', points: 10000, type: 'numeric', dice: [] },
+  { id: 'r16', name: 'Nič nehodené',     description: 'Hod, pri ktorom nepadla žiadna bodujúca kombinácia – ani jednotka, ani päťka, ani trojica, ani postupka. Z aktuálneho skóre sa odpočíta penalizácia (predvolene 1 000 bodov).', points: -1000, type: 'numeric', dice: [2,3,4,6] },
+  { id: 'r17', name: 'Prekročenie cieľa', description: 'Ak by hod prekročil cieľové skóre, body sa nezapíšu. „Automatická čiarka“ zapíše čiarku (—) a ťah prejde ďalej; „Hod sa neuznáva“ nič nezapíše a ten istý hráč hádže znova.', points: 0, type: 'select', options: ['Automatická čiarka', 'Hod sa neuznáva'], selected: 'Automatická čiarka', dice: [] },
   { id: 'r18', name: 'Režim potvrdenia víťazstva', description: 'Určuje, či sa po presnom dosiahnutí cieľa ešte vyžaduje overenie víťazstva v ďalšom ťahu ničnehodením (čiarkou), alebo sa výhra uzná okamžite po dokončení kola.', points: 0, type: 'select', options: ['Áno', 'Nie'], selected: 'Áno', dice: [] },
 ];
 
@@ -545,7 +545,7 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      try { const r = await window.storage.get('rules');       if (r?.value) setrules(JSON.parse(r.value)); }        catch {}
+      try { const r = await window.storage.get('rules');       if (r?.value) setrules(mergeRulesWithDefaults(JSON.parse(r.value))); }        catch {}
       try { const dm = await window.storage.get('scoreDisplayMode'); if (dm?.value) setScoreDisplayMode(JSON.parse(dm.value)); } catch {}
       try { const tvm = await window.storage.get('tournamentViewMode'); if (tvm?.value) setTournamentViewMode(JSON.parse(tvm.value)); } catch {}
       try { const fwdm = await window.storage.get('funnyWindowsDisplayMode'); if (fwdm?.value) setFunnyWindowsDisplayMode(JSON.parse(fwdm.value)); } catch {}
@@ -1034,6 +1034,8 @@ function startTournament(players, targetScore) {
       // Úmyselne nie pod kľúčom `rules` – víťaza určuje engine vždy podľa toho,
       // kto prvý dosiahol cieľ; r18 riadi iba overovací popup presného zásahu v koncovke.
       ruleSnapshot: (rules || []).map(r => ({ id: r.id, points: r.points, selected: r.selected })),
+      // penalizácia za „nič nehodené“ (r16), vždy záporná
+      penalty: -Math.abs(Number(ruleFrom(rules, 'r16')?.points) || 1000),
     };
     setActive(newTournament);
     syncActiveNow(newTournament);
@@ -1591,7 +1593,7 @@ function startTournament(players, targetScore) {
           onLangChange={setLang}
         />
       )}
-      {view === 'newTournament' && <NewTournament onBack={() => setView('menu')} onStart={startTournament} knownPlayers={knownPlayers} onKnownPlayersChange={setKnownPlayers} />}
+      {view === 'newTournament' && <NewTournament onBack={() => setView('menu')} onStart={startTournament} knownPlayers={knownPlayers} onKnownPlayersChange={setKnownPlayers} defaultTarget={ruleFrom(rules, 'r15')?.points} />}
       {view === 'tournament' && (active ? (
          <TournamentScreen
             tournament={active} rules={rules}
@@ -1963,6 +1965,26 @@ function gameFingerprint(t) {
     t.pendingDecision ?? null, t.confirmationPendingPlayer ?? null]);
 }
 
+// Uložené pravidlá zladí s aktuálnymi predvolenými: názvy, popisy a možnosti
+// berie z kódu (opravené texty sa dostanú aj k existujúcim používateľom),
+// hodnoty a voľby nastavené používateľom zachová. Vlastné pravidlá ponechá.
+function mergeRulesWithDefaults(saved) {
+  if (!Array.isArray(saved)) return DEFAULT_RULES;
+  const byId = new Map(saved.filter(r => r && r.id).map(r => [r.id, r]));
+  const merged = DEFAULT_RULES.map(def => {
+    const own = byId.get(def.id);
+    if (!own) return def;
+    const selected = def.options && def.options.includes(own.selected) ? own.selected : def.selected;
+    return { ...def, points: own.points ?? def.points, ...(def.options ? { selected } : {}) };
+  });
+  const defaultIds = new Set(DEFAULT_RULES.map(r => r.id));
+  return [...merged, ...saved.filter(r => r && r.id && !defaultIds.has(r.id))];
+}
+
+function ruleFrom(rules, id) {
+  return (rules || []).find(r => r.id === id);
+}
+
 function isStrictMode(rules) {
   const r18 = (rules || []).find(r => r.id === 'r18');
   return !r18 || r18.selected !== 'Áno';
@@ -2044,6 +2066,12 @@ function TournamentScreen({
   if (!tournament) return <SafeTournamentFallback />;
   const target = tournament.targetScore || 10000;
   const minWO = minWriteOffOverride ?? tournament.minWriteOff ?? 300;
+  // Pravidlá z času štartu turnaja (staršie turnaje bez snímky použijú aktuálne).
+  const turnRules = tournament.ruleSnapshot || rules;
+  const penaltyValue = Number.isFinite(tournament.penalty) && tournament.penalty < 0 ? tournament.penalty : PENALTY_VALUE;
+  const penaltyLabel = `−${Math.abs(penaltyValue).toLocaleString('sk-SK')}`;
+  const overshootRejects = ruleFrom(turnRules, 'r17')?.selected === 'Hod sa neuznáva';
+  const sixOfKind = ruleFrom(turnRules, 'r13')?.selected;
   const players = Array.isArray(tournament.players) ? tournament.players : [];
   const rounds = Array.isArray(tournament.rounds) ? tournament.rounds : [];
   const { currentPlayer = 0, currentRound = 0 } = tournament;
@@ -2094,12 +2122,7 @@ function TournamentScreen({
     () => computeTotals(rounds, players.length),
     [rounds, players.length]);
 
-  const hasFirstWrite = useMemo(() =>
-    players.map((_, pIdx) => rounds.some(r => typeof r[pIdx] === 'number' && r[pIdx] >= 0)),
-    [players, rounds]);
-
   const total = totals[currentPlayer];
-  const isFirstWrite = !hasFirstWrite[currentPlayer];
   // Koncovka (nutnosť presného zásahu) platí až keď hráč PREKROČIL prah (napr. > 9700 pri minWO 300),
   // nie už na hranici (9700 presne) — tam je zvyšok (300) rovný minimálnemu zápisu, takže ide o bežné kolo.
   const isEndgame = total > target - minWO && total < target;
@@ -2158,7 +2181,7 @@ function TournamentScreen({
       showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
       return;
     }
-    if (pending.some(p => p === 'dash' || p === PENALTY_VALUE)) {
+    if (pending.some(p => p === 'dash' || p === penaltyValue)) {
       setPending([v]);
       return;
     }
@@ -2175,8 +2198,8 @@ function TournamentScreen({
       showToast('Musíš potvrdiť ničnehodením (čiarka)!', 'warn');
       return;
     }
-    if (pending.length === 1 && pending[0] === PENALTY_VALUE) return; 
-    setPending([PENALTY_VALUE]);
+    if (pending.length === 1 && pending[0] === penaltyValue) return; 
+    setPending([penaltyValue]);
   }
 
   // ─── Vrátenie posledného zápisu ──────────────────────────────────────────
@@ -2216,6 +2239,48 @@ function TournamentScreen({
     </button>
   ) : null;
 
+  // ─── Šesť rovnakých (pravidlo r13) ───────────────────────────────────────
+  // „Automatická výhra“: po potvrdení (druhé ťuknutie) hráč na ťahu vyhráva.
+  // „Pevná hodnota 3000“: pridá 3 000 bodov ako bežný hod.
+  const [sixArmed, setSixArmed] = useState(false);
+  useEffect(() => {
+    if (!sixArmed) return;
+    const id = setTimeout(() => setSixArmed(false), 4000);
+    return () => clearTimeout(id);
+  }, [sixArmed]);
+
+  function sixOfKindWin() {
+    if (!sixArmed) { setSixArmed(true); return; }
+    setSixArmed(false);
+    setPending([]);
+    onUpdate(prev => ({
+      ...prev,
+      _suddenWin: { playerIdx: prev.currentPlayer, round: prev.currentRound },
+      winner: prev.currentPlayer,
+      pendingDecision: null,
+    }));
+  }
+
+  const sixButton = sixOfKind === 'Automatická výhra' ? (
+    <button
+      type="button"
+      onClick={sixOfKindWin}
+      className={`ks-press w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-sm border text-sm ks-mono ${sixArmed ? 'ks-border-accent ks-gold bg-amber-900/20' : 'ks-border-sub ks-muted'}`}
+      aria-label={sixArmed ? `Potvrdiť výhru hráča ${players[currentPlayer]} – šesť rovnakých` : 'Šesť rovnakých kociek – automatická výhra'}
+    >
+      <Crown size={14} />
+      {sixArmed ? `ŤUKNI ZNOVA: VÝHRA ${String(players[currentPlayer] || '').toUpperCase()}` : '6 ROVNAKÝCH = VÝHRA'}
+    </button>
+  ) : sixOfKind === 'Pevná hodnota 3000' ? (
+    <button
+      type="button"
+      onClick={() => addPoints(3000)}
+      className="ks-press w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-sm border ks-border-sub ks-muted text-sm ks-mono"
+    >
+      <Crown size={14} /> 6 ROVNAKÝCH +3 000
+    </button>
+  ) : null;
+
   function removePending(idx) { setPending(prev => prev.filter((_, i) => i !== idx)); }
   function clearPending() { setPending([]); }
 
@@ -2239,11 +2304,11 @@ function TournamentScreen({
     }
 
     if (pending.some(p => p < 0)) {
-      if (pending.length > 1 || pending[0] !== PENALTY_VALUE) {
-        showToast('Penalizácia −1 000 sa nedá kombinovať s inými bodmi.', 'warn');
+      if (pending.length > 1 || pending[0] !== penaltyValue) {
+        showToast(`Penalizácia ${penaltyLabel} sa nedá kombinovať s inými bodmi.`, 'warn');
         return;
       }
-      advance(PENALTY_VALUE);
+      advance(penaltyValue);
       return;
     }
 
@@ -2284,6 +2349,11 @@ function TournamentScreen({
         }
         return;
       }
+      if (overshootRejects && pendingSum > exactNeeded) {
+        showToast(`Koncovka — treba presne ${exactNeeded} bodov. Hod sa neuznáva, hádž znova.`, 'overshoot');
+        setPending([]);
+        return;
+      }
       showToast(`Koncovka — treba presne ${exactNeeded} bodov. Automatická čiarka!`, 'overshoot');
       advance('dash');
       return;
@@ -2295,6 +2365,11 @@ function TournamentScreen({
     }
 
     if (newTotal > target) {
+      if (overshootRejects) {
+        showToast(`Prekročenie ${target.toLocaleString('sk-SK')} – hod sa neuznáva, hádž znova.`, 'overshoot');
+        setPending([]);
+        return;
+      }
       showToast(`Prekročenie ${target.toLocaleString('sk-SK')} – automatická čiarka!`, 'overshoot');
       advance('dash');
       return;
@@ -2725,7 +2800,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed ks-border-sub rounded-sm">Pridaj body alebo čiarku z hodu nižšie…</div>
             )}
             <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">Zapísať</GoldButton>
-            {undoButton}
+            {sixButton}{undoButton}
           </div>
           <div className="ks-card-sub rounded-sm p-4 flex-1">
             <div className="flex items-center justify-between mb-3">
@@ -2767,7 +2842,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
             <div className="ks-divider my-3" />
             <div className="grid grid-cols-2 gap-2">
               <button onClick={addDash} className="ks-press p-3 rounded-sm ks-dash-button border-2 border-stone-600/50 bg-gradient-to-b from-stone-900/60 to-stone-950/80 hover:brightness-125 flex items-center justify-center gap-2"><Minus size={20} className="ks-muted" /><span className="ks-mono ks-cream font-semibold">ČIARKA</span></button>
-              <button onClick={addPenalty} className="ks-press p-3 rounded-sm ks-penalty-button border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2"><Skull size={20} className="ks-text-accent" /><span className="ks-mono ks-text-accent font-semibold">−1 000</span></button>
+              <button onClick={addPenalty} className="ks-press p-3 rounded-sm ks-penalty-button border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2"><Skull size={20} className="ks-text-accent" /><span className="ks-mono ks-text-accent font-semibold">{penaltyLabel}</span></button>
             </div>
             <div className="grid grid-cols-2 gap-2 mt-4">
               <GoldButton onClick={() => setShowStandings(true)} icon={TrendingUp} variant="ghost">Priebeh hry</GoldButton>
@@ -2876,7 +2951,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">
                 Zapísať
               </GoldButton>
-              {undoButton}
+              {sixButton}{undoButton}
             </div>
           </div>
 
@@ -2916,7 +2991,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                 <button onClick={addPenalty}
                   className="ks-press p-3 rounded-sm ks-penalty-button border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2">
                   <Skull size={20} className="ks-text-accent" />
-                  <span className="ks-mono ks-text-accent font-semibold">−1 000</span>
+                  <span className="ks-mono ks-text-accent font-semibold">{penaltyLabel}</span>
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-2 mt-1">
@@ -3269,6 +3344,9 @@ function RulesView({ rules, onBack }) {
   const minWO     = Number(rules.find(r => r.id === 'r14')?.points) || 300;
   const target    = Number(rules.find(r => r.id === 'r15')?.points) || 10000;
   const penalty   = Number(rules.find(r => r.id === 'r16')?.points) || -1000;
+  const overshoot = rules.find(r => r.id === 'r17')?.selected;
+  const confirm   = rules.find(r => r.id === 'r18')?.selected;
+  const sixOfKind = rules.find(r => r.id === 'r13')?.selected;
 
   const combinationrules = RULE_CATEGORIES
     .flatMap(cat => cat.ruleIds)
@@ -3286,15 +3364,19 @@ function RulesView({ rules, onBack }) {
             <strong className="ks-gold"> 5 000</strong> v skrátenej. Hráči sa striedajú v hodoch šesťkociek.
           </p>
           <p className="ks-body ks-cream leading-relaxed mt-2">
-            Každý zápis musí byť aspoň <strong className="ks-gold">{minWO} bodov</strong> (minimálny odpis) — alebo daj <em>čiarku</em>.
-            Hru sa dá začať aj čiarkou bez bodov. Ak v hode nepadla žiadna bodujúca kocka,
-            z aktuálneho skóre sa odpočíta <strong className="ks-text-accent">−{Math.abs(penalty).toLocaleString('sk-SK')} bodov</strong>.
-            Od <strong className="ks-gold">{(target - minWO).toLocaleString('sk-SK')} bodov</strong> nastáva <em className="ks-gold">koncovka</em> —
-            treba dohodiť presne do cieľa, inak sa automaticky zapíše čiarka.
+            Každý zápis musí byť aspoň <strong className="ks-gold">{minWO} bodov</strong> (minimálny zápis) — alebo daj <em>čiarku</em>.
+            Ak v hode nepadla žiadna bodujúca kocka, z aktuálneho skóre sa odpočíta
+            <strong className="ks-text-accent"> −{Math.abs(penalty).toLocaleString('sk-SK')} bodov</strong>.
+            Nad <strong className="ks-gold">{(target - minWO).toLocaleString('sk-SK')} bodov</strong> nastáva <em className="ks-gold">koncovka</em> —
+            treba dohodiť presne do cieľa.
           </p>
           <p className="ks-body ks-cream leading-relaxed mt-2">
-            Ak hod prekročí cieľ, body sa nezapočítajú a zapíše sa čiarka. Po presnom zásahu cieľa, ak sa zapne
-            potvrdenie víťazstva, nasleduje ešte overovací ťah, v ktorom musí padnúť <em>niečohodnenie</em>.
+            {overshoot === 'Hod sa neuznáva'
+              ? 'Ak hod prekročí cieľ (alebo v koncovke netrafí presne nad cieľ), nič sa nezapíše a hráč hádže znova.'
+              : 'Ak hod prekročí cieľ (alebo v koncovke netrafí presne), body sa nezapočítajú a zapíše sa čiarka.'}
+            {' '}Hráč, ktorý dosiahne cieľ, vyhrá na konci kola; ak ho v tom istom kole dosiahne viac hráčov, je to remíza.
+            {confirm === 'Áno' && ' Presný zásah v koncovke musí skupina potvrdiť (Potvrdil / Nepotvrdil); nepotvrdený zásah sa zapíše ako čiarka.'}
+            {sixOfKind === 'Automatická výhra' && ' Šesť rovnakých kociek znamená okamžitú výhru.'}
           </p>
           <p className="ks-muted ks-body text-xs italic mt-3">
             Hodnoty cieľa, minimálneho odpisu a penalizácie sa dajú upraviť v <em>Nastavenia → Úprava pravidiel</em>.

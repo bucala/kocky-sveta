@@ -1,94 +1,52 @@
-# Pravidlá hry – technická špecifikácia
+# Pravidlá hry – ako ich aplikácia naozaj uplatňuje
 
-Tento dokument popisuje pravidlá hry v podobe, ktorú má implementovať herná logika (rules engine).
-Ide o zdroj pravdy pre výpočet výsledkov, víťazov, remíz a správania v koncovke.
+Tento dokument popisuje skutočné správanie aplikácie (verzia 1.7.2). Je zdrojom pravdy pre text
+v obrazovke Pravidlá a pre tabuľku v README. Číselné hodnoty (300, 10 000, −1 000) sú predvolené
+a dajú sa zmeniť v **Nastavenia → Úprava pravidiel**. Turnaj si pri štarte uloží snímku pravidiel
+(`ruleSnapshot`, `minWriteOff`, `penalty`, `targetScore`), takže neskoršia zmena nastavení rozohranú
+hru neovplyvní a všetky zariadenia v online hre sa správajú rovnako.
 
-## 1. Základné pojmy
+## 1. Pojmy
 
-- **Hráč** – účastník turnaja, má svoje meno a aktuálne skóre.
-- **Kolo** – riadok v tabuľke, v ktorom môže mať každý hráč jeden zápis (skóre za dané kolo).
-- **Zápis** – číslo (kladné alebo záporné) priradené konkrétnemu hráčovi v konkrétnom kole.
-- **Cieľ (target)** – cieľové skóre, štandardne 10 000 bodov.
-- **Turnaj** – sekvencia kôl, v ktorých hráči zbierajú body až do ukončenia hry.
+- **Kolo** – riadok tabuľky; každý hráč má v kole jeden zápis.
+- **Zápis** – body za ťah (kladné číslo), čiarka `—` alebo penalizácia (záporné číslo).
+- **Cieľ** – body potrebné na výhru: 10 000 (klasická hra), 5 000 (krátka hra) alebo vlastný cieľ z pravidla r15.
 
-## 2. Zápis bodov
+## 2. Zápis bodov (r14, r16)
 
-1. Každý nový zápis sa pridáva k aktuálnemu skóre hráča.
-2. Minimálny povolený zápis je 300 bodov (alebo čiarka – špeciálny prípad bez bodov).
-3. Zápis môže byť aj záporný (napr. -1000), ak pravidlá hry dovolia odčítanie bodov.
-4. Po zapísaní sa v tabuľke aktualizuje súčet (Σ) pre každého hráča.
+1. Každý zápis bodov musí byť aspoň **300** (r14). Menej sa zapísať nedá; namiesto bodov sa dá vždy zapísať čiarka.
+2. Hod, v ktorom nepadla žiadna bodujúca kombinácia, sa zapíše ako penalizácia **−1 000** (r16). Penalizácia sa nedá kombinovať s inými bodmi.
+3. V ťahu sa dá pripísať viac hodov; zapíše sa ich súčet.
+4. Posledný zápis sa dá vrátiť tlačidlom „Vrátiť posledný zápis“ (v online hre len ak medzitým nezapisovalo iné zariadenie).
 
-## 3. Stav „na ťahu“
+## 3. Prekročenie cieľa a koncovka (r17)
 
-1. V každom okamihu je na ťahu konkrétny hráč a konkrétne kolo.
-2. UI zobrazuje hráča „NA ŤAHU – KOLO X“ a aktuálne skóre daného hráča.
-3. Náhľad (preview) zobrazí, aké skóre bude mať hráč po zapísaní navrhnutého zápisu.
+1. Ak by zápis prekročil cieľ:
+   - **Automatická čiarka** (predvolené): zapíše sa čiarka a ťah prejde na ďalšieho hráča.
+   - **Hod sa neuznáva**: nič sa nezapíše a ten istý hráč hádže znova.
+2. **Koncovka** nastáva, keď má hráč **viac ako** cieľ − minimálny zápis (pri 10 000 a 300 teda nad 9 700). V koncovke treba trafiť presne do cieľa.
+   Nepresný zápis pod cieľ znamená čiarku; nad cieľ sa riadi pravidlom r17.
 
-## 4. Koncovka a cieľové skóre
+## 4. Dosiahnutie cieľa a víťaz (r18)
 
-1. Koncovka nastáva, keď niektorý hráč prvýkrát dosiahne alebo presiahne cieľové skóre (10 000) v konkrétnom kole.
-2. Rozhodujúce je **konkrétne kolo**, v ktorom sa toto stane, nie historická suma cez všetky kolá.
-3. Ak hráč v tomto kole:
-   - presne trafí cieľ (napr. 9900 → +100 = 10 000), označí sa ako kandidát na výhru,
-   - presiahne cieľ (napr. 9900 → +400 = 10 300), podľa pravidiel môže alebo nemusí byť platný kandidát (treba definovať – napr. „presiahnuť je OK“ alebo „musí byť presne 10 000“).
-4. Po tom, čo sa v kole objaví prvý kandidát, nové kolo sa **nesmie začať**, kým sa rozhodujúce kolo nedorieši.
+1. Hráč, ktorý trafí cieľ, sa stáva **dočasným kráľom**; kolo sa vždy dohrá.
+2. Na konci kola vyhráva hráč, ktorý cieľ dosiahol ako prvý (v najskoršom kole). Ak ho v tom istom kole dosiahne viac hráčov, je to **remíza**.
+3. **Režim potvrdenia víťazstva** (r18 = Áno, predvolené): presný zásah **v koncovke** musí skupina potvrdiť (Potvrdil / Nepotvrdil).
+   Potvrdený zásah sa zapíše, nepotvrdený sa zapíše ako čiarka. Pri r18 = Nie sa zásah v koncovke uzná bez potvrdenia.
+4. Víťaza určuje `computeWinners` v `src/lib/tournamentEngine.js`. Turnaj sa uzavrie, len ak sa deklarovaný a dopočítaný víťaz zhodujú.
 
-## 5. Dočasný kráľ a kandidáti
+## 5. Šesť rovnakých (r13)
 
-1. Hráč, ktorý ako prvý v danom kole dosiahne cieľ, sa stáva **dočasným kráľom** (časť UI, nie konečný stav).
-2. Dočasný kráľ je len kandidát – výhra sa potvrdzuje až po ukončení rozhodujúceho kola.
-3. Ďalší hráči v tom istom kole môžu tiež dosiahnuť cieľ:
-   - ak pravidlá dovoľujú, môžu sa stať spolu-víťazmi (remíza),
-   - alebo sa označia len ako „tiež dosiahol, ale nevyhral“, podľa nastavenia hry.
+- **Automatická výhra** (predvolené): tlačidlo „6 rovnakých = výhra“ (potvrdenie druhým ťuknutím) ukončí hru výhrou hráča na ťahu (`_suddenWin`).
+- **Pevná hodnota 3000**: tlačidlo pridá 3 000 bodov ako bežný hod.
 
-## 6. Uzamknutie kola
+## 6. Archív a štatistiky
 
-1. Ak v kole niekto dosiahne cieľ:
-   - nové kolo sa nesmie začať,
-   - hráč, ktorý má v danom kole už uznaných 10 000, **nemá vidieť preview ďalšieho zápisu** (napr. 10 100).
-2. Uzamknutie kola znamená:
-   - kolo pokračuje len dovtedy, kým všetci relevantní hráči nemajú možnosť odpovedať (napr. dohrať kolo),
-   - po ukončení tohto kola sa rozhodne o víťazovi alebo remíze,
-   - až potom je dovolené vytvoriť nové kolo.
+- Úprava turnaja v archíve po uložení prepočíta víťaza (ručne zvolený víťaz má prednosť), stav a súčty.
+- Štatistiky počítajú len dohrané hry; zrušené hry sa nerátajú.
 
-## 7. Výhra a remíza
+## 7. Kde je logika
 
-1. Po ukončení rozhodujúceho kola sa spočítajú finálne skóre.
-2. Výhra:
-   - ak má najvyššie skóre presne jeden hráč, tento hráč vyhráva turnaj.
-3. Remíza:
-   - ak má najvyššie skóre viac hráčov, výsledok je remíza medzi týmito hráčmi.
-4. Hráči, ktorí v rozhodujúcom kole dosiahli cieľ, ale majú nižšie skóre než iný hráč, nie sú víťazi.
-
-## 8. Popupy a funny okná (vstupy pre UI)
-
-Logika hry generuje len udalosti, UI z nich robí konkrétne okná:
-
-- `TEMPORARY_KING` – hráč práve prvýkrát dosiahol cieľ v danom kole.
-- `WIN_PENDING_CONFIRM` – stav, keď treba potvrdiť koncovku (napr. presný zásah v špeciálnom režime).
-- `WIN_CONFIRMED` – finálne potvrdenie výhry.
-- `DRAW_CONFIRMED` – finálne potvrdenie remízy.
-- `ROUND_LOCKED` – od okamihu, keď niekto v kole dosiahne cieľ.
-- `FUNNY_TRIGGER` – signál pre funny okno, ktoré sa môže zobraziť podľa svojej vlastnej interne definovanej logiky.
-
-Engine nerozhoduje, **ako** vyzerá popup; len povie *čo sa stalo*.
-
-## 9. Režimy hry (napr. strict/classic)
-
-1. Režim **strict**:
-   - cieľ treba trafiť presne (preskočenie cieľa neplatí),
-   - kandidát sa stáva víťazom len pri presnom zásahu.
-2. Režim **classic**:
-   - preskočenie cieľa je akceptované,
-   - víťaz je ten, kto má na konci najvyššie skóre >= cieľu.
-3. Zvolený režim je uložený v nastavení turnaja a musí byť konzistentný v celom výpočte – engine nesmie miešať rôzne interpretácie.
-
-## 10. Požiadavky na engine
-
-1. Logika má byť sústredená v samostatnom module (napr. `src/game/rulesEngine.ts`).
-2. UI komponenty môžu engine používať, ale nesmú obsahovať vlastné alternatívne pravidlá.
-3. Engine musí byť pokrytý unit testami pre hlavné scenáre:
-   - prvý hráč dosiahne cieľ, ďalší ho dobehne v tom istom kole → remíza alebo výhra podľa režimu,
-   - koncovka z 9 900 → presný zásah,  
-   - hráč s 10 000 už nedostane preview 10 100,
-   - nové kolo sa nevytvorí po dosiahnutí cieľa v rozhodujúcom kole.
+- Bodovanie ťahu: `commitPoints` a `advance` v `TournamentScreen` (`src/App.jsx`).
+- Víťaz a súčty: `src/lib/tournamentEngine.js` (testy v `tournamentEngine.test.js`).
+- Štatistiky: `src/lib/stats.js`.

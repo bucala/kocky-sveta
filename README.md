@@ -290,14 +290,17 @@ V Android Studio: **Build → Clean Project**, potom **Build → Rebuild Project
 
 | Kategória | Pravidlo |
 |-----------|----------|
-| **Cieľ** | Presne 10 000 bodov (konfigurovateľné) |
-| **Zápis** | Minimálny hod 50 bodov |
-| **Penalta** | −1 000 bodov iba ak hráč hodí 0 bodov (nič) |
-| **Endgame** | Od 9 700 bodov — treba presne X bodov na výhru |
-| **Presný zásah** | Popup: Potvrdil / Nepotvrdil |
-| **Bust** | Prekročenie cieľa = zostáva na pôvodnom skóre, žiadna penalta |
+| **Cieľ** | 10 000 (klasická), 5 000 (krátka) alebo vlastný cieľ z pravidla r15 |
+| **Zápis** | Každý zápis aspoň 300 bodov, alebo čiarka (—) |
+| **Penalta** | −1 000 bodov, ak v hode nepadla žiadna bodujúca kombinácia (r16) |
+| **Koncovka** | Nad 9 700 bodov (cieľ − minimálny zápis) treba trafiť presne |
+| **Presný zásah v koncovke** | Popup Potvrdil / Nepotvrdil (r18 = Áno) |
+| **Prekročenie** | Automatická čiarka, alebo „hod sa neuznáva“ a hráč hádže znova (r17) |
+| **Šesť rovnakých** | Automatická výhra, alebo +3 000 (r13) |
 | **Kolo musí dohrať** | Všetci hráči dokončia kolo pred vyhodnotením víťaza |
 | **Remíza** | Viacero hráčov dosiahne cieľ v rovnakom kole |
+
+Podrobne: [`docs/game-rules.md`](./docs/game-rules.md).
 
 ---
 
