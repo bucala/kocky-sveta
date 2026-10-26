@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.0] — 2026-10-26 — Opravy z auditu: štatistiky, undo, tlačidlo Späť, OCR, PWA
+
+Pred týmito zmenami vznikla záloha predchádzajúceho stavu: release [`v1.6.4-backup-2026-10-26`](https://github.com/bucala/kocky-sveta/releases/tag/v1.6.4-backup-2026-10-26).
+
+### Opravené (Fixed)
+
+- **Štatistiky hráčov** ukazovali pri hrách z aplikácie 0 výhier a „PREHRA“. Víťazi sa teraz čítajú z jedného miesta (`src/lib/stats.js`), zrušené hry sa nerátajú, „Posledné hry“ sú od najnovšej a mená sa porovnávajú bez ohľadu na veľké písmená.
+- **Hardvérové Späť na Androide a TV ovládači** ukončilo aplikáciu, lebo plugin `@capacitor/app` chýbal v APK. Späť teraz ide vždy o úroveň vyššie, aj z importu fotky (späť do Nastavení), z úpravy pravidla a z úprav v archíve.
+- **Vyskakovacie okná** (potvrdenie výhry, Dočasný kráľ, vtipné okná) sa dajú ovládať ovládačom: fokus zostane v okne, Späť okno zatvorí a z hry neodíde. Potvrdenie výhry sa Späť preskočiť nedá.
+- **PWA dostávala staré verzie**: service worker načítava stránku najprv zo siete, verzia cache sa generuje pri každom builde a po deployi sa stránka sama obnoví, ak chýba starý súbor.
+- **Import z fotky (OCR)** volal vyradený model a nefungoval, v APK smeroval na neexistujúci lokálny server.
+
+### Pridané (Added)
+
+- **Tlačidlo „Vrátiť posledný zápis“** v zapisovacích režimoch (až 5 krokov, potvrdenie druhým ťuknutím). V online hre sa vrátenie odmietne, ak medzitým zapisovalo iné zariadenie.
+- **OCR cez Claude Haiku 5.5** so štruktúrovaným výstupom. Fotka sa zmenší na 1568 px a pred odoslaním ju používateľ uvidí a potvrdí. Endpoint prijíma len požiadavky z aplikácie, má rate-limit a neloguje obsah fotiek.
+
+### Zmenené (Changed)
+
+- Turnaj si pri štarte ukladá snímku pravidiel (`ruleSnapshot`), takže všetky zariadenia aj archív používajú rovnaké nastavenie. Vyhodnotenie víťaza sa nemení.
+- Capacitor 6.2.2 (bezpečnostná oprava GHSA-rvm3-566m-v7fv), SheetJS 0.20.3 z oficiálneho CDN, Excel import s limitom 5 MB.
+- Release build bez podpisových údajov zlyhá namiesto podpisu debug kľúčom.
+- APK, vygenerované assety, `local.properties` a `.idea` už nie sú v gite; APK sa distribuuje cez GitHub Releases.
+- CI spúšťa pri každom PR testy, produkčný build a testy podpisovania (Node 22).
+
+---
+
 ## [1.6.4] — 2026-10-04 — Čitateľné skiny, pozorovateľ a tematické animácie
 
 ### Opravené (Fixed)
