@@ -121,7 +121,7 @@ jobs:
             "$RUNNER_TEMP/android-signing/certificate.der"
 
       - name: 📤 Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kocky-sveta-${{ github.event.inputs.build_type }}-apk
           path: android/app/build/outputs/apk/**/*.apk
@@ -130,7 +130,7 @@ jobs:
 
       - name: 📤 Upload AAB artifact (Google Play)
         if: ${{ inputs.build_type == 'release' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kocky-sveta-release-aab
           path: android/app/build/outputs/bundle/release/*.aab
