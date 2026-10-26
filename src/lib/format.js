@@ -1,9 +1,9 @@
 // Formátovanie dátumu a dĺžky turnaja.
 
-export function formatDateTime(iso) {
+export function formatDateTime(iso, locale = 'sk-SK') {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleString('sk-SK', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString(locale, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 export function formatDuration(startIso, endIso) {

@@ -6,13 +6,13 @@ import { version as APP_VERSION } from '../../package.json';
 
 // ─── Nastavenia ─────────────────────────────────────────────────────────
 
-const VIEW_MODE_LABELS = {
-  basic: 'Klasický',
-  basicSimplified: 'Klasický zjednodušený',
-  observer: 'Pozorovateľ',
-  observerSimplified: 'Pozorovateľ zjednodušený',
-  recorder: 'Zapisovateľ',
-  combined: 'Kombinovaný',
+const VIEW_MODE_KEYS = {
+  basic: 'settings.viewmode.basic',
+  basicSimplified: 'settings.viewmode.basicSimplified',
+  observer: 'settings.viewmode.observer',
+  observerSimplified: 'settings.viewmode.observerSimplified',
+  recorder: 'settings.viewmode.recorder',
+  combined: 'settings.viewmode.combined',
 };
 
 export function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImport, onClearAll, onArchive, onScan, tournamentCount, selectedSkin, onSkinChange, selectedFont, onFontChange, tournamentViewMode, onTournamentViewModeChange, onViewModes, onVisualAndSkins, funnyWindowsDisplayMode, onFunnyWindowsDisplayModeChange, onAdmin, onShowEgg, onPrivacy }) {
@@ -37,7 +37,7 @@ export function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImpo
       <Header title={t('settings.title')} onBack={onBack} />
       <div className="p-4 max-w-2xl mx-auto space-y-3">
 
-        <div className="ks-mono ks-gold text-xs px-1 pt-3">ONLINE</div>
+        <div className="ks-mono ks-gold text-xs px-1 pt-3">{t('settings.online.section')}</div>
         <button onClick={onOnline}
           className="ks-card w-full p-4 rounded-sm flex items-center gap-4 ks-press text-left">
           <div className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center">
@@ -58,7 +58,7 @@ export function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImpo
           </div>
           <div className="flex-1">
             <div className="ks-display ks-cream text-xl font-semibold">{t('settings.rules')}</div>
-            <div className="ks-muted text-sm">Bodové kombinácie · cieľ · prvý zápis · koncovka · potvrdenie výhry · penalizácia</div>
+            <div className="ks-muted text-sm">{t('settings.rules.sub')}</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
@@ -71,7 +71,7 @@ export function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImpo
           </div>
           <div className="flex-1">
             <div className="ks-display ks-cream text-xl font-semibold">{t('settings.viewmode')}</div>
-            <div className="ks-muted text-sm">{VIEW_MODE_LABELS[tournamentViewMode] || VIEW_MODE_LABELS.basic}</div>
+            <div className="ks-muted text-sm">{t(VIEW_MODE_KEYS[tournamentViewMode] || VIEW_MODE_KEYS.basic)}</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
@@ -120,11 +120,11 @@ export function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImpo
             <FileSpreadsheet size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Export do Excelu</div>
+            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.export')}</div>
             <div className="ks-muted text-sm">
               {tournamentCount > 0
-                ? `${tournamentCount} turnajov · súbor .xlsx s listami`
-                : 'Žiadne turnaje na export'}
+                ? t('settings.export.count', { n: tournamentCount })
+                : t('settings.export.none')}
             </div>
           </div>
           <Download className="ks-muted" size={20} />
@@ -136,8 +136,8 @@ export function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImpo
             <Upload size={22} className="ks-gold" />
           </div>
           <div className="flex-1">
-            <div className="ks-display ks-cream text-xl font-semibold">Import z Excelu</div>
-            <div className="ks-muted text-sm">Pridá turnaje z .xlsx súboru do archívu</div>
+            <div className="ks-display ks-cream text-xl font-semibold">{t('settings.import')}</div>
+            <div className="ks-muted text-sm">{t('settings.import.sub')}</div>
           </div>
           <ChevronRight className="ks-muted" size={20} />
         </button>
@@ -192,7 +192,7 @@ export function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImpo
           </div>
           <div className="flex-1">
             <div className="ks-display ks-text-accent text-xl font-semibold">{t('settings.clear')}</div>
-            <div className="ks-text-accent/70 text-sm">Archív, rozohraná hra, pravidlá — nenávratná akcia</div>
+            <div className="ks-text-accent/70 text-sm">{t('settings.clear.sub')}</div>
           </div>
           <ChevronRight className="ks-text-accent" size={20} />
         </button>
@@ -200,12 +200,11 @@ export function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImpo
         <div className="ks-card rounded-sm p-3 ks-body text-xs ks-muted italic mt-2 flex items-start gap-2">
           <AlertCircle size={14} className="ks-gold shrink-0 mt-0.5" />
           <div>
-            Pred vymazaním dát si <strong className="ks-gold">vytvor zálohu</strong> cez Export do Excelu.
-            Súbor neskôr môžeš obnoviť cez Import. Každý dohraný turnaj si pamätá dátum a čas začiatku aj konca.
+            {t('settings.backup.a')}<strong className="ks-gold">{t('settings.backup.strong')}</strong>{t('settings.backup.b')}
           </div>
         </div>
 
-        <div className="ks-mono ks-gold text-xs px-1 pt-4">O APLIKÁCII</div>
+        <div className="ks-mono ks-gold text-xs px-1 pt-4">{t('settings.about.section')}</div>
         <div className="ks-card w-full p-4 rounded-sm space-y-3">
           <div className="flex items-center gap-4">
             <button onClick={handleEggClick} className="w-12 h-12 rounded-sm border ks-border-sub flex items-center justify-center ks-press select-none">
@@ -217,15 +216,15 @@ export function SettingsMenu({ onBack, onOnline, onRulesEditor, onExport, onImpo
             </div>
           </div>
           <div className="space-y-2 text-xs ks-muted leading-relaxed border-t ks-border-sub pt-3">
-            <p><span className="ks-cream font-semibold">Verzia:</span> {APP_VERSION}</p>
-            <p><span className="ks-cream font-semibold">Technológie:</span> React 18, Vite, Tailwind CSS, Firebase Firestore, Capacitor (Android/iOS)</p>
-            <p><span className="ks-cream font-semibold">Dáta:</span> Ukladané lokálne. Online sync cez Firebase Firestore v reálnom čase.</p>
-            <p><span className="ks-cream font-semibold">Exporty:</span> XLSX (SheetJS) — každý turnaj ako list + súhrnný prehľad.</p>
-            <p><span className="ks-cream font-semibold">Vývoj:</span> Marcel, 2026. Herná logika a pravidlá sú autorské.</p>
+            <p><span className="ks-cream font-semibold">{t('settings.about.version')}</span> {APP_VERSION}</p>
+            <p><span className="ks-cream font-semibold">{t('settings.about.tech')}</span> React 18, Vite, Tailwind CSS, Firebase Firestore, Capacitor (Android/iOS)</p>
+            <p><span className="ks-cream font-semibold">{t('settings.about.data')}</span> {t('settings.about.data.text')}</p>
+            <p><span className="ks-cream font-semibold">{t('settings.about.exports')}</span> {t('settings.about.exports.text')}</p>
+            <p><span className="ks-cream font-semibold">{t('settings.about.dev')}</span> {t('settings.about.dev.text')}</p>
           </div>
           {onPrivacy && (
             <button onClick={onPrivacy} className="ks-press w-full flex items-center justify-between gap-2 border-t ks-border-sub pt-3 text-left">
-              <span className="ks-cream text-sm">Ochrana súkromia</span>
+              <span className="ks-cream text-sm">{t('settings.privacy')}</span>
               <ChevronRight className="ks-muted" size={18} />
             </button>
           )}

@@ -8,28 +8,30 @@ import { TARGET_OPTIONS } from '../constants/game.js';
 import { formatDateTime, formatDuration } from '../lib/format.js';
 import { computeWinners, computePlayerTotals as computeTotals } from '../lib/tournamentEngine.js';
 import { parseScoreCell, formatScoreCell } from '../lib/scoreInput.js';
+import { useT, useLang, numberLocale } from '../lib/i18n.js';
 
 // ─── Archív turnajov: zoznam, detail a úprava ───────────────────────────
 
 export function ArchiveScreen({ tournaments, onBack, onView, onDelete, readOnly }) {
+  const t = useT();
   return (
     <div className="min-h-screen ks-fade pb-8">
-      <Header title={readOnly ? 'Archív turnajov' : 'Editácia archívu'} onBack={onBack} />
+      <Header title={readOnly ? t('archive.title') : t('archive.title.edit')} onBack={onBack} />
       <div className="p-4 max-w-2xl mx-auto">
         {!readOnly && (
           <div className="ks-card rounded-sm p-3 mb-3 ks-body text-xs ks-muted italic flex items-start gap-2">
             <Edit3 size={14} className="ks-gold shrink-0 mt-0.5" />
-            <div>Klepni na turnaj pre úpravu skóre, víťaza alebo kôl. Mazanie cez tlačidlo dolu.</div>
+            <div>{t('archive.edit.hint')}</div>
           </div>
         )}
         {tournaments.length === 0 ? (
           <div className="ks-card rounded-sm p-8 text-center">
             <ArchiveIcon className="ks-gold mx-auto opacity-40" size={48} />
-            <p className="ks-muted ks-body mt-3 italic">Zatiaľ žiadne turnaje v archíve.</p>
+            <p className="ks-muted ks-body mt-3 italic">{t('archive.empty')}</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {tournaments.map(t => <ArchiveItem key={t.id} t={t} onView={() => onView(t)} onDelete={() => onDelete(t.id)} readOnly={readOnly} />)}
+            {tournaments.map(item => <ArchiveItem key={item.id} t={item} onView={() => onView(item)} onDelete={() => onDelete(item.id)} readOnly={readOnly} />)}
           </div>
         )}
       </div>
@@ -37,52 +39,54 @@ export function ArchiveScreen({ tournaments, onBack, onView, onDelete, readOnly 
   );
 }
 
-export function ArchiveItem({ t, onView, onDelete, readOnly }) {
-  if (!t || !Array.isArray(t.players) || !Array.isArray(t.rounds) || t.players.length === 0) return <SafeTournamentFallback title="Poškodený turnaj v archíve" />;
-  const totals = computeTotals(t.rounds, t.players.length);
-  const winnerArr = t.winner === null || t.winner === undefined
+export function ArchiveItem({ t: tour, onView, onDelete, readOnly }) {
+  const t = useT();
+  const loc = numberLocale(useLang());
+  if (!tour || !Array.isArray(tour.players) || !Array.isArray(tour.rounds) || tour.players.length === 0) return <SafeTournamentFallback title={t('archive.corrupt')} />;
+  const totals = computeTotals(tour.rounds, tour.players.length);
+  const winnerArr = tour.winner === null || tour.winner === undefined
     ? []
-    : (Array.isArray(t.winner) ? t.winner : [t.winner]);
+    : (Array.isArray(tour.winner) ? tour.winner : [tour.winner]);
   const winnerLabel = winnerArr.length === 0
     ? null
     : (winnerArr.length === 1
-        ? t.players[winnerArr[0]]
-        : `Remíza: ${winnerArr.map(i => t.players[i]).join(', ')}`);
-  const target = t.targetScore || 10000;
-  const duration = formatDuration(t.date, t.finishedAt);
+        ? tour.players[winnerArr[0]]
+        : t('archive.drawList', { names: winnerArr.map(i => tour.players[i]).join(', ') }));
+  const target = tour.targetScore || 10000;
+  const duration = formatDuration(tour.date, tour.finishedAt);
 
   return (
     <div className="ks-card rounded-sm overflow-hidden">
       <button onClick={onView} className="ks-press w-full p-4 text-left flex items-center gap-3">
         <div className={`w-12 h-12 rounded-sm flex items-center justify-center
-          ${t.status === 'finished' ? 'ks-gold-bg' : 'border ks-border-sub ks-muted'}`}>
-          {t.status === 'finished' ? <Trophy size={22} /> : <X size={22} />}
+          ${tour.status === 'finished' ? 'ks-gold-bg' : 'border ks-border-sub ks-muted'}`}>
+          {tour.status === 'finished' ? <Trophy size={22} /> : <X size={22} />}
         </div>
         <div className="flex-1 min-w-0">
           <div className="ks-display ks-cream text-lg font-semibold truncate">
             {winnerLabel
-              ? <>{winnerArr.length > 1 ? '' : 'Víťaz: '}<span className="ks-gold">{winnerLabel}</span></>
-              : <span className="italic ks-muted">Nedokončený turnaj</span>}
+              ? <>{winnerArr.length > 1 ? '' : t('archive.winnerPrefix')}<span className="ks-gold">{winnerLabel}</span></>
+              : <span className="italic ks-muted">{t('archive.unfinished')}</span>}
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
             <Calendar size={11} className="ks-muted" />
             <div className="ks-mono ks-muted text-xs truncate">
-              {formatDateTime(t.date)}{duration ? ` · ${duration}` : ''}
+              {formatDateTime(tour.date, loc)}{duration ? ` · ${duration}` : ''}
             </div>
           </div>
           <div className="ks-muted text-xs truncate mt-0.5">
-            {t.players.length} hráčov · do {target.toLocaleString('sk-SK')} · {t.players.join(' · ')}
+            {t('archive.item.meta', { n: tour.players.length, target: target.toLocaleString(loc) })} · {tour.players.join(' · ')}
           </div>
         </div>
         <ChevronRight className="ks-muted" size={20} />
       </button>
       <div className="border-t border-amber-900/20 px-4 py-2 flex items-center justify-between">
         <div className="ks-mono ks-gold text-sm">
-          {Math.max(...totals).toLocaleString('sk-SK')} bodov
+          {t('archive.points', { n: Math.max(...totals).toLocaleString(loc) })}
         </div>
         {!readOnly && (
           <button onClick={onDelete} className="ks-press ks-text-accent text-xs ks-mono flex items-center gap-1">
-            <Trash2 size={12} /> VYMAZAŤ
+            <Trash2 size={12} /> {t('archive.delete')}
           </button>
         )}
       </div>
@@ -91,7 +95,9 @@ export function ArchiveItem({ t, onView, onDelete, readOnly }) {
 }
 
 export function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMode, onToggleScoreMode, selectedSkin }) {
-  if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback title="Poškodený turnaj v archíve" />;
+  const t = useT();
+  const loc = numberLocale(useLang());
+  if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback title={t('archive.corrupt')} />;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
   // Späť počas úprav najprv zruší úpravy (rovnako ako tlačidlo Späť v hlavičke).
@@ -165,7 +171,7 @@ export function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDis
   }
 
   async function removeRound(idx) {
-    if (!(await showConfirm(`Kolo ${idx + 1} sa odstráni z turnaja.`, { title: 'Vymazať kolo?', confirmLabel: 'Vymazať', danger: true }))) return;
+    if (!(await showConfirm(t('archive.removeRound.msg', { n: idx + 1 }), { title: t('archive.removeRound.title'), confirmLabel: t('archive.removeRound.confirm'), danger: true }))) return;
     setDraft(prev => ({
       ...prev,
       rounds: prev.rounds.filter((_, i) => i !== idx),
@@ -213,15 +219,15 @@ export function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDis
 
   return (
     <div className="min-h-screen ks-fade ks-bg pb-32">
-      <Header title="Detail turnaja" onBack={editing ? cancelEdit : onBack}
+      <Header title={t('archive.detail.title')} onBack={editing ? cancelEdit : onBack}
         right={
           <div className="flex items-center gap-2">
             {!editing && (
               <button
                 onClick={onToggleScoreMode}
                 className="ks-press ks-gold p-1.5 rounded-sm border border-amber-700/40 hover:bg-amber-900/20"
-                title={scoreDisplayMode === 'delta' ? 'Prepnúť na kumulatívne' : 'Prepnúť na prípisy'}
-                aria-label={scoreDisplayMode === 'delta' ? 'Prepnúť na kumulatívne' : 'Prepnúť na prípisy'}
+                title={scoreDisplayMode === 'delta' ? t('game.toggle.toCumulative') : t('game.toggle.toDelta')}
+                aria-label={scoreDisplayMode === 'delta' ? t('game.toggle.toCumulative') : t('game.toggle.toDelta')}
               >
                 {scoreDisplayMode === 'delta'
                   ? <Sigma size={16} />
@@ -230,7 +236,7 @@ export function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDis
             )}
             {editing || readOnly ? null : (
               <button onClick={startEdit} className="ks-press ks-gold flex items-center gap-1 text-xs ks-mono">
-                <Edit3 size={14} /> UPRAVIŤ
+                <Edit3 size={14} /> {t('archive.edit')}
               </button>
             )}
           </div>
@@ -244,57 +250,57 @@ export function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDis
             return (
               <>
                 <Crown className="ks-gold mx-auto" size={40} />
-                <div className="ks-mono ks-gold text-xs mt-2">{isDraw ? `REMÍZA · ${winnerArr.length} VÍŤAZI` : 'VÍŤAZ'}</div>
+                <div className="ks-mono ks-gold text-xs mt-2">{isDraw ? t('archive.drawN', { n: winnerArr.length }) : t('archive.winner')}</div>
                 <div className="space-y-1.5 mt-1">
                   {winnerArr.map(idx => (
                     <div key={idx}>
                       <div className="ks-display ks-cream text-2xl font-bold">{display.players[idx]}</div>
-                      <div className="ks-display ks-gold text-xl">{totals[idx].toLocaleString('sk-SK')}</div>
+                      <div className="ks-display ks-gold text-xl">{totals[idx].toLocaleString(loc)}</div>
                     </div>
                   ))}
                 </div>
               </>
             );
           })() : (
-            <div className="ks-muted italic">{tournament.status === 'aborted' ? 'Zrušený turnaj' : 'Nedokončený turnaj'}</div>
+            <div className="ks-muted italic">{tournament.status === 'aborted' ? t('archive.aborted') : t('archive.unfinished')}</div>
           )}
 
           <div className="mt-4 pt-4 border-t ks-border-sub grid grid-cols-2 gap-3 text-left">
             <div>
-              <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Play size={10} /> ZAČIATOK</div>
-              <div className="ks-body ks-cream text-sm mt-0.5">{formatDateTime(tournament.date)}</div>
+              <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Play size={10} /> {t('archive.start')}</div>
+              <div className="ks-body ks-cream text-sm mt-0.5">{formatDateTime(tournament.date, loc)}</div>
             </div>
             <div>
-              <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Check size={10} /> KONIEC</div>
+              <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Check size={10} /> {t('archive.end')}</div>
               <div className="ks-body ks-cream text-sm mt-0.5">
-                {tournament.finishedAt ? formatDateTime(tournament.finishedAt) : '—'}
+                {tournament.finishedAt ? formatDateTime(tournament.finishedAt, loc) : '—'}
               </div>
             </div>
             {duration && (
               <div className="col-span-2">
-                <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Clock size={10} /> TRVANIE</div>
+                <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Clock size={10} /> {t('archive.duration')}</div>
                 <div className="ks-body ks-cream text-sm mt-0.5">{duration}</div>
               </div>
             )}
             <div>
-              <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Target size={10} /> CIEĽ</div>
+              <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Target size={10} /> {t('archive.target')}</div>
               {editing ? (
                 <select
                   value={draft.targetScore}
                   onChange={(e) => setDraft(prev => ({ ...prev, targetScore: Number(e.target.value) }))}
-                  aria-label="Cieľové skóre turnaja"
+                  aria-label={t('archive.target.aria')}
                   className="ks-body ks-cream text-sm mt-0.5 bg-transparent border ks-border-sub rounded-sm px-1 py-0.5"
                 >
                   {[...new Set([...TARGET_OPTIONS.map(o => o.value), draft.targetScore])].map(v => (
-                    <option key={v} value={v} style={{ color: '#111' }}>{v.toLocaleString('sk-SK')} b.</option>
+                    <option key={v} value={v} style={{ color: '#111' }}>{t('archive.pts', { n: v.toLocaleString(loc) })}</option>
                   ))}
                 </select>
               ) : (
-                <div className="ks-body ks-cream text-sm mt-0.5">{target.toLocaleString('sk-SK')} b.</div>
+                <div className="ks-body ks-cream text-sm mt-0.5">{t('archive.pts', { n: target.toLocaleString(loc) })}</div>
               )}
             </div>
             <div>
-              <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Users size={10} /> HRÁČI</div>
+              <div className="ks-mono ks-muted text-xs flex items-center gap-1"><Users size={10} /> {t('archive.players')}</div>
               <div className="ks-body ks-cream text-sm mt-0.5">{display.players.length}</div>
             </div>
           </div>
@@ -305,18 +311,18 @@ export function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDis
             <div className="flex items-start gap-2">
               <AlertTriangle size={20} className="ks-text-accent shrink-0 mt-0.5" />
               <div className="flex-1">
-                <div className="ks-mono ks-text-accent text-xs tracking-widest mb-1">⚠ NEZHODA V URČENÍ VÍŤAZA</div>
+                <div className="ks-mono ks-text-accent text-xs tracking-widest mb-1">{t('archive.mismatch.title')}</div>
                 <div className="ks-body ks-cream text-sm leading-snug">
-                  Hlavička uvádza:{' '}
+                  {t('archive.mismatch.declared')}{' '}
                   <strong className="ks-gold">
                     {declaredWinners.length === 0 ? '—' : declaredWinners.map(i => display.players[i]).join(', ')}
                   </strong>
                   <br/>
-                  Súčty kôl však dávajú:{' '}
+                  {t('archive.mismatch.computed')}{' '}
                   <strong className="ks-gold">
                     {winnerComputation.winners.length === 0
-                      ? '— (nikto nedosiahol cieľ)'
-                      : winnerComputation.winners.map(i => `${display.players[i]} (${(totals[i] || 0).toLocaleString('sk-SK')})`).join(', ')}
+                      ? t('archive.mismatch.none')
+                      : winnerComputation.winners.map(i => `${display.players[i]} (${(totals[i] || 0).toLocaleString(loc)})`).join(', ')}
                   </strong>
                 </div>
                 {winnerComputation.errors.length > 0 && (
@@ -326,7 +332,7 @@ export function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDis
                 )}
                 {!readOnly && (
                   <div className="ks-body ks-text-accent text-xs mt-2 italic">
-                    Použi tlačidlo UPRAVIŤ na opravu zoznamu víťazov.
+                    {t('archive.mismatch.fix')}
                   </div>
                 )}
               </div>
@@ -336,17 +342,17 @@ export function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDis
 
         {!editing && (
           <div>
-            <div className="ks-mono ks-gold text-xs mb-2">FINÁLNA TABUĽKA</div>
+            <div className="ks-mono ks-gold text-xs mb-2">{t('archive.finalTable')}</div>
             <Standings players={display.players} totals={totals} target={target} />
           </div>
         )}
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <div className="ks-mono ks-gold text-xs">{editing ? 'ÚPRAVA TABUĽKY' : 'HISTÓRIA KÔL'}</div>
+            <div className="ks-mono ks-gold text-xs">{editing ? t('archive.editTable') : t('archive.history')}</div>
             {editing && (
               <button onClick={addRound} className="ks-press ks-gold ks-mono text-xs flex items-center gap-1">
-                <Plus size={12} /> PRIDAŤ KOLO
+                <Plus size={12} /> {t('archive.addRound')}
               </button>
             )}
           </div>
@@ -380,8 +386,8 @@ export function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDis
         <div className="fixed bottom-0 left-0 right-0 p-3 border-t ks-border-sub backdrop-blur"
              style={{ background: 'color-mix(in srgb, var(--ks-bg-main, #0e0c0a) 95%, transparent)' }}>
           <div className="max-w-2xl mx-auto grid grid-cols-2 gap-2">
-            <GoldButton onClick={cancelEdit} variant="outline" icon={X}>Zrušiť</GoldButton>
-            <GoldButton onClick={saveEdit} icon={Save}>Uložiť zmeny</GoldButton>
+            <GoldButton onClick={cancelEdit} variant="outline" icon={X}>{t('cancel')}</GoldButton>
+            <GoldButton onClick={saveEdit} icon={Save}>{t('archive.saveChanges')}</GoldButton>
           </div>
         </div>
       )}
@@ -390,6 +396,7 @@ export function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDis
 }
 
 export function ScoreCellInput({ value, onCommit, className }) {
+  const t = useT();
   const [text, setText] = useState(formatScoreCell(value));
   const [invalid, setInvalid] = useState(false);
   useEffect(() => { setText(formatScoreCell(value)); setInvalid(false); }, [value]);
@@ -409,13 +416,15 @@ export function ScoreCellInput({ value, onCommit, className }) {
       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } }}
       placeholder="·"
       aria-invalid={invalid}
-      title="Číslo (napr. 500, -1000), — alebo prázdne"
+      title={t('archive.cell.title')}
       className={`${className} ${invalid ? 'border-red-700' : ''}`}
     />
   );
 }
 
 export function EditableScoreTable({ players, rounds, totals, target, winner, onChangeCell, onRemoveRound, onSetWinner }) {
+  const t = useT();
+  const loc = numberLocale(useLang());
 
   return (
     <div className="ks-card rounded-sm overflow-hidden">
@@ -428,7 +437,7 @@ export function EditableScoreTable({ players, rounds, totals, target, winner, on
           </colgroup>
           <thead>
             <tr className="border-b ks-border-sub">
-              <th className="ks-mono ks-muted text-xs font-normal py-2 px-2 text-center sticky left-0" style={{ width: 36, background: 'var(--ks-sticky-bg, rgba(14,12,10,0.97))' }}>K</th>
+              <th className="ks-mono ks-muted text-xs font-normal py-2 px-2 text-center sticky left-0" style={{ width: 36, background: 'var(--ks-sticky-bg, rgba(14,12,10,0.97))' }}>{t('archive.table.round')}</th>
               {players.map((p, i) => (
                 <th key={i} className="ks-display ks-cream py-2 px-1 text-sm font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis">{p}</th>
               ))}
@@ -454,7 +463,7 @@ export function EditableScoreTable({ players, rounds, totals, target, winner, on
                   );
                 })}
                 <td className="text-center">
-                  <button aria-label="Vymazať kolo" onClick={() => onRemoveRound(rIdx)}
+                  <button aria-label={t('archive.removeRound.aria')} onClick={() => onRemoveRound(rIdx)}
                     className="ks-press ks-text-accent hover:ks-text-accent p-1">
                     <Trash2 size={12} />
                   </button>
@@ -465,8 +474,8 @@ export function EditableScoreTable({ players, rounds, totals, target, winner, on
           <tfoot>
             <tr className="border-t-2 ks-border-accent">
               <td className="ks-mono ks-gold text-xs py-2 px-2 text-center sticky left-0" style={{ background: 'var(--ks-sticky-bg2, rgba(10,8,6,0.98))' }}>∑</td>
-              {totals.map((t, i) => {
-                const reached = t >= target;
+              {totals.map((total, i) => {
+                const reached = total >= target;
                 const winnerSet = winner === null || winner === undefined
                   ? new Set()
                   : (Array.isArray(winner) ? new Set(winner) : new Set([winner]));
@@ -477,10 +486,10 @@ export function EditableScoreTable({ players, rounds, totals, target, winner, on
                       className={`ks-press w-full ks-display text-base font-bold rounded-sm py-1 px-2 ${
                         isWinner ? 'ks-gold-bg'
                         : reached ? 'ks-gold border border-amber-700/40'
-                        : t < 0 ? 'ks-text-accent' : 'ks-cream'
+                        : total < 0 ? 'ks-text-accent' : 'ks-cream'
                       }`}>
                       {isWinner && <Crown size={12} className="inline mr-1" />}
-                      {t.toLocaleString('sk-SK')}
+                      {total.toLocaleString(loc)}
                     </button>
                   </td>
                 );
@@ -491,7 +500,7 @@ export function EditableScoreTable({ players, rounds, totals, target, winner, on
         </table>
       </div>
       <div className="p-2 border-t border-amber-900/20 ks-muted text-xs italic text-center ks-body">
-        Klepni na bunku pre úpravu · Klepni na súčet pre nastavenie víťaza · Číslo, „—" alebo prázdne pre vymazanie
+        {t('archive.table.hint')}
       </div>
     </div>
   );

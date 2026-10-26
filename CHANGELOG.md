@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.5] — 2026-10-26 — 6 rovnakých cez „Práve pripisuješ“
+
+### Zmenené (Changed)
+
+- Tlačidlo **6 rovnakých**: prvé ťuknutie ho označí (po 4 s sa samo zruší), druhé vloží do „Práve pripisuješ“ položku **Víťazstvo 6 rovnakých kociek** s bodmi do cieľa (napr. +9 500 → 10 000). Výhra sa zapíše až tlačidlom **Zapísať**; položku možno odstrániť alebo nahradiť inými bodmi.
+- Závislosti vrátené na otestované verzie (Capacitor 6, React 18, Vite 6, TypeScript 6); Dependabot už neponúka hlavné verzie.
+- **Angličtina** pre nastavenia, archív (aj dátumy), štatistiky, pravidlá (názvy a popisy predvolených pravidiel, kategórie, voľby) a okná počas hry (funny hlášky, dočasný kráľ, víťaz, potvrdenie výhry). Slovenčina sa nezmenila.
+- Záloha cez vetvu `backup/**` vytvorí release s tagom podľa verzie v `package.json`.
+
+### Pridané (Added)
+
+- **Testy pravidiel v prehliadači** (`e2e/rules.mjs`, 9 scenárov na hernej obrazovke): r13 6 rovnakých, r14 minimálny zápis, r15 minimálny cieľ, r16 penalizácia, r17 obe voľby, koncovka, r18 prísny aj s potvrdením. Bežia v CI cez `npm run e2e`.
+
+### Opravené (Fixed)
+
+- Odstránený nepoužívaný kód v `App.jsx` (komponent `PendingChips`, nepoužité premenné).
+
+---
+
 ## [1.7.4] — 2026-10-26 — Tlačidlo 6 rovnakých, minimálny cieľ
 
 ### Zmenené (Changed)

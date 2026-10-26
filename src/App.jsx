@@ -53,15 +53,15 @@ const PENALTY_VALUE = -1000;
 
 // Funny hlášky — { msg, emoji, variant }
 const FUNNY_MESSAGES = [
-  { msg: 'Čo ti to rieši?!',         emoji: '🤨', variant: 'doubt' },
-  { msg: 'Čo ti to rieši?!',         emoji: '🤨', variant: 'doubt' },
-  { msg: 'Tak bojuj nééé?!?',        emoji: '😄', variant: 'doubt' },
-  { msg: 'Tak bojuj nééé?!?',        emoji: '😄', variant: 'fight' },
-  { msg: 'Také mrviny? Vážne?',      emoji: '😀', variant: 'doubt' },
-  { msg: 'Toto ťa nezachráni…',      emoji: '💀', variant: 'doom' },
-  { msg: 'Tak takto sa hra nevyhráva!', emoji: '🎭', variant: 'fight' },
-  { msg: 'Hej majster… si si istý?', emoji: '😆', variant: 'doubt' },
-  { msg: 'Riskni to konečne!',       emoji: '🎲', variant: 'fight' },
+  { msg: 'Čo ti to rieši?!', msgEn: "What's that supposed to do?!",         emoji: '🤨', variant: 'doubt' },
+  { msg: 'Čo ti to rieši?!', msgEn: "What's that supposed to do?!",         emoji: '🤨', variant: 'doubt' },
+  { msg: 'Tak bojuj nééé?!?', msgEn: "Come on, fight!",        emoji: '😄', variant: 'doubt' },
+  { msg: 'Tak bojuj nééé?!?', msgEn: "Come on, fight!",        emoji: '😄', variant: 'fight' },
+  { msg: 'Také mrviny? Vážne?', msgEn: "Such crumbs? Seriously?",      emoji: '😀', variant: 'doubt' },
+  { msg: 'Toto ťa nezachráni…', msgEn: "This won't save you…",      emoji: '💀', variant: 'doom' },
+  { msg: 'Tak takto sa hra nevyhráva!', msgEn: "That's not how you win!", emoji: '🎭', variant: 'fight' },
+  { msg: 'Hej majster… si si istý?', msgEn: "Hey champ… are you sure?", emoji: '😆', variant: 'doubt' },
+  { msg: 'Riskni to konečne!', msgEn: "Take a risk already!",       emoji: '🎲', variant: 'fight' },
 ];
 
 // Kategórie pravidiel
@@ -96,15 +96,16 @@ function StrikethroughCrown({ size = 96, color = '#d4b86a', strikeColor = '#c448
 }
 
 function SimplifiedResult({ kind, title, subtitle, onClose, actionLabel }) {
+  const t = useT();
   const dialogRef = useRef(null);
   useFocusTrap(dialogRef);
   // Späť (Android/TV/Escape) okno zatvorí; bez onClose ho len pohltí, aby neopustilo hru.
   useBackHandler(() => { onClose?.(); });
   const palette = {
-    victory:        { accent: '#d4b86a', label: 'VÍŤAZ' },
-    draw:           { accent: '#d4b86a', label: 'REMÍZA' },
-    'temporary-king': { accent: '#c44848', label: 'DOČASNÝ KRÁĽ' },
-    'win-pending':  { accent: '#d4b86a', label: 'POTVRD VÝHRU' },
+    victory:        { accent: '#d4b86a', label: t('win.winnerCaps') },
+    draw:           { accent: '#d4b86a', label: t('game.draw') },
+    'temporary-king': { accent: '#c44848', label: t('king.caps') },
+    'win-pending':  { accent: '#d4b86a', label: t('decision.confirmCaps') },
   }[kind] || { accent: '#d4b86a', label: '' };
 
   const Icon = ({ size = 56 }) => {
@@ -131,7 +132,7 @@ function SimplifiedResult({ kind, title, subtitle, onClose, actionLabel }) {
         {actionLabel && onClose ? (
           <button type="button" onClick={(e) => { e.stopPropagation(); onClose(); }}
                   className="ks-press ks-mono text-[11px] ks-muted mt-3 tracking-widest px-3 py-1.5 rounded-sm border ks-border-sub">
-            {actionLabel === 'KLIKNI PRE ZATVORENIE' ? 'ZATVORIŤ' : actionLabel}
+            {actionLabel === 'KLIKNI PRE ZATVORENIE' ? t('common.closeCaps') : actionLabel}
           </button>
         ) : actionLabel ? (
           <div className="ks-mono text-[10px] ks-muted mt-3 tracking-widest">{actionLabel}</div>
@@ -142,6 +143,7 @@ function SimplifiedResult({ kind, title, subtitle, onClose, actionLabel }) {
 }
 
 function FunnyOverlay({ data, onClose }) {
+  const t = useT();
   const msg = typeof data === 'string' ? data : data?.msg;
   const emoji = typeof data === 'string' ? '🤨' : (data?.emoji || '🤨');
   const variant = typeof data === 'string' ? 'doubt' : (data?.variant || 'doubt');
@@ -149,19 +151,19 @@ function FunnyOverlay({ data, onClose }) {
   const VARIANT_STYLES = {
     doubt: {
       bg: 'radial-gradient(circle at center, rgba(80,30,30,0.95), rgba(0,0,0,0.95))',
-      label: 'DOTAZ Z PUBLIKA',
+      label: t('funny.doubt'),
       glow: 'rgba(212,184,106,0.4)',
       labelColor: '#d4b86a',
     },
     fight: {
       bg: 'radial-gradient(circle at center, rgba(120,40,30,0.95), rgba(20,10,5,0.97))',
-      label: 'POVZBUDENIE',
+      label: t('funny.fight'),
       glow: 'rgba(231,128,82,0.5)',
       labelColor: '#e08854',
     },
     doom: {
       bg: 'radial-gradient(circle at center, rgba(60,20,20,0.97), rgba(0,0,0,0.98))',
-      label: 'PROROCTVO',
+      label: t('funny.doom'),
       glow: 'rgba(196,72,72,0.5)',
       labelColor: 'var(--ks-overlay-doom-label, #c44848)',
     },
@@ -214,7 +216,7 @@ function FunnyOverlay({ data, onClose }) {
         </div>
 
         <button onClick={onClose} className="ks-press mt-5 ks-mono ks-muted text-xs tracking-widest">
-          ZATVORIŤ
+          {t('common.closeCaps')}
         </button>
       </div>
     </div>
@@ -756,7 +758,6 @@ export default function App() {
     return r ? Number(r.points) || 300 : 300;
   }, [rules]);
 
-  const effectiveMinWriteOff = adminSettings.minWriteOffOverride ?? minWriteOff;
 
   useEffect(() => {
     window.__ksVerboseFirebase = !!adminSettings.verboseFirebase;
@@ -912,9 +913,6 @@ function startTournament(players, targetScore) {
     setView('tournament');
   }
 
-  function updateActive(updater) {
-    setActive(prev => prev ? (typeof updater === 'function' ? updater(prev) : updater) : prev);
-  }
 
   function finishTournament(winnerIdxOrArray) {
     if (!active) return;
@@ -1130,7 +1128,7 @@ function startTournament(players, targetScore) {
     // Fallback — tichý download do predvoleného priečinka prehliadača.
     try {
       XLSX.writeFile(wb, fileName);
-    } catch (e) {
+    } catch {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1172,7 +1170,6 @@ function startTournament(players, targetScore) {
 
         const dateMatch = headerText.match(/(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/);
         const timeMatch = headerText.match(/(\d{1,2}):(\d{2})(?:\s*[-–—]\s*(\d{1,2}):(\d{2}))?/);
-        const namesMatch = headerText.match(/[—–-]\s*(.+)$/);
 
         let columnsRowIdx = -1;
         for (let i = 0; i < Math.min(aoa.length, 6); i++) {
@@ -1598,17 +1595,6 @@ function startTournament(players, targetScore) {
 
 // ─── Vizuál, Zvuky a Skiny submenu ───────────────────────────────────────────────
 
-function PendingChips({ pending, removePending }) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {pending.map((p, i) => (
-        <button key={i} onClick={() => removePending(i)} className={`px-3 py-2 rounded-sm border ks-press ${p === 'dash' ? 'ks-border-accent ks-gold' : p < 0 ? 'border-red-800/60 ks-text-accent' : 'ks-border-sub ks-cream'}`}>
-          {p === 'dash' ? '— Čiarka' : `${p > 0 ? '+' : ''}${Number(p).toLocaleString('sk-SK')}`}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 // Odtlačok herného stavu pre kontrolu, či undo nevráti cudzí (online) zápis.
 // Uložené pravidlá zladí s aktuálnymi predvolenými: názvy, popisy a možnosti
@@ -1762,7 +1748,8 @@ function TournamentScreen({
   // Zobrazí sa keď: (a) prebieha exact-hit-verification alebo (b) je confirmation kolo.
   const showDecisionPopup = !!tournament.pendingDecision || isConfirmationTurn;
 
-  const pendingSum = pending.reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
+  // 'six' = výhra šiestimi rovnakými: pripíše body chýbajúce do cieľa.
+  const pendingSum = pending.reduce((a, b) => a + (typeof b === 'number' ? b : b === 'six' ? Math.max(0, target - total) : 0), 0);
   const newTotal = total + pendingSum;
 
   function showToast(msg, kind = 'info') {
@@ -1773,7 +1760,10 @@ function TournamentScreen({
   function showFunny(customMsg, opts = {}) {
     const data = customMsg
       ? (typeof customMsg === 'string' ? { msg: customMsg, emoji: '🎭', variant: 'fight' } : customMsg)
-      : FUNNY_MESSAGES[Math.floor(Math.random() * FUNNY_MESSAGES.length)];
+      : (() => {
+          const m = FUNNY_MESSAGES[Math.floor(Math.random() * FUNNY_MESSAGES.length)];
+          return lang === 'en' && m.msgEn ? { ...m, msg: m.msgEn } : m;
+        })();
 
     if (funnyWindowsDisplayMode === 'suppressed' && !opts.forceFullscreen) return;
 
@@ -1808,7 +1798,7 @@ function TournamentScreen({
       showToast(t('toast.dashRequired'), 'warn');
       return;
     }
-    if (pending.some(p => p === 'dash' || p === penaltyValue)) {
+    if (pending.some(p => p === 'dash' || p === 'six' || p === penaltyValue)) {
       setPending([v]);
       return;
     }
@@ -1867,8 +1857,9 @@ function TournamentScreen({
   ) : null;
 
   // ─── Šesť rovnakých (pravidlo r13) ───────────────────────────────────────
-  // „Automatická výhra“: po potvrdení (druhé ťuknutie) hráč na ťahu vyhráva;
-  // do jeho políčka v aktuálnom kole sa zapíšu body chýbajúce do cieľa turnaja.
+  // „Automatická výhra“: prvé ťuknutie tlačidlo označí, druhé vloží do „Práve
+  // pripisuješ“ položku „Víťazstvo 6 rovnakých kociek“; po Zapísať hráč vyhráva
+  // a do jeho políčka v aktuálnom kole sa zapíšu body chýbajúce do cieľa turnaja.
   // „Pevná hodnota 3000“: pridá 3 000 bodov ako bežný hod.
   const [sixArmed, setSixArmed] = useState(false);
   useEffect(() => {
@@ -1878,8 +1869,16 @@ function TournamentScreen({
   }, [sixArmed]);
 
   function sixOfKindWin() {
+    if (isConfirmationTurn) {
+      showToast(t('toast.dashRequired'), 'warn');
+      return;
+    }
     if (!sixArmed) { setSixArmed(true); return; }
     setSixArmed(false);
+    setPending(['six']);
+  }
+
+  function recordSixOfKindWin() {
     setPending([]);
     onUpdate(prev => {
       const n = prev.players.length;
@@ -1926,6 +1925,11 @@ function TournamentScreen({
 
   function commitPoints() {
     if (pending.length === 0) return;
+
+    if (pending[0] === 'six') {
+      recordSixOfKindWin();
+      return;
+    }
 
     if (pending[0] === 'dash') {
       if (isConfirmationTurn) {
@@ -2248,14 +2252,14 @@ function TournamentScreen({
     if (endgameNoticedRef.current.has(key)) return;
     endgameNoticedRef.current.add(key);
 
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       showFunny({
-        msg: `Hoď presne ${exactNeeded}! V koncovke potom treba potvrdenie. 😤`,
+        msg: t('funny.exact', { n: exactNeeded }),
         emoji: '🤙',
         variant: 'fight',
       }, { duration: 4500 });
     }, 400);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [currentPlayer, currentRound, isEndgame, isConfirmationTurn, exactNeeded]);
 
   useEffect(() => {
@@ -2431,7 +2435,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <div className="flex flex-wrap gap-2 mb-3">
                 {pending.map((p, i) => (
                   <button key={i} onClick={() => removePending(i)} className={`ks-press group flex items-center gap-1.5 px-3 py-1.5 rounded-sm border ${p === 'dash' ? 'ks-pending-dash border-stone-600/60 bg-stone-800/40 ks-muted' : p < 0 ? 'ks-pending-negative border-red-800/60 bg-red-950/40 ks-text-accent' : 'ks-pending-positive ks-border-accent bg-stone-900/70 ks-cream'}`}>
-                    <span className="ks-display font-semibold">{p === 'dash' ? t('game.dashChip') : (p > 0 ? `+${p}` : p)}</span>
+                    <span className="ks-display font-semibold">{p === 'dash' ? t('game.dashChip') : p === 'six' ? t('game.six.chip') : (p > 0 ? `+${p}` : p)}</span>
                     <X size={14} className="opacity-60 group-hover:opacity-100" />
                   </button>
                 ))}
@@ -2572,7 +2576,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                           p < 0 ? 'ks-pending-negative border-red-800/60 bg-red-950/40 ks-text-accent' :
                           'ks-pending-positive ks-border-accent bg-stone-900/70 ks-cream'}`}>
                       <span className="ks-display font-semibold">
-                        {p === 'dash' ? t('game.dashChip') : (p > 0 ? `+${p}` : p)}
+                        {p === 'dash' ? t('game.dashChip') : p === 'six' ? t('game.six.chip') : (p > 0 ? `+${p}` : p)}
                       </span>
                       <X size={14} className="opacity-60 group-hover:opacity-100" />
                     </button>
@@ -2669,7 +2673,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
       {blockFollowupPopups && funnyWindowsDisplayMode === 'standard' && (
         <FunnyOverlay
           data={{
-            msg: 'Dočasný kráľ! Neteš sa predčasne, ešte ťa môžu zosadiť z trónu.',
+            msg: t('king.funny'),
             emoji: 'strikethrough-crown',
             variant: 'fight'
           }}
@@ -2683,8 +2687,8 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
       {blockFollowupPopups && funnyWindowsDisplayMode === 'simplified' && (
         <SimplifiedResult
           kind="temporary-king"
-          title="Dočasný kráľ"
-          subtitle="Neteš sa predčasne, ešte ťa môžu zosadiť z trónu."
+          title={t('king.title')}
+          subtitle={t('king.subtitle')}
           actionLabel="KLIKNI PRE ZATVORENIE"
           onClose={() => {
             setShowTemporaryKingPopup(false);
@@ -2696,8 +2700,8 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
       {blockFollowupPopups && funnyWindowsDisplayMode === 'suppressed' && (
         <SimplifiedResult
           kind="temporary-king"
-          title="Dočasný kráľ"
-          subtitle="Neteš sa predčasne, ešte ťa môžu zosadiť z trónu."
+          title={t('king.title')}
+          subtitle={t('king.subtitle')}
           actionLabel="KLIKNI PRE ZATVORENIE"
           onClose={() => {
             setShowTemporaryKingPopup(false);
@@ -2732,7 +2736,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                 {winnerCelebration.isDraw ? '👑👑' : '🏆'}
               </div>
               <div className="ks-mono ks-gold text-sm mb-2 tracking-[0.3em]">
-                {winnerCelebration.isDraw ? `REMÍZA · ${winnerCelebration.winnerArr.length} VÍŤAZI` : '· VÍŤAZ ·'}
+                {winnerCelebration.isDraw ? t('win.drawDot', { n: winnerCelebration.winnerArr.length }) : t('win.winnerDot')}
               </div>
               <div className="ks-dramatic-name ks-display font-bold ks-cream leading-tight px-2"
                    style={{ fontSize: 'clamp(2rem, 8vw, 3.5rem)', textShadow: '0 4px 32px rgba(212,184,106,0.6), 0 0 60px rgba(212,184,106,0.3)' }}>
@@ -2746,10 +2750,10 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
             <div className="ks-funny relative z-10 text-center max-w-md">
               <div className="text-7xl mb-3 ks-funny-emoji">{winnerCelebration.isDraw ? '👑👑' : '👑'}</div>
               <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">
-                {winnerCelebration.isDraw ? `REMÍZA — ${winnerCelebration.winnerArr.length} VÍŤAZI` : 'VÍŤAZ'}
+                {winnerCelebration.isDraw ? t('win.drawDash', { n: winnerCelebration.winnerArr.length }) : t('win.winnerCaps')}
               </div>
               <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2">
-                {winnerCelebration.isDraw ? 'Víťazi' : 'Víťaz'}
+                {winnerCelebration.isDraw ? t('win.winners') : t('win.winner')}
               </div>
               <div className="ks-body ks-cream text-base mb-1 leading-snug">
                 {winnerCelebration.winnerArr.map(idx =>
@@ -2764,8 +2768,8 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
         <SimplifiedResult
           kind={winnerCelebration.isDraw ? 'draw' : 'victory'}
           title={winnerCelebration.isDraw
-            ? `Víťazi (${winnerCelebration.winnerArr.length})`
-            : 'Víťaz'}
+            ? t('win.winnersN', { n: winnerCelebration.winnerArr.length })
+            : t('win.winner')}
           subtitle={winnerCelebration.winnerArr.map(idx =>
             `${players[idx]} (${(totals[idx] || 0).toLocaleString('sk-SK')})`
           ).join(', ')}
@@ -2776,8 +2780,8 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
         <SimplifiedResult
           kind={winnerCelebration.isDraw ? 'draw' : 'victory'}
           title={winnerCelebration.isDraw
-            ? `Víťazi (${winnerCelebration.winnerArr.length})`
-            : 'Víťaz'}
+            ? t('win.winnersN', { n: winnerCelebration.winnerArr.length })
+            : t('win.winner')}
           subtitle={winnerCelebration.winnerArr.map(idx =>
             `${players[idx]} (${(totals[idx] || 0).toLocaleString('sk-SK')})`
           ).join(', ')}
@@ -2826,13 +2830,16 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
 // Zobrazuje rozhodovací popup v troch vizuálnych variantoch podľa displayMode.
 // Volá tie isté callbacky onConfirm/onReject – herná logika sa nemení.
 function DecisionPresenter({ playerName, target, displayMode, onConfirm, onReject }) {
+  const t = useT();
+  const lang = useLang();
+  const targetText = target.toLocaleString(numberLocale(lang));
   const dialogRef = useRef(null);
   useFocusTrap(dialogRef);
   // Rozhodnutie je povinné – Späť ho nesmie preskočiť ani opustiť hru.
   useBackHandler(() => {});
   if (displayMode === 'standard') {
     return (
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Potvrdenie výhry"
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={t('decision.aria')}
            className="fixed inset-0 z-50 flex items-center justify-center px-6 ks-overlay-bg ks-dark-overlay"
            style={{ background: 'var(--ks-overlay-dark, radial-gradient(circle at center, rgba(120,80,40,0.95), rgba(14,12,10,0.98)))' }}>
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -2848,26 +2855,26 @@ function DecisionPresenter({ playerName, target, displayMode, onConfirm, onRejec
             <div className="h-px flex-1 max-w-[60px]" style={{ background: 'linear-gradient(90deg, var(--ks-popup-accent, #d4b86a), transparent)' }} />
           </div>
           <div className="text-7xl mb-3 ks-funny-emoji" style={{ filter: 'drop-shadow(0 4px 16px var(--ks-glow-orb, rgba(212,184,106,0.6)))' }}>😤</div>
-          <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">🏁 DOSIAHOL {target.toLocaleString('sk-SK')} — POTVRD VÝHRU</div>
+          <div className="ks-mono ks-gold text-xs mb-3 tracking-widest">🏁 {t('decision.headline', { target: targetText })}</div>
           <div className="ks-display text-4xl font-bold ks-cream leading-tight px-2 mb-2"
                style={{ textShadow: '0 4px 24px var(--ks-glow-orb, rgba(212,184,106,0.4)), 0 0 40px var(--ks-glow-orb, rgba(212,184,106,0.4))' }}>
             {playerName}
           </div>
           <div className="ks-body ks-cream text-base mb-5 leading-snug">
-            Hráč <em className="ks-gold">{playerName}</em> dosiahol cieľ!<br/>Skupina potvrdzuje výhru — bola hra čistá?
+            {t('decision.player')} <em className="ks-gold">{playerName}</em> {t('decision.reached')}<br/>{t('decision.group')}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <button onClick={onConfirm}
               className="ks-press py-4 px-3 rounded-sm border-2 ks-border-accent ks-bg-confirm hover:brightness-125">
               <Crown size={20} className="ks-gold mx-auto mb-1" />
-              <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
-              <div className="ks-muted text-[10px] ks-mono mt-0.5">VÝHRA POTVRDENÁ</div>
+              <div className="ks-display ks-gold text-base font-bold">✓ {t('decision.confirmed')}</div>
+              <div className="ks-muted text-[10px] ks-mono mt-0.5">{t('decision.confirmedSub')}</div>
             </button>
             <button onClick={onReject}
               className="ks-press py-4 px-3 rounded-sm border-2 border-red-900/50 ks-bg-reject hover:brightness-125">
               <X size={20} className="ks-text-accent mx-auto mb-1" />
-              <div className="ks-display ks-text-accent text-base font-bold">Nepotvrdil</div>
-              <div className="ks-text-accent/60 text-[10px] ks-mono mt-0.5">VÝHRA NEPOTVRDENÁ</div>
+              <div className="ks-display ks-text-accent text-base font-bold">{t('decision.rejected')}</div>
+              <div className="ks-text-accent/60 text-[10px] ks-mono mt-0.5">{t('decision.rejectedSub')}</div>
             </button>
           </div>
         </div>
@@ -2877,7 +2884,7 @@ function DecisionPresenter({ playerName, target, displayMode, onConfirm, onRejec
 
   // simplified & suppressed: kompaktná karta bez click-outside
   return (
-    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Potvrdenie výhry"
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={t('decision.aria')}
          className="fixed inset-0 z-50 flex items-center justify-center px-4"
          style={{ background: 'var(--ks-modal-dark-overlay, rgba(10,8,6,0.92))' }}>
       <div className="ks-card max-w-sm w-full rounded-sm border-2 p-5 text-center shadow-2xl"
@@ -2885,20 +2892,20 @@ function DecisionPresenter({ playerName, target, displayMode, onConfirm, onRejec
         <div className="flex justify-center mb-3">
           <Crown size={48} className="ks-gold" style={{ filter: 'drop-shadow(0 4px 16px var(--ks-glow-orb, rgba(212,184,106,0.5)))' }} />
         </div>
-        <div className="ks-mono ks-gold text-xs tracking-widest mb-2">POTVRD VÝHRU</div>
+        <div className="ks-mono ks-gold text-xs tracking-widest mb-2">{t('decision.confirmCaps')}</div>
         <div className="ks-display text-2xl font-bold ks-cream leading-tight px-2 mb-1">{playerName}</div>
         <div className="ks-body ks-cream text-sm opacity-90 leading-snug mb-5">
-          Hráč <em className="ks-gold">{playerName}</em> dosiahol <strong>{target.toLocaleString('sk-SK')}</strong>.<br/>
-          Potvrďte, že v overovom hode nič nepadlo.
+          {t('decision.player')} <em className="ks-gold">{playerName}</em> {t('decision.reachedVal')} <strong>{targetText}</strong>.<br/>
+          {t('decision.verify')}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <button onClick={onConfirm}
             className="ks-press py-3 px-2 rounded-sm border-2 ks-border-accent ks-bg-confirm hover:brightness-125">
-            <div className="ks-display ks-gold text-base font-bold">✓ Potvrdil</div>
+            <div className="ks-display ks-gold text-base font-bold">✓ {t('decision.confirmed')}</div>
           </button>
           <button onClick={onReject}
             className="ks-press py-3 px-2 rounded-sm border-2 border-red-900/50 ks-bg-reject hover:brightness-125">
-            <div className="ks-display ks-text-accent text-base font-bold">✗ Nepotvrdil</div>
+            <div className="ks-display ks-text-accent text-base font-bold">✗ {t('decision.rejected')}</div>
           </button>
         </div>
       </div>
