@@ -1,5 +1,5 @@
 import React from 'react';
-import { Header } from '../atoms/Header.jsx';
+import { Header } from '../components/ui.jsx';
 import { PRIVACY_SECTIONS, PRIVACY_UPDATED } from '../content/privacy.js';
 
 export function PrivacyScreen({ onBack }) {

@@ -18,7 +18,7 @@ const _HP       = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000
 //
 // POZOR NA IMPORT CYKLY:
 //   Tento modul neimportuje nič z App.jsx ani iných lokálnych modulov.
-//   Môžu ho bezpečne importovať: App.jsx, atoms/*, screens/*.
+//   Môžu ho bezpečne importovať: App.jsx, components/*, screens/*.
 
 
 // Generuje CSS string s :root premennými pre zvolený skin.

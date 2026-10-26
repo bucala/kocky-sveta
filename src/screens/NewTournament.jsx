@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Play, Target, Plus, X, UserPlus, Check, Pencil } from 'lucide-react';
-import { GoldButton, Ornament } from '../atoms/GoldButton.jsx';
-import { Header } from '../atoms/Header.jsx';
+import { GoldButton, Ornament, Header } from '../components/ui.jsx';
 import { TARGET_OPTIONS } from '../constants/game.js';
 import { useT } from '../lib/i18n.js';
 import { showConfirm } from '../components/Dialogs.jsx';

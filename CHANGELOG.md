@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.3] — 2026-10-26 — Vlastné skiny, súkromie, angličtina, vlastné dialógy
+
+### Pridané (Added)
+
+- **Zásady ochrany súkromia** v Nastaveniach aj ako verejná stránka `privacy.html` (pre Google Play); podklad pre Data safety v `docs/play-data-safety.md`.
+- **Zmazanie online miestnosti** (dvojité ťuknutie) a upozornenie o súkromí pri vytváraní miestnosti.
+- **Angličtina** pre hernú obrazovku, hlášky a tlačidlo Späť; čísla sa formátujú podľa jazyka a stránka má správny atribút `lang`.
+- **Vlastné dialógy** namiesto systémových `alert/confirm/prompt`: vyzerajú podľa skinu, fungujú s ovládačom TV a tlačidlom Späť; vymazanie všetkých dát sa potvrdzuje dvojitým ťuknutím.
+- **Dymový test v prehliadači** (`npm run e2e`) beží v CI pri každom PR; testy rozhodovania online synchronizácie a undo.
+- Dependabot (npm a GitHub Actions) a plán migrácie závislostí v `docs/migration-plan.md`.
+
+### Zmenené (Changed)
+
+- Skiny **Aréna**, **Aréna modrá** a **Čarovný pergamen** majú vlastné vzory namiesto cudzích obrázkov a názvov.
+- V online miestnosti sa namiesto trvalého ID zariadenia ukladá jeho odvodený hash, iný pre každú miestnosť.
+- Archív, nastavenia, pravidlá a zdieľané UI sú vo vlastných súboroch (`src/screens`, `src/components/ui.jsx`); herná logika sa nemenila. Odstránené nepoužívané duplikáty a `scripts/scan_sheet`.
+
+### Opravené (Fixed)
+
+- Hláška „dosiahol cieľ“ v prísnom režime ukazovala „…“ namiesto cieľa.
+
+---
+
 ## [1.7.2] — 2026-10-26 — Nastavenia pravidiel naozaj platia, spoľahlivejší online režim, rýchlejší štart
 
 ### Pridané (Added)
