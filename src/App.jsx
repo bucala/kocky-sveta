@@ -25,6 +25,7 @@ import { NewTournament } from './screens/NewTournament.jsx';
 import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
 import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
 import { PrivacyScreen } from './screens/PrivacyScreen.jsx';
+import { DialogHost, showAlert, showConfirm } from './components/Dialogs.jsx';
 // Online obrazovka (a s ňou Firebase, ~450 kB) sa načíta až pri otvorení.
 const OnlineScreen = React.lazy(() => import('./screens/OnlineScreen.jsx').then(m => ({ default: m.OnlineScreen })));
 import { AdminScreen, AdminPinDialog, DEFAULT_ADMIN_SETTINGS } from './screens/AdminScreen.jsx';
@@ -985,7 +986,7 @@ export default function App() {
   }, []);
 
   const handleSimulateTurn = useCallback(() => {
-    if (!active) { window.alert('Žiadna aktívna hra.'); return; }
+    if (!active) { showAlert('Žiadna aktívna hra.'); return; }
     const randomScore = (Math.floor(Math.random() * 20) + 1) * 50;
     handleUpdateActive(prev => {
       if (!prev) return prev;
@@ -1011,7 +1012,7 @@ export default function App() {
 
   const handleAdminCreateRoom = useCallback(async () => {
     const customId = adminSettings.roomName?.toUpperCase().trim();
-    if (!customId) { window.alert('Zadaj názov miestnosti.'); return; }
+    if (!customId) { showAlert('Zadaj názov miestnosti.'); return; }
     try {
       const [{ getAuth, signInAnonymously }, { createRoom }] = await Promise.all([
         import('firebase/auth'),
@@ -1033,7 +1034,7 @@ export default function App() {
       setOnlineStatus('connected');
       setView('online');
     } catch (e) {
-      window.alert(`Chyba: ${e?.message || e}`);
+      showAlert(`Miestnosť sa nepodarilo vytvoriť.\n\n${e?.message || e}`);
     }
   }, [adminSettings.roomName, rules, selectedSkin, setOnlineRoomId, setOnlineUid, setOnlineStatus]);
 
@@ -1078,10 +1079,10 @@ function startTournament(players, targetScore) {
     });
 
     if (!validation.valid) {
-      const msg = 'Turnaj nemôže byť uzatvorený — nájdené nezhody:\n\n' +
+      const msg = 'Turnaj sa nedá uzavrieť, výsledok nesedí:\n\n' +
         validation.errors.join('\n') +
-        '\n\nReason: ' + validation.reason;
-      window.alert(msg);
+        '\n\nDôvod: ' + validation.reason;
+      showAlert(msg, { title: 'Turnaj nie je uzavretý' });
       console.error('[finishTournament] Validation failed:', validation);
       return;
     }
@@ -1096,8 +1097,8 @@ function startTournament(players, targetScore) {
       const msg = 'Diskrepancia v určení víťaza:\n\n' +
         `Hra deklaruje víťazov: ${declaredWinners.map(i => active.players[i]).join(', ')}\n` +
         `Validácia podľa súčtov: ${computedWinners.map(i => active.players[i]).join(', ')}\n\n` +
-        'Turnaj sa neuzatvorí — kontaktuj vývojára (alebo skús presný stav v archíve).';
-      window.alert(msg);
+        'Turnaj sa neuzavrie. Skontroluj zápisy, prípadne ich oprav cez Vrátiť posledný zápis.';
+      showAlert(msg, { title: 'Nezhoda vo víťazovi' });
       console.error('[finishTournament] Winner mismatch:', { declaredWinners, computedWinners, totals: validation.totals });
       return;
     }
@@ -1117,9 +1118,9 @@ function startTournament(players, targetScore) {
     setView('archiveDetail');
   }
 
-  function abortTournament() {
+  async function abortTournament() {
     if (!active) return;
-    if (!window.confirm('Naozaj chceš zrušiť rozohraný turnaj? Bude uložený do archívu ako nedokončený.')) return;
+    if (!(await showConfirm('Rozohraný turnaj sa uloží do archívu ako nedokončený.', { title: 'Zrušiť turnaj?', confirmLabel: 'Zrušiť turnaj', cancelLabel: 'Hrať ďalej', danger: true }))) return;
     setTournaments(prev => [{ ...active, status: 'aborted', finishedAt: new Date().toISOString() }, ...prev]);
     setActive(null);
     syncActiveNow(null);
@@ -1135,7 +1136,7 @@ function startTournament(players, targetScore) {
 
   async function exportToExcel() {
     if (tournaments.length === 0) {
-      window.alert('Archív je prázdny — nie je čo exportovať.');
+      showAlert('Archív je prázdny, nie je čo exportovať.');
       return;
     }
     const XLSX = (await import('xlsx')).default || await import('xlsx');
@@ -1233,13 +1234,13 @@ function startTournament(players, targetScore) {
             dialogTitle: 'Uložiť alebo zdieľať export'
           });
         } else {
-          window.alert('Export uložený do Documents: ' + fileName);
+          showAlert('Export je uložený v priečinku Documents ako ' + fileName + '.');
         }
         return;
       }
     } catch (e) {
       console.error('Native Android export failed:', e);
-      window.alert('Natívny export zlyhal: ' + (e?.message || 'neznáma chyba') + '\n\nSkontroluj, či si po npm install spustil aj npx cap sync android.');
+      showAlert('Export sa nepodarilo uložiť do zariadenia. Skúsim ho stiahnuť iným spôsobom.');
     }
 
     const mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -1300,7 +1301,7 @@ function startTournament(players, targetScore) {
   async function importFromExcel(file) {
     // Záloha z aplikácie má desiatky kB; väčší súbor nie je naša záloha.
     if (file && file.size > 5 * 1024 * 1024) {
-      window.alert('Súbor je príliš veľký (viac ako 5 MB). Vyber zálohu exportovanú z aplikácie.');
+      showAlert('Súbor je príliš veľký (viac ako 5 MB). Vyber zálohu exportovanú z aplikácie.');
       return;
     }
     try {
@@ -1480,7 +1481,7 @@ function startTournament(players, targetScore) {
       }
 
       if (imported.length === 0) {
-        window.alert(`Žiadne turnaje neboli importované.${skipped.length ? '\n\nPreskočené listy:\n' + skipped.join('\n') : ''}`);
+        showAlert(`Žiadne turnaje neboli importované.${skipped.length ? '\n\nPreskočené listy:\n' + skipped.join('\n') : ''}`);
         return;
       }
 
@@ -1489,28 +1490,21 @@ function startTournament(players, targetScore) {
 
       let msg = `Úspešne importované: ${imported.length} ${imported.length === 1 ? 'turnaj' : (imported.length < 5 ? 'turnaje' : 'turnajov')}.`;
       if (skipped.length) msg += `\n\nPreskočené:\n${skipped.join('\n')}`;
-      window.alert(msg);
+      showAlert(msg, { title: 'Import hotový' });
     } catch (err) {
       console.error(err);
-      window.alert('Chyba pri importe: ' + (err.message || 'neznáma chyba'));
+      showAlert('Súbor sa nepodarilo načítať. Vyber zálohu exportovanú z aplikácie (.xlsx).', { title: 'Import zlyhal' });
     }
   }
 
   async function clearAllData() {
-    const step1 = window.confirm(
-      '⚠️ POZOR: Toto vymaže VŠETKY turnaje z archívu, rozohranú hru aj uložené pravidlá z tohto zariadenia.\n\n' +
-      'Odporúčame najprv vytvoriť zálohu cez Export do Excelu.\n\n' +
-      'Chceš pokračovať?'
+    // Namiesto písania „VYMAZAŤ“ (na TV ovládači takmer nemožné) dvojité potvrdenie.
+    const ok = await showConfirm(
+      'Vymažú sa VŠETKY turnaje z archívu, rozohraná hra aj uložené pravidlá z tohto zariadenia. Akcia sa nedá vrátiť.\n\n' +
+      'Odporúčame najprv vytvoriť zálohu cez Export do Excelu.',
+      { title: 'Vymazať všetky dáta?', confirmLabel: 'Vymazať všetko', danger: true, doubleTap: true }
     );
-    if (!step1) return;
-
-    const step2 = window.prompt(
-      'Pre potvrdenie napíš slovo VYMAZAŤ (veľkými písmenami).'
-    );
-    if (step2 !== 'VYMAZAŤ') {
-      window.alert('Vymazanie zrušené.');
-      return;
-    }
+    if (!ok) return;
 
     setTournaments([]);
     setActive(null);
@@ -1525,7 +1519,7 @@ function startTournament(players, targetScore) {
     await window.storage.set('rules', JSON.stringify(DEFAULT_RULES)).catch(() => {});
     await window.storage.set('selectedSkin', JSON.stringify('classic')).catch(() => {});
 
-    window.alert('Všetky dáta boli vymazané.');
+    showAlert('Všetky dáta boli vymazané.');
   }
 
   return (
@@ -1533,6 +1527,8 @@ function startTournament(players, targetScore) {
     <div className={`ks-app-shell ks-bg min-h-screen ks-cream ks-body ${view === 'tournament' && ['observer', 'observerSimplified'].includes(tournamentViewMode) ? 'ks-app-viewer' : ''}`} data-skin={selectedSkin} data-animations={motionEnabled ? 'on' : 'off'} style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
       <style>{skinVarsCss(selectedSkin, selectedFont)}</style>
       <style>{`:root { --ks-popup-offset: ${POPUP_CONFIG.VERTICAL_OFFSET}; --ks-popup-opacity: ${POPUP_CONFIG.OPACITY}; }`}</style>
+      {/* vlastné dialógy (showAlert/showConfirm) – vo vnútri skinu, aby dedili jeho farby */}
+      <DialogHost />
       {selectedSkin !== 'classic' && motionEnabled && <BrawlBackground skin={selectedSkin} />}
       <div className="ks-app-content">
 
@@ -1650,7 +1646,7 @@ function startTournament(players, targetScore) {
         <ArchiveScreen tournaments={Array.isArray(tournaments) ? tournaments : []}
           onBack={() => setView(archiveReturnTo)}
           onView={(t) => { setViewingTournament(t); setView('archiveDetail'); }}
-          onDelete={(id) => { if (window.confirm('Vymazať tento turnaj z archívu?')) setTournaments(prev => prev.filter(x => x.id !== id)); }}
+          onDelete={async (id) => { if (await showConfirm('Turnaj sa natrvalo odstráni z archívu.', { title: 'Vymazať turnaj?', confirmLabel: 'Vymazať', danger: true })) setTournaments(prev => prev.filter(x => x.id !== id)); }}
           onScan={() => { setScanReturnTo('archive'); setView('scan'); }}
           readOnly={archiveReturnTo === 'menu'}
         />
@@ -1690,7 +1686,7 @@ function startTournament(players, targetScore) {
       )}
       {view === 'rulesEditor' && (
         <RulesEditor rules={rules} onSave={setrules} onBack={() => setView('settings')}
-          onReset={() => { if (window.confirm('Obnoviť všetky pravidlá na pôvodné nastavenia?')) setrules(DEFAULT_RULES); }}
+          onReset={async () => { if (await showConfirm('Všetky pravidlá sa vrátia na pôvodné hodnoty.', { title: 'Obnoviť pravidlá?', confirmLabel: 'Obnoviť' })) setrules(DEFAULT_RULES); }}
           selectedSkin={selectedSkin}
         />
       )}
@@ -3464,7 +3460,7 @@ function RulesEditor({ rules, onSave, onBack, onReset, selectedSkin }) {
   }, !!(activeCategory || editingId));
 
   function update(id, patch) { setDraft(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r)); }
-  function remove(id) { if (window.confirm('Vymazať toto pravidlo?')) setDraft(prev => prev.filter(r => r.id !== id)); }
+  async function remove(id) { if (await showConfirm('Pravidlo sa odstráni.', { title: 'Vymazať pravidlo?', confirmLabel: 'Vymazať', danger: true })) setDraft(prev => prev.filter(r => r.id !== id)); }
   function add() {
     const id = 'r' + Date.now();
     const newRule = { id, name: 'Nové pravidlo', description: 'Popis pravidla', points: 100, type: 'numeric', dice: [] };
@@ -3944,8 +3940,8 @@ function ArchiveDetail({ tournament, onBack, onUpdate, readOnly, scoreDisplayMod
     }));
   }
 
-  function removeRound(idx) {
-    if (!window.confirm(`Vymazať kolo ${idx + 1}?`)) return;
+  async function removeRound(idx) {
+    if (!(await showConfirm(`Kolo ${idx + 1} sa odstráni z turnaja.`, { title: 'Vymazať kolo?', confirmLabel: 'Vymazať', danger: true }))) return;
     setDraft(prev => ({
       ...prev,
       rounds: prev.rounds.filter((_, i) => i !== idx),

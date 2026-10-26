@@ -1,6 +1,7 @@
 // src/screens/OnlineScreen.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { friendlyFirebaseError } from '../online/errors.js';
+import { showConfirm } from '../components/Dialogs.jsx';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { Wifi, WifiOff, AlertCircle, ChevronLeft, Copy, Check, LogOut, Info, User, Users, MessageCircle, Send, X, Trash2, Shield } from 'lucide-react';
 import { useOnlineStore } from '../online/onlineStore.ts';
@@ -248,8 +249,8 @@ export function OnlineScreen({ onBack, activeSkin, activeRules, defaultRoomName 
     }
   };
 
-  const handleDisconnect = () => {
-    const ok = window.confirm('Naozaj sa chceš odhlásiť? Máš zapísaný kód miestnosti?');
+  const handleDisconnect = async () => {
+    const ok = await showConfirm(`Na návrat budeš potrebovať kód miestnosti ${roomId || ''}.`, { title: 'Odpojiť sa z miestnosti?', confirmLabel: 'Odpojiť' });
     if (!ok) return;
     reset();
     onBack();
