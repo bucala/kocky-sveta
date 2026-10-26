@@ -1270,10 +1270,15 @@ function startTournament(players, targetScore) {
   }
 
   async function importFromExcel(file) {
+    // Záloha z aplikácie má desiatky kB; väčší súbor nie je naša záloha.
+    if (file && file.size > 5 * 1024 * 1024) {
+      window.alert('Súbor je príliš veľký (viac ako 5 MB). Vyber zálohu exportovanú z aplikácie.');
+      return;
+    }
     try {
       const XLSX = (await import('xlsx')).default || await import('xlsx');
       const data = await file.arrayBuffer();
-      const wb = XLSX.read(data, { type: 'array' });
+      const wb = XLSX.read(data, { type: 'array', cellFormula: false, cellHTML: false, sheetRows: 2000 });
 
       const imported = [];
       const skipped = [];

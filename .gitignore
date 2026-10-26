@@ -14,8 +14,16 @@ android/app/build
 android/build
 android/.gradle
 android/local.properties
+android/app/release/
+android/app/src/main/assets/public/
+android/.idea/
+*.apk
+*.aab
 *.jks
 *.keystore
+*.p12
+*.pfx
+coverage/
 
 # Python signing tooling
 __pycache__/

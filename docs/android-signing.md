@@ -36,7 +36,7 @@ Workflow ešte pred inštaláciou npm balíkov kontroluje všetky štyri secrets
 
 Po zostavení `apksigner verify` skontroluje platnosť APK a SHA-256 certifikátu sa porovná s certifikátom z keystore. APK sa nahrá medzi artifacts iba po úspešnej kontrole. Dočasné podpisovacie súbory sa odstránia aj pri chybe.
 
-Release build nikdy nepoužije debugový kľúč ako náhradu. Debug build nevyžaduje release secrets. Kľúče, heslá ani ich Base64 nesmú byť súčasťou Git commitu; Base64 nie je šifrovanie.
+Release build nikdy nepoužije debugový kľúč ako náhradu: bez podpisových údajov Gradle zlyhá. Iba na lokálny test sa dá výslovne povoliť `./gradlew assembleRelease -PallowDebugSignedRelease=true`; takéto APK sa nesmie šíriť. Debug build nevyžaduje release secrets. Kľúče, heslá ani ich Base64 nesmú byť súčasťou Git commitu; Base64 nie je šifrovanie.
 
 ## Lokálne overenie prípravy
 

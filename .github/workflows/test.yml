@@ -3,15 +3,20 @@ name: 🧪 Tests — Kocky sveta
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-      - refactor/modularize-app
+    branches: [main]
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
-    name: Vitest — useFunnyQueue & hooks
+    name: Testy a build
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout
@@ -20,15 +25,17 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
-      - name: 📦 Install dependencies
-        run: npm install
+      - name: 📦 Install dependencies (lockfile)
+        run: npm ci
 
-      - name: 🧪 Run tests
+      - name: 🧪 Unit testy
         run: npm test
 
-      - name: ✅ Test summary
-        if: always()
-        run: echo "Tests finished — check results above"
+      - name: 🏗️ Produkčný build
+        run: npm run build
+
+      - name: 🐍 Testy podpisovania Android
+        run: python3 -m unittest discover -s scripts/tests -v

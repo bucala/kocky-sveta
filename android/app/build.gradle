@@ -19,6 +19,7 @@ android {
     def releaseKeyPass = signingValue("KEY_PASS")
 
     def hasReleaseSigning = file(releaseKeystorePath).isFile() && releaseKeystorePass && releaseKeyAlias && releaseKeyPass
+    def allowDebugSignedRelease = (project.findProperty("allowDebugSignedRelease") ?: "false").toString() == "true"
 
     signingConfigs {
         if (hasReleaseSigning) {
@@ -39,16 +40,22 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (hasReleaseSigning) {
                 signingConfig signingConfigs.release
-            } else {
+            } else if (allowDebugSignedRelease) {
+                // Iba na lokálne testovanie: ./gradlew assembleRelease -PallowDebugSignedRelease=true
                 signingConfig signingConfigs.debug
             }
         }
     }
 
+    // Release build bez podpisových údajov zlyhá (nikdy potichu nepoužije debug kľúč).
     gradle.taskGraph.whenReady { graph ->
         if (graph.allTasks.any { it.project == project && it.name.toLowerCase().contains("release") }) {
+            if (!hasReleaseSigning && !allowDebugSignedRelease) {
+                throw new GradleException("Release signing credentials (KEYSTORE_PATH, KEYSTORE_PASS, KEY_ALIAS, KEY_PASS) not found. " +
+                    "Debug signing is never used for a release build. For a local test only, pass -PallowDebugSignedRelease=true.")
+            }
             if (!hasReleaseSigning) {
-                logger.warn("Release signing credentials (KEYSTORE_PATH, KEYSTORE_PASS, KEY_ALIAS, KEY_PASS) not found. Falling back to debug signing config.")
+                logger.warn("allowDebugSignedRelease=true: release APK is signed with the DEBUG key. Do not distribute it.")
             }
         }
     }
