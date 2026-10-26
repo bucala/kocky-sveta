@@ -40,6 +40,8 @@ const T = {
     'newt.slot.empty': 'Vyber hráča nižšie…',
     'newt.input.placeholder': 'Meno nového hráča',
     'newt.remove.tip': 'Odstrániť zo zoznamu',
+    'newt.list.edit': 'Upraviť',
+    'newt.list.done': 'Hotovo',
     'newt.start': 'Začať turnaj',
     'newt.no.players': 'Žiadni hráči. Pridaj prvého hráča.',
 
@@ -170,6 +172,8 @@ const T = {
     'newt.slot.empty': 'Select a player below…',
     'newt.input.placeholder': 'New player name',
     'newt.remove.tip': 'Remove from list',
+    'newt.list.edit': 'Edit',
+    'newt.list.done': 'Done',
     'newt.start': 'Start Tournament',
     'newt.no.players': 'No players. Add the first one.',
 

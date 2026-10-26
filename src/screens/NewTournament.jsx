@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Play, Target, Plus, X, UserPlus, Check } from 'lucide-react';
+import { Play, Target, Plus, X, UserPlus, Check, Pencil } from 'lucide-react';
 import { GoldButton, Ornament } from '../atoms/GoldButton.jsx';
 import { Header } from '../atoms/Header.jsx';
 import { TARGET_OPTIONS } from '../constants/game.js';
@@ -12,6 +12,9 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
   const [selected, setSelected] = useState([]); // ordered list of selected names
   const [newName, setNewName] = useState('');
   const [showAddInput, setShowAddInput] = useState(false);
+  // Mazanie zo zoznamu je v samostatnom režime úprav – na dotyku ani na TV
+  // nie je hover, takže skryté tlačidlo sa nedalo bezpečne použiť.
+  const [editingList, setEditingList] = useState(false);
   const inputRef = useRef(null);
 
   const togglePlayer = (name) => {
@@ -124,12 +127,23 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
         <div>
           <div className="ks-mono ks-gold text-xs mb-3 flex items-center justify-between">
             <span>{t('newt.list')}</span>
+            <span className="flex items-center gap-3">
+            {knownPlayers.length > 0 && (
+              <button
+                onClick={() => setEditingList(v => !v)}
+                className={`ks-press flex items-center gap-1 text-xs ${editingList ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
+                aria-pressed={editingList}
+              >
+                {editingList ? <Check size={12} /> : <Pencil size={12} />} {editingList ? t('newt.list.done') : t('newt.list.edit')}
+              </button>
+            )}
             <button
               onClick={() => { setShowAddInput(v => !v); setTimeout(() => inputRef.current?.focus(), 50); }}
               className="ks-press flex items-center gap-1 text-xs opacity-70 hover:opacity-100"
             >
               <UserPlus size={12} /> {t('add')}
             </button>
+            </span>
           </div>
 
           {showAddInput && (
@@ -169,14 +183,17 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
                     )}
                     {name}
                   </button>
-                  {/* Remove from known list */}
-                  <button
-                    onClick={() => removeKnown(name)}
-                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-900 text-red-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ks-press"
-                    title={t('newt.remove.tip')}
-                  >
-                    <X size={9} />
-                  </button>
+                  {/* Odstránenie zo zoznamu – iba v režime úprav, viditeľné a dosiahnuteľné aj D-padom */}
+                  {editingList && (
+                    <button
+                      onClick={() => removeKnown(name)}
+                      className="absolute -top-2 -right-2 min-h-0 w-6 h-6 rounded-full bg-red-900 text-red-100 border border-red-300/40 flex items-center justify-center ks-press"
+                      title={t('newt.remove.tip')}
+                      aria-label={`${t('newt.remove.tip')}: ${name}`}
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
                 </div>
               );
             })}
