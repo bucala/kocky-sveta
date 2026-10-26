@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 🧪 Test signing setup
         run: python3 -m unittest discover -s scripts/tests -v
@@ -40,7 +40,7 @@ jobs:
         run: python3 scripts/prepare-android-signing.py
 
       - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -55,7 +55,7 @@ jobs:
         run: npm run build
 
       - name: ☕ Setup JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -121,7 +121,7 @@ jobs:
             "$RUNNER_TEMP/android-signing/certificate.der"
 
       - name: 📤 Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kocky-sveta-${{ github.event.inputs.build_type }}-apk
           path: android/app/build/outputs/apk/**/*.apk
@@ -130,7 +130,7 @@ jobs:
 
       - name: 📤 Upload AAB artifact (Google Play)
         if: ${{ inputs.build_type == 'release' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kocky-sveta-release-aab
           path: android/app/build/outputs/bundle/release/*.aab
