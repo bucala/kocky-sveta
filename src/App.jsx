@@ -24,12 +24,11 @@ import { MainMenu, MenuButton } from './screens/MainMenu.jsx';
 import { NewTournament } from './screens/NewTournament.jsx';
 import { GameViewModesScreen } from './screens/GameViewModesScreen.jsx';
 import { VisualAndSkinScreen } from './screens/VisualAndSkinScreen.jsx';
-import { OnlineScreen } from './screens/OnlineScreen.jsx';
+// Online obrazovka (a s ňou Firebase, ~450 kB) sa načíta až pri otvorení.
+const OnlineScreen = React.lazy(() => import('./screens/OnlineScreen.jsx').then(m => ({ default: m.OnlineScreen })));
 import { AdminScreen, AdminPinDialog, DEFAULT_ADMIN_SETTINGS } from './screens/AdminScreen.jsx';
 import { PlayerStatsScreen } from './screens/PlayerStatsScreen.jsx';
 import { ScanImportScreen } from './screens/ScanImportScreen.jsx';
-import { getAuth, signInAnonymously } from 'firebase/auth';
-import { createRoom } from './online/createRoom.ts';
 import { useOnlineStore } from './online/onlineStore.ts';
 import { useRoomSubscription } from './online/useRoomSubscription.ts';
 import { computeWinners, computePlayerTotals as computeTotals } from './lib/tournamentEngine.js';
@@ -1012,6 +1011,10 @@ export default function App() {
     const customId = adminSettings.roomName?.toUpperCase().trim();
     if (!customId) { window.alert('Zadaj názov miestnosti.'); return; }
     try {
+      const [{ getAuth, signInAnonymously }, { createRoom }] = await Promise.all([
+        import('firebase/auth'),
+        import('./online/createRoom.ts'),
+      ]);
       const auth = getAuth();
       await auth.authStateReady();
       if (!auth.currentUser) await signInAnonymously(auth);
@@ -1672,7 +1675,11 @@ function startTournament(players, targetScore) {
         <SafeTournamentFallback title="Dáta turnaja sa nepodarilo načítať" />
       ))}
       {view === 'rules' && <RulesView rules={rules} onBack={() => setView('menu')} />}
-      {view === 'online' && <OnlineScreen onBack={() => setView('menu')} activeSkin={selectedSkin} activeRules={rules} defaultRoomName={adminSettings.roomName} />
+      {view === 'online' && (
+        <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center ks-muted ks-mono text-xs">NAČÍTAVAM ONLINE REŽIM…</div>}>
+          <OnlineScreen onBack={() => setView('menu')} activeSkin={selectedSkin} activeRules={rules} defaultRoomName={adminSettings.roomName} />
+        </React.Suspense>
+      )
       }
       {view === 'playerStats' && (
         <PlayerStatsScreen tournaments={tournaments} onBack={() => setView('menu')} />
