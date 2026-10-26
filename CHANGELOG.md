@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.4] — 2026-10-26 — Tlačidlo 6 rovnakých, minimálny cieľ
+
+### Zmenené (Changed)
+
+- Tlačidlo **6 rovnakých** je v spodnom rade medzi Čiarkou a penalizáciou (menej frekventované miesto). Prvé ťuknutie ho označí, druhé zapíše výhru.
+- Pri výhre šiestimi rovnakými sa hráčovi pripíšu body presne do cieľa turnaja (10 000, 5 000 alebo vlastný cieľ).
+- Cieľ turnaja je najmenej **2 000** bodov (nastavenie r15 aj Nový turnaj).
+- Obrazovka Pravidlá uvádza hranicu koncovky aj pre hru do 5 000.
+
+---
+
 ## [1.7.3] — 2026-10-26 — Vlastné skiny, súkromie, angličtina, vlastné dialógy
 
 ### Pridané (Added)

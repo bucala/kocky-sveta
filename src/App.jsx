@@ -1867,7 +1867,8 @@ function TournamentScreen({
   ) : null;
 
   // ─── Šesť rovnakých (pravidlo r13) ───────────────────────────────────────
-  // „Automatická výhra“: po potvrdení (druhé ťuknutie) hráč na ťahu vyhráva.
+  // „Automatická výhra“: po potvrdení (druhé ťuknutie) hráč na ťahu vyhráva;
+  // do jeho políčka v aktuálnom kole sa zapíšu body chýbajúce do cieľa turnaja.
   // „Pevná hodnota 3000“: pridá 3 000 bodov ako bežný hod.
   const [sixArmed, setSixArmed] = useState(false);
   useEffect(() => {
@@ -1880,31 +1881,43 @@ function TournamentScreen({
     if (!sixArmed) { setSixArmed(true); return; }
     setSixArmed(false);
     setPending([]);
-    onUpdate(prev => ({
-      ...prev,
-      _suddenWin: { playerIdx: prev.currentPlayer, round: prev.currentRound },
-      winner: prev.currentPlayer,
-      pendingDecision: null,
-    }));
+    onUpdate(prev => {
+      const n = prev.players.length;
+      const prevTotals = computeTotals(prev.rounds, n);
+      const missing = (prev.targetScore || 10000) - (prevTotals[prev.currentPlayer] || 0);
+      const newRounds = prev.rounds.slice();
+      while (newRounds.length <= prev.currentRound) newRounds.push(new Array(n).fill(null));
+      if (missing > 0) {
+        newRounds[prev.currentRound] = [...newRounds[prev.currentRound]];
+        newRounds[prev.currentRound][prev.currentPlayer] = missing;
+      }
+      return {
+        ...prev,
+        rounds: newRounds,
+        _suddenWin: { playerIdx: prev.currentPlayer, round: prev.currentRound },
+        winner: prev.currentPlayer,
+        pendingDecision: null,
+      };
+    });
   }
 
   const sixButton = sixOfKind === 'Automatická výhra' ? (
     <button
       type="button"
       onClick={sixOfKindWin}
-      className={`ks-press w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-sm border text-sm ks-mono ${sixArmed ? 'ks-border-accent ks-gold bg-amber-900/20' : 'ks-border-sub ks-muted'}`}
+      className={`ks-press p-3 rounded-sm border-2 flex items-center justify-center gap-1.5 text-xs ks-mono font-semibold text-center leading-tight ${sixArmed ? 'ks-border-accent ks-gold bg-amber-900/30' : 'ks-border-sub ks-muted bg-stone-950/40'}`}
       aria-label={sixArmed ? t('game.six.aria.armed', { name: players[currentPlayer] }) : t('game.six.aria')}
     >
-      <Crown size={14} />
-      {sixArmed ? t('game.six.armed', { name: String(players[currentPlayer] || '').toUpperCase() }) : t('game.six')}
+      <Crown size={16} className="shrink-0" />
+      <span>{sixArmed ? t('game.six.armed', { name: String(players[currentPlayer] || '').toUpperCase() }) : t('game.six')}</span>
     </button>
   ) : sixOfKind === 'Pevná hodnota 3000' ? (
     <button
       type="button"
       onClick={() => addPoints(3000)}
-      className="ks-press w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-sm border ks-border-sub ks-muted text-sm ks-mono"
+      className="ks-press p-3 rounded-sm border-2 ks-border-sub ks-muted bg-stone-950/40 flex items-center justify-center gap-1.5 text-xs ks-mono font-semibold text-center leading-tight"
     >
-      <Crown size={14} /> 6 ROVNAKÝCH +3 000
+      <Crown size={16} className="shrink-0" /> <span>{t('game.six.fixed')}</span>
     </button>
   ) : null;
 
@@ -2427,7 +2440,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <div className="ks-muted text-sm italic mb-3 py-2 text-center border border-dashed ks-border-sub rounded-sm">{t('game.addHint')}</div>
             )}
             <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">{t('game.commit')}</GoldButton>
-            {sixButton}{undoButton}
+            {undoButton}
           </div>
           <div className="ks-card-sub rounded-sm p-4 flex-1">
             <div className="flex items-center justify-between mb-3">
@@ -2467,8 +2480,9 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <GoldButton onClick={addCustom} icon={Plus} variant="outline">{t('game.addBtn')}</GoldButton>
             </div>
             <div className="ks-divider my-3" />
-            <div className="grid grid-cols-2 gap-2">
+            <div className={`grid ${sixButton ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
               <button onClick={addDash} className="ks-press p-3 rounded-sm ks-dash-button border-2 border-stone-600/50 bg-gradient-to-b from-stone-900/60 to-stone-950/80 hover:brightness-125 flex items-center justify-center gap-2"><Minus size={20} className="ks-muted" /><span className="ks-mono ks-cream font-semibold">{t('game.dashBtn')}</span></button>
+              {sixButton}
               <button onClick={addPenalty} className="ks-press p-3 rounded-sm ks-penalty-button border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2"><Skull size={20} className="ks-text-accent" /><span className="ks-mono ks-text-accent font-semibold">{penaltyLabel}</span></button>
             </div>
             <div className="grid grid-cols-2 gap-2 mt-4">
@@ -2578,7 +2592,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <GoldButton onClick={commitPoints} disabled={pending.length === 0} icon={Check} className="w-full text-lg">
                 Zapísať
               </GoldButton>
-              {sixButton}{undoButton}
+              {undoButton}
             </div>
           </div>
 
@@ -2608,21 +2622,23 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
 
               <div className="ks-divider my-3" />
 
-              {/* Špeciálne tlačidlá: Čiarka + Penalizácia */}
-              <div className="grid grid-cols-2 gap-2">
+              {/* Špeciálne tlačidlá: Čiarka + (6 rovnakých) + Penalizácia */}
+              <div className={`grid ${sixButton ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
                 <button onClick={addDash}
                   className="ks-press p-3 rounded-sm ks-dash-button border-2 border-stone-600/50 bg-gradient-to-b from-stone-900/60 to-stone-950/80 hover:brightness-125 flex items-center justify-center gap-2">
                   <Minus size={20} className="ks-muted" />
                   <span className="ks-mono ks-cream font-semibold">{t('game.dashBtn')}</span>
                 </button>
+                {sixButton}
                 <button onClick={addPenalty}
                   className="ks-press p-3 rounded-sm ks-penalty-button border-2 border-red-900/60 bg-gradient-to-b from-red-950/60 to-stone-950/60 hover:brightness-125 flex items-center justify-center gap-2">
                   <Skull size={20} className="ks-text-accent" />
                   <span className="ks-mono ks-text-accent font-semibold">{penaltyLabel}</span>
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-1">
+              <div className={`grid ${sixButton ? 'grid-cols-3' : 'grid-cols-2'} gap-2 mt-1`}>
                 <div className="ks-muted text-[10px] italic text-center">{t('game.dashHint')}</div>
+                {sixButton && <div className="ks-muted text-[10px] italic text-center">{t(sixOfKind === 'Automatická výhra' ? 'game.six.hint' : 'game.six.fixedHint')}</div>}
                 <div className="ks-muted text-[10px] italic text-center">{t('game.penaltyHint')}</div>
               </div>
             </div>
