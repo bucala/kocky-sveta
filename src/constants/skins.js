@@ -1,12 +1,13 @@
 import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6 } from 'lucide-react';
 
 // SVG background patterns (URL-encoded for CSS data URIs)
-// Brawl Stars: star/badge shape with lightning bolt
-const _LIGHTNING = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cpath d='M80 20 L93 45 L120 38 L122 65 L148 74 L136 98 L152 118 L126 122 L122 148 L95 138 L80 158 L65 138 L38 148 L34 122 L8 118 L24 98 L12 74 L38 65 L40 38 L67 45 Z' fill='rgba(110%2C55%2C170%2C0.28)'/%3E%3Cpath d='M87 48 L65 87 L82 87 L72 113 L103 72 L86 72 Z' fill='rgba(185%2C135%2C255%2C0.48)'/%3E%3C/svg%3E\") repeat";
-// Brawl Blue: cartoon skull with angry eyes and teeth
-const _SKULL    = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Ccircle cx='80' cy='66' r='48' fill='rgba(205%2C232%2C255%2C0.30)'/%3E%3Ccircle cx='63' cy='64' r='13' fill='rgba(10%2C52%2C130%2C0.55)'/%3E%3Ccircle cx='97' cy='64' r='13' fill='rgba(10%2C52%2C130%2C0.55)'/%3E%3Cline x1='50' y1='48' x2='72' y2='54' stroke='rgba(10%2C52%2C130%2C0.60)' stroke-width='5' stroke-linecap='round'/%3E%3Cline x1='110' y1='48' x2='88' y2='54' stroke='rgba(10%2C52%2C130%2C0.60)' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M75 82 L80 74 L85 82Z' fill='rgba(10%2C52%2C130%2C0.45)'/%3E%3Crect x='52' y='102' width='56' height='20' rx='6' fill='rgba(205%2C232%2C255%2C0.22)'/%3E%3Crect x='59' y='108' width='10' height='16' rx='3' fill='rgba(10%2C52%2C130%2C0.50)'/%3E%3Crect x='75' y='108' width='10' height='16' rx='3' fill='rgba(10%2C52%2C130%2C0.50)'/%3E%3Crect x='91' y='108' width='10' height='16' rx='3' fill='rgba(10%2C52%2C130%2C0.50)'/%3E%3C/svg%3E\") repeat";
-// Harry Potter: Deathly Hallows symbol + lightning bolt + star
-const _HP       = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cg stroke='rgba(100%2C62%2C12%2C0.28)' fill='none' stroke-width='2.5'%3E%3Cpolygon points='100 18 145 95 55 95'/%3E%3Ccircle cx='100' cy='68' r='27'/%3E%3Cline x1='100' y1='18' x2='100' y2='95'/%3E%3C/g%3E%3Cpath d='M164 30 L153 54 L163 54 L150 80' stroke='rgba(100%2C62%2C12%2C0.22)' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M35 152 L38 141 L41 152 L52 155 L41 158 L38 169 L35 158 L24 155Z' fill='rgba(100%2C62%2C12%2C0.20)'/%3E%3Ccircle cx='172' cy='164' r='3.5' fill='rgba(100%2C62%2C12%2C0.16)'/%3E%3Ccircle cx='20' cy='128' r='2.5' fill='rgba(100%2C62%2C12%2C0.13)'/%3E%3C/svg%3E\") repeat";
+// Vlastné abstraktné vzory (bez motívov cudzích hier a filmov).
+// Aréna: hviezdy a iskry
+const _LIGHTNING = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cpath d='M40 22 L45 36 L60 37 L48 46 L52 61 L40 52 L28 61 L32 46 L20 37 L35 36Z' fill='rgba(185%2C135%2C255%2C0.30)'/%3E%3Cpath d='M118 96 L121 105 L131 106 L123 112 L126 122 L118 116 L110 122 L113 112 L105 106 L115 105Z' fill='rgba(220%2C150%2C255%2C0.26)'/%3E%3Ccircle cx='122' cy='34' r='4' fill='rgba(185%2C135%2C255%2C0.30)'/%3E%3Ccircle cx='36' cy='122' r='3' fill='rgba(185%2C135%2C255%2C0.26)'/%3E%3Ccircle cx='82' cy='80' r='2.5' fill='rgba(230%2C200%2C255%2C0.30)'/%3E%3C/svg%3E\") repeat";
+// Aréna modrá: kosoštvorce (drahokamy)
+const _SKULL    = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cpath d='M40 20 L58 42 L40 64 L22 42Z' fill='rgba(160%2C220%2C255%2C0.24)'/%3E%3Cpath d='M120 92 L136 112 L120 132 L104 112Z' fill='rgba(120%2C200%2C255%2C0.22)'/%3E%3Cpath d='M118 28 L126 38 L118 48 L110 38Z' fill='rgba(205%2C232%2C255%2C0.26)'/%3E%3Ccircle cx='44' cy='120' r='3.5' fill='rgba(205%2C232%2C255%2C0.26)'/%3E%3C/svg%3E\") repeat";
+// Čarovný pergamen: hviezdičky a bodky
+const _HP       = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cpath d='M35 152 L38 141 L41 152 L52 155 L41 158 L38 169 L35 158 L24 155Z' fill='rgba(100%2C62%2C12%2C0.20)'/%3E%3Cpath d='M140 48 L142 40 L144 48 L152 50 L144 52 L142 60 L140 52 L132 50Z' fill='rgba(100%2C62%2C12%2C0.18)'/%3E%3Ccircle cx='172' cy='164' r='3.5' fill='rgba(100%2C62%2C12%2C0.16)'/%3E%3Ccircle cx='20' cy='128' r='2.5' fill='rgba(100%2C62%2C12%2C0.13)'/%3E%3Ccircle cx='86' cy='96' r='2' fill='rgba(100%2C62%2C12%2C0.14)'/%3E%3C/svg%3E\") repeat";
 
 // ─── Skin presets — vizuálne témy aplikácie ──────────────────────────────
 // Každý skin obsahuje:
@@ -81,7 +82,7 @@ export const SKIN_PRESETS = {
     vars: { '--ks-bg-main':'#f5f5f5','--ks-bg-soft':'rgba(255,255,255,0.98)','--ks-bg-soft-2':'rgba(250,250,250,1.0)','--ks-card-sub':'rgba(245,245,245,0.98)','--ks-border':'rgba(0,0,0,0.15)','--ks-border-strong':'rgba(0,0,0,0.40)','--ks-text':'#111111','--ks-text-muted':'#555555','--ks-accent':'#111111','--ks-accent-2':'#cccccc','--ks-button-text':'#ffffff','--ks-danger':'#cc0000','--ks-sticky-bg':'rgba(240,240,240,0.99)','--ks-sticky-bg2':'rgba(230,230,230,1.0)' }
   },
   brawlstars: {
-    id: 'brawlstars', name: 'Brawl Stars',
+    id: 'brawlstars', name: 'Aréna',
     bg: `${_LIGHTNING}, radial-gradient(ellipse at 50% 35%, #6030a0 0%, #38155a 48%, #1a0830 100%)`,
     vars: {
       '--ks-bg-main': `${_LIGHTNING}, #1a0830`,
@@ -101,7 +102,7 @@ export const SKIN_PRESETS = {
     },
   },
   brawlblue: {
-    id: 'brawlblue', name: 'Brawl Blue',
+    id: 'brawlblue', name: 'Aréna modrá',
     bg: `${_SKULL}, radial-gradient(ellipse at 50% 40%, #1a96d8 0%, #0e62ac 46%, #061e54 100%)`,
     vars: {
       '--ks-bg-main': `${_SKULL}, #061e54`,
@@ -121,10 +122,10 @@ export const SKIN_PRESETS = {
     },
   },
   harrypotter: {
-    id: 'harrypotter', name: 'Harry Potter',
+    id: 'harrypotter', name: 'Čarovný pergamen',
     bg: `${_HP}, radial-gradient(ellipse at 25% 45%, rgba(160,110,40,0.22), transparent 55%), linear-gradient(160deg, #f8ecd4 0%, #efe0b8 40%, #e8d6a4 70%, #f2e8c8 100%)`,
     vars: {
-      '--ks-bg-main': '#f0e2c0',
+      '--ks-bg-main': `${_HP}, #f0e2c0`,
       '--ks-bg-soft': 'rgba(252,244,226,0.97)',
       '--ks-bg-soft-2': 'rgba(248,238,215,1.0)',
       '--ks-card-sub': 'rgba(244,232,206,0.98)',

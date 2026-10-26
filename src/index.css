@@ -50,22 +50,8 @@ html, body, #root { width: 100%; overflow-x: hidden; }
 [data-skin="blackwhite"] .ks-card { background: rgba(22,22,22,0.95) !important; border-color: rgba(255,255,255,0.18) !important; }
 [data-skin="blackwhite"] .ks-live-table td, [data-skin="blackwhite"] .ks-live-table th { border-color: rgba(255,255,255,0.12) !important; }
 
-/* ── Brawl skin backgrounds — override .ks-bg for all game screens ─── */
-[data-skin="brawlstars"].ks-bg,
-[data-skin="brawlstars"] .ks-bg {
-  background: url('/brwls-poster_purple.jpg') center/cover no-repeat !important;
-}
-
-[data-skin="brawlblue"].ks-bg,
-[data-skin="brawlblue"] .ks-bg {
-  background: url('/brwls-poster_blue.jpg') center/cover no-repeat !important;
-}
-
-/* ── Harry Potter skin background ────────────────────────────────────── */
-[data-skin="harrypotter"].ks-bg,
-[data-skin="harrypotter"] .ks-bg {
-  background: url('/hp-hp-parchment.jpg') center/cover no-repeat !important;
-}
+/* Skiny Aréna a Čarovný pergamen kreslia pozadie vlastnými vzormi zo skins.js
+   (skin.bg na obale obrazovky); stiahnuté tapety boli odstránené. */
 
 /* ── Button press animation ──────────────────────────────────────────── */
 [data-animations="on"] .ks-press {

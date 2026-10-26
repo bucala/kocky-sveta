@@ -29,7 +29,7 @@
 - vlastné pravidlá a nastaviteľné bodovanie
 - export a import turnajov cez Excel (lazy-loaded)
 - archív odohraných hier a prehľad výsledkov
-- niekoľko vizuálnych skinov (Klasik, Les, Royal, Pergamen, Orech, HP, Brawl Stars…)
+- niekoľko vizuálnych skinov (Klasik, Les, Royal, Pergamen, Orech, Čarovný pergamen, Aréna…)
 - progress chart (SVG), standings, history graf
 - Android build cez Capacitor + Android Studio
 - **modulárne screens/components/lib** — časť obrazoviek a zdieľaných komponentov je extrahovaná do samostatných súborov, hlavný herný flow (turnaj, archív, nastavenia) je v `App.jsx`
@@ -128,8 +128,8 @@ Detaily: [`release-notes.md`](./release-notes.md), [`CHANGELOG.md`](./CHANGELOG.
 
 #### 🎨 Vizuálne skiny
 
-- **Harry Potter skin** — pergamenové pozadie + plávajúce HP ikony
-- **Brawl Stars skin** — dva odtiene (Classic + Brawl Blue) s ikonami postáv
+- **Čarovný pergamen** (pôvodne „Harry Potter“) — pergamenové pozadie a plávajúce magické ikony
+- **Aréna** (pôvodne „Brawl Stars“) — dva odtiene (fialová a modrá) s vlastnými vzormi
 - **Poster backgrounds** — reálne plagátové obrázky ako pozadia skinov
 - **Comprehensive skinning** — CSS custom properties pre všetky popupy a overlaye
 
@@ -146,7 +146,7 @@ Detaily: [`release-notes.md`](./release-notes.md), [`CHANGELOG.md`](./CHANGELOG.
 - **Score display mode** — prepínač Delta (Δ) / Kumulatívny (Σ) v tabuľke skóre
 - **Tournament view mode** — základný / rozšírený pohľad na turnaj
 - **Web Wake Lock API** — displej nespadne do spánku počas hry
-- **OCR scan_sheet tool** — fotka → Excel tabuľka skóre (Anthropic Vision API)
+- **OCR import z fotky** — v aplikácii (Archív → Import z fotky), od 1.7.0 cez Claude Haiku 5.5
 
 ---
 
@@ -334,7 +334,7 @@ src/
 │   ├── SkinSelector.jsx       — výber vizuálneho skinu
 │   └── index.js
 ├── components/
-│   ├── BrawlBackground.jsx    — animované pozadie pre Brawl Stars skin
+│   ├── BrawlBackground.jsx    — animované pozadie pre skiny Aréna a Čarovný pergamen
 │   ├── Confetti.jsx           — canvas confetti animácia
 │   ├── Modal.jsx              — modálne okno
 │   ├── ProgressChart.jsx      — vlastný SVG graf vývoja skóre
@@ -452,8 +452,8 @@ Firestore odmietol zápis (napr. bezpečnostné pravidlá). Skontroluj `firestor
 - [ ] Standings — poradie hráčov aktuálne po každom kole
 
 ### 🎨 Skins & vizuál
-- [ ] Harry Potter skin — pergamenové pozadie + HP ikony
-- [ ] Brawl Stars skin (Classic + Brawl Blue) — Brawl ikony v pozadí
+- [ ] Čarovný pergamen — pergamenové pozadie + magické ikony
+- [ ] Aréna (fialová + modrá) — vlastné vzory v pozadí
 - [ ] Ostatné skiny (Klasik, Les, Royal, Pergamen, Orech) — fungujú správne
 - [ ] Skin sa synchronizuje online — pozorovateľ vidí rovnaký skin ako recorder
 
