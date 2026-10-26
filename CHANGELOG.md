@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.2] — 2026-10-26 — Nastavenia pravidiel naozaj platia, spoľahlivejší online režim, rýchlejší štart
+
+### Pridané (Added)
+
+- **Šesť rovnakých (r13)**: tlačidlo „6 rovnakých = výhra“ (potvrdenie druhým ťuknutím), alebo „+3 000“ pri voľbe Pevná hodnota.
+- **Vlastný cieľ (r15)**: Nový turnaj predvolí cieľ z pravidiel; iná hodnota než 5 000/10 000 sa ponúkne ako tretia možnosť.
+- **Prekročenie cieľa (r17)**: voľba „Hod sa neuznáva“ nič nezapíše a hráč hádže znova.
+- **Penalizácia (r16)** sa ukladá do turnaja a používa v tlačidle aj kontrole.
+- Android **targetSdk 36** (požiadavka Google Play) a release build vytvára aj **AAB** pre Google Play.
+
+### Opravené (Fixed)
+
+- Nové zariadenie sa dá pripojiť do miestnosti aj vtedy, keď sú v nej neaktívni hráči (predtým „Missing or insufficient permissions“).
+- Po návrate z offline alebo reštarte sa novší lokálny stav hry odošle namiesto prepísania stavom zo servera; offline zápisy prežijú aj zatvorenie appky.
+- Chyby online režimu sú po slovensky.
+- Texty pravidiel (obrazovka Pravidlá, README, `docs/game-rules.md`) zodpovedajú skutočnému správaniu; r14 platí pre každý zápis.
+
+### Zmenené (Changed)
+
+- Heartbeat online režimu raz za minútu a len keď je appka na obrazovke (predtým každých 15 s): menej prenosu a čítaní Firestore.
+- Firebase sa načíta až pri použití online režimu; písma sú súčasťou appky (fungujú offline), menšie obrázky.
+- Predvolené hodnoty pravidiel sa nemenili, hra sa správa rovnako, kým nastavenia neupravíš.
+
+---
+
 ## [1.7.1] — 2026-10-26 — Kombinovaný režim, úpravy archívu, svetlé skiny
 
 ### Pridané (Added)

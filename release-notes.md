@@ -1,3 +1,12 @@
+## Čo je nové v 1.7.2
+
+- ⚙️ Nastavenia pravidiel naozaj platia: vlastný cieľ, penalizácia, „hod sa neuznáva“ a 6 rovnakých = výhra.
+- 🌐 Online: pripojenie funguje aj s neaktívnymi hráčmi v miestnosti a offline zápisy sa už nestratia.
+- ⚡ Rýchlejší štart: Firebase sa načíta až pri online hre, písma fungujú offline.
+- 🤖 Android pripravený pre Google Play (API 36, AAB).
+
+---
+
 ## Čo je nové v 1.7.1
 
 - 📺 Nový **Kombinovaný režim**: veľké skóre všetkých hráčov aj s cieľom a karta, kto je na ťahu.

@@ -7,9 +7,9 @@
 ![Firebase](https://img.shields.io/badge/Firebase-12.x-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![Capacitor](https://img.shields.io/badge/Capacitor-6.x-2563eb?style=for-the-badge&logo=capacitor&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-100%2F100%20✓-22c55e?style=for-the-badge)
-![Release](https://img.shields.io/badge/release-v1.7.1-d4b86a?style=for-the-badge)
+![Release](https://img.shields.io/badge/release-v1.7.2-d4b86a?style=for-the-badge)
 
-## 📦 Status: STABILNÝ — v1.7.1
+## 📦 Status: STABILNÝ — v1.7.2
 
 > **Verzia 1.7.0** — opravy z auditu: štatistiky, undo, tlačidlo Späť, OCR, PWA
 
@@ -50,6 +50,15 @@
 ---
 
 ## 🆕 Changelog
+
+### v1.7.2 — Pravidlá, online, rýchlejší štart *(2026-10-26)*
+
+- **Nastavenia pravidiel** r13, r15, r16, r17 sa uplatňujú v hre (predvolené správanie bez zmeny)
+- **Online**: pripojenie s neaktívnymi hráčmi, novší lokálny stav sa po návrate online neprepíše, heartbeat raz za minútu
+- **Rýchlejší štart**: Firebase až pri online hre, vlastné písma, menšie obrázky
+- **Android**: targetSdk 36 a AAB pre Google Play
+
+---
 
 ### v1.7.1 — Kombinovaný režim, úpravy archívu, svetlé skiny *(2026-10-26)*
 
