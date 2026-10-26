@@ -5,6 +5,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Hlavné verzie (Capacitor, React, Vite…) sa robia ručne po krokoch
+    # podľa docs/migration-plan.md, nie automatickými PR.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       minor-and-patch:
         update-types: [minor, patch]
