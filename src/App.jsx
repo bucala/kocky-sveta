@@ -56,6 +56,7 @@ const VIEW_MODE_LABELS = {
   observer: 'Pozorovateľ',
   observerSimplified: 'Pozorovateľ zjednodušený',
   recorder: 'Zapisovateľ',
+  combined: 'Kombinovaný',
 };
 const PENALTY_VALUE = -1000;
 
@@ -2566,6 +2567,8 @@ const isObserverMode = tournamentViewMode === 'observer';
 const isObserverSimplified = tournamentViewMode === 'observerSimplified';
 const isBasicSimplified = tournamentViewMode === 'basicSimplified';
 const isRecorderMode = tournamentViewMode === 'recorder';
+// Kombinovaný: veľké skóre všetkých hráčov (s cieľom) + karta „na ťahu“, bez zapisovania.
+const isCombinedMode = tournamentViewMode === 'combined';
 // Pozorovateľské režimy: žiadny zapisovací panel dole → nemizne im spodná rezerva,
 // obsah musí presne zaplniť výšku obrazovky (dôležité najmä na Android TV).
 const isViewerMode = isObserverMode || isObserverSimplified;
@@ -2587,10 +2590,39 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
   }
 
   if (!tournament || !Array.isArray(tournament.players) || !Array.isArray(tournament.rounds)) return <SafeTournamentFallback />;
-  
+
+  // Karta „na ťahu“ – spoločná pre Zapisovateľa a Kombinovaný režim.
+  const turnCard = (
+          <div
+            className="ks-card-prom ks-current-player-frame rounded-sm p-4 mb-2"
+            style={{ '--ks-current-player-color': currentPlayerColor }}
+            aria-current="true"
+          >
+            <div className="flex items-baseline justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <CurrentPlayerBadge />
+                <div className="ks-mono ks-gold text-xs">{t('game.round')} {currentRound + 1}</div>
+              </div>
+              <div className="ks-mono ks-muted text-xs">{t('game.target')} {target.toLocaleString('sk-SK')}</div>
+            </div>
+            <div className="flex items-end justify-between gap-3 mb-1">
+              <div className="flex-1 min-w-0">
+                <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.player')}</div>
+                <div title={players[currentPlayer]} className="ks-display text-4xl ks-cream font-bold leading-tight truncate">{players[currentPlayer]}</div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.score')}</div>
+                <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'ks-text-accent' : 'ks-gold'}`} style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
+                  {total.toLocaleString('sk-SK')}
+                </div>
+              </div>
+            </div>
+          </div>
+  );
+
   return (
-    <div className={`ks-game-screen ks-fade ks-bg ${isViewerMode ? 'ks-viewer-screen' : isRecorderMode ? 'min-h-screen pb-6' : 'min-h-screen pb-32'}`}>
-      {!isRecorderMode && (
+    <div className={`ks-game-screen ks-fade ks-bg ${isViewerMode ? 'ks-viewer-screen' : (isRecorderMode || isCombinedMode) ? 'min-h-screen pb-6' : 'min-h-screen pb-32'}`}>
+      {!isRecorderMode && !isCombinedMode && (
         <Header
           title={`Turnaj · do ${target.toLocaleString('sk-SK')}`}
           onBack={onMenu}
@@ -2643,6 +2675,19 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                               target={target} extensions={extensions} size="xl" showRank />
           </div>
         </div>
+      ) : isCombinedMode ? (
+        <div className="h-[100dvh] flex flex-col px-3 pt-[max(10px,env(safe-area-inset-top))] pb-[max(10px,env(safe-area-inset-bottom))] overflow-y-auto">
+          <div className="flex items-center justify-between gap-2 mb-2 shrink-0">
+            <button onClick={onMenu} className="ks-press ks-cream flex items-center gap-1 px-2 py-1"><ChevronLeft size={20} /><span className="ks-body">Späť</span></button>
+            <div className="ks-display ks-gold text-lg text-center">{players[currentPlayer]}</div>
+            <button onClick={onAbort} className="ks-press ks-card px-3 py-2 rounded-sm ks-mono text-xs ks-text-accent">{t('game.abort')}</button>
+          </div>
+          <div className="mb-2 flex-1" style={{ minHeight: 160 }}>
+            <BigScoreDisplay players={players} totals={totals} highlightPlayer={currentPlayer}
+                              target={target} extensions={extensions} size="lg" showRank showTarget fill />
+          </div>
+          <div className="shrink-0">{turnCard}</div>
+        </div>
       ) : isRecorderMode ? (
         <div className="min-h-[100dvh] flex flex-col px-3 pt-[max(10px,env(safe-area-inset-top))] pb-[max(10px,env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between gap-2 mb-2">
@@ -2650,31 +2695,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
             <div className="ks-display ks-gold text-lg text-center">{players[currentPlayer]}</div>
             <button onClick={onAbort} className="ks-press ks-card px-3 py-2 rounded-sm ks-mono text-xs ks-text-accent">{t('game.abort')}</button>
           </div>
-          <div
-            className="ks-card-prom ks-current-player-frame rounded-sm p-4 mb-2"
-            style={{ '--ks-current-player-color': currentPlayerColor }}
-            aria-current="true"
-          >
-            <div className="flex items-baseline justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <CurrentPlayerBadge />
-                <div className="ks-mono ks-gold text-xs">{t('game.round')} {currentRound + 1}</div>
-              </div>
-              <div className="ks-mono ks-muted text-xs">{t('game.target')} {target.toLocaleString('sk-SK')}</div>
-            </div>
-            <div className="flex items-end justify-between gap-3 mb-1">
-              <div className="flex-1 min-w-0">
-                <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.player')}</div>
-                <div title={players[currentPlayer]} className="ks-display text-4xl ks-cream font-bold leading-tight truncate">{players[currentPlayer]}</div>
-              </div>
-              <div className="text-right shrink-0">
-                <div className="ks-mono ks-muted text-[10px] mb-0.5">{t('game.score')}</div>
-                <div className={`ks-display text-5xl font-bold leading-none ${total < 0 ? 'ks-text-accent' : 'ks-gold'}`} style={{ textShadow: total >= 0 ? '0 2px 12px rgba(212,184,106,0.3)' : 'none' }}>
-                  {total.toLocaleString('sk-SK')}
-                </div>
-              </div>
-            </div>
-          </div>
+          {turnCard}
           <div className="ks-card-prom rounded-sm p-4 mb-2">
             <div className="flex items-center justify-between mb-3">
               <div className="ks-mono ks-gold text-xs">PRÁVE PRIPISUJEŠ</div>

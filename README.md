@@ -6,10 +6,10 @@
 ![React](https://img.shields.io/badge/React-18.x-0f172a?style=for-the-badge&logo=react)
 ![Firebase](https://img.shields.io/badge/Firebase-12.x-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![Capacitor](https://img.shields.io/badge/Capacitor-6.x-2563eb?style=for-the-badge&logo=capacitor&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-85%2F85%20✓-22c55e?style=for-the-badge)
-![Release](https://img.shields.io/badge/release-v1.7.0-d4b86a?style=for-the-badge)
+![Tests](https://img.shields.io/badge/tests-100%2F100%20✓-22c55e?style=for-the-badge)
+![Release](https://img.shields.io/badge/release-v1.7.1-d4b86a?style=for-the-badge)
 
-## 📦 Status: STABILNÝ — v1.7.0
+## 📦 Status: STABILNÝ — v1.7.1
 
 > **Verzia 1.7.0** — opravy z auditu: štatistiky, undo, tlačidlo Späť, OCR, PWA
 
@@ -50,6 +50,14 @@
 ---
 
 ## 🆕 Changelog
+
+### v1.7.1 — Kombinovaný režim, úpravy archívu, svetlé skiny *(2026-10-26)*
+
+- **Kombinovaný režim** zobrazenia hry: veľké skóre s cieľom + karta „na ťahu“
+- **Archív**: úprava cieľa, zápis −1000, prepočet víťaza po úprave
+- **Opravy**: čitateľné spodné lišty na svetlých skinoch, mazanie hráča zo zoznamu cez „Upraviť“, žiadny falošný míľnik
+
+---
 
 ### v1.7.0 — Opravy z auditu *(2026-10-26)*
 
