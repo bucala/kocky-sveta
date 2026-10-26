@@ -4,6 +4,7 @@ import { useBackHandler } from '../hooks/useBackHandler.js';
 import { showConfirm } from '../components/Dialogs.jsx';
 import { DiceIcon, DiceRow, GoldButton, Header } from '../components/ui.jsx';
 import { RULE_CATEGORIES, SETTING_RULE_IDS } from '../constants/rules.js';
+import { MIN_TARGET } from '../constants/game.js';
 
 // ─── Pravidlá: prehľad a editor ─────────────────────────────────────────
 
@@ -34,7 +35,8 @@ export function RulesView({ rules, onBack }) {
             Každý zápis musí byť aspoň <strong className="ks-gold">{minWO} bodov</strong> (minimálny zápis) — alebo daj <em>čiarku</em>.
             Ak v hode nepadla žiadna bodujúca kocka, z aktuálneho skóre sa odpočíta
             <strong className="ks-text-accent"> −{Math.abs(penalty).toLocaleString('sk-SK')} bodov</strong>.
-            Nad <strong className="ks-gold">{(target - minWO).toLocaleString('sk-SK')} bodov</strong> nastáva <em className="ks-gold">koncovka</em> —
+            Nad <strong className="ks-gold">{(target - minWO).toLocaleString('sk-SK')} bodov</strong>
+            {target !== 5000 && <> (pri hre do 5 000 nad <strong className="ks-gold">{(5000 - minWO).toLocaleString('sk-SK')}</strong>)</>} nastáva <em className="ks-gold">koncovka</em> —
             treba dohodiť presne do cieľa.
           </p>
           <p className="ks-body ks-cream leading-relaxed mt-2">
@@ -281,6 +283,8 @@ export function SettingEditCard({ rule, onUpdate }) {
             type="number"
             value={rule.points}
             onChange={(e) => onUpdate({ points: parseInt(e.target.value, 10) || 0 })}
+            onBlur={() => { if (rule.id === 'r15' && Number(rule.points) < MIN_TARGET) onUpdate({ points: MIN_TARGET }); }}
+            min={rule.id === 'r15' ? MIN_TARGET : undefined}
             className={`flex-1 bg-stone-950/60 border ks-border-sub rounded-sm px-3 py-2 ks-display text-2xl font-semibold outline-none focus:border-amber-700 ${isNeg ? 'ks-text-accent' : 'ks-gold'}`}
           />
           <div className="ks-mono ks-muted text-xs">BODOV</div>

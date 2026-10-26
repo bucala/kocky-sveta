@@ -11,6 +11,9 @@ export const QUICK_VALUES = [50, 100, 300, 400, 500, 600, 1000, 1500, 2000];
 export const PENALTY_VALUE = -1000;
 
 // Možnosti cieľového skóre
+// Najnižší povolený cieľ turnaja (menší nemá v hre zmysel).
+export const MIN_TARGET = 2000;
+
 export const TARGET_OPTIONS = [
   { value: 5000,  label: 'Krátka hra',   sub: 'do 5 000 bodov' },
   { value: 10000, label: 'Klasická hra', sub: 'do 10 000 bodov' },

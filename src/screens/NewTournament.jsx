@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Play, Target, Plus, X, UserPlus, Check, Pencil } from 'lucide-react';
 import { GoldButton, Ornament, Header } from '../components/ui.jsx';
-import { TARGET_OPTIONS } from '../constants/game.js';
+import { TARGET_OPTIONS, MIN_TARGET } from '../constants/game.js';
 import { useT } from '../lib/i18n.js';
 import { showConfirm } from '../components/Dialogs.jsx';
 
@@ -9,7 +9,7 @@ export function NewTournament({ onBack, onStart, knownPlayers = [], onKnownPlaye
   const t = useT();
   const [count, setCount] = useState(3);
   // Predvolený cieľ z pravidla r15; iná hodnota než 5 000/10 000 sa ponúkne ako vlastný cieľ.
-  const initialTarget = Number(defaultTarget) > 0 ? Math.round(Number(defaultTarget)) : 10000;
+  const initialTarget = Number(defaultTarget) > 0 ? Math.max(MIN_TARGET, Math.round(Number(defaultTarget))) : 10000;
   const targetOptions = TARGET_OPTIONS.some(o => o.value === initialTarget)
     ? TARGET_OPTIONS
     : [...TARGET_OPTIONS, { value: initialTarget, label: 'Vlastný cieľ', sub: `do ${initialTarget.toLocaleString('sk-SK')} bodov` }];

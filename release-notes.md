@@ -1,3 +1,10 @@
+## Čo je nové v 1.7.4
+
+- 👑 Tlačidlo „6 rovnakých“ je v spodnom rade; po potvrdení pripíše body do cieľa.
+- 🎯 Cieľ turnaja je najmenej 2 000 bodov.
+
+---
+
 ## Čo je nové v 1.7.3
 
 - 🎨 Skiny Aréna a Čarovný pergamen majú vlastný vzhľad.

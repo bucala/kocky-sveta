@@ -7,9 +7,9 @@
 ![Firebase](https://img.shields.io/badge/Firebase-12.x-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 ![Capacitor](https://img.shields.io/badge/Capacitor-6.x-2563eb?style=for-the-badge&logo=capacitor&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-122%2F122%20✓-22c55e?style=for-the-badge)
-![Release](https://img.shields.io/badge/release-v1.7.3-d4b86a?style=for-the-badge)
+![Release](https://img.shields.io/badge/release-v1.7.4-d4b86a?style=for-the-badge)
 
-## 📦 Status: STABILNÝ — v1.7.3
+## 📦 Status: STABILNÝ — v1.7.4
 
 > **Verzia 1.7.0** — opravy z auditu: štatistiky, undo, tlačidlo Späť, OCR, PWA
 
