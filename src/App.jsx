@@ -1762,7 +1762,8 @@ function TournamentScreen({
   // Zobrazí sa keď: (a) prebieha exact-hit-verification alebo (b) je confirmation kolo.
   const showDecisionPopup = !!tournament.pendingDecision || isConfirmationTurn;
 
-  const pendingSum = pending.reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
+  // 'six' = výhra šiestimi rovnakými: pripíše body chýbajúce do cieľa.
+  const pendingSum = pending.reduce((a, b) => a + (typeof b === 'number' ? b : b === 'six' ? Math.max(0, target - total) : 0), 0);
   const newTotal = total + pendingSum;
 
   function showToast(msg, kind = 'info') {
@@ -1808,7 +1809,7 @@ function TournamentScreen({
       showToast(t('toast.dashRequired'), 'warn');
       return;
     }
-    if (pending.some(p => p === 'dash' || p === penaltyValue)) {
+    if (pending.some(p => p === 'dash' || p === 'six' || p === penaltyValue)) {
       setPending([v]);
       return;
     }
@@ -1867,8 +1868,9 @@ function TournamentScreen({
   ) : null;
 
   // ─── Šesť rovnakých (pravidlo r13) ───────────────────────────────────────
-  // „Automatická výhra“: po potvrdení (druhé ťuknutie) hráč na ťahu vyhráva;
-  // do jeho políčka v aktuálnom kole sa zapíšu body chýbajúce do cieľa turnaja.
+  // „Automatická výhra“: prvé ťuknutie tlačidlo označí, druhé vloží do „Práve
+  // pripisuješ“ položku „Víťazstvo 6 rovnakých kociek“; po Zapísať hráč vyhráva
+  // a do jeho políčka v aktuálnom kole sa zapíšu body chýbajúce do cieľa turnaja.
   // „Pevná hodnota 3000“: pridá 3 000 bodov ako bežný hod.
   const [sixArmed, setSixArmed] = useState(false);
   useEffect(() => {
@@ -1878,8 +1880,16 @@ function TournamentScreen({
   }, [sixArmed]);
 
   function sixOfKindWin() {
+    if (isConfirmationTurn) {
+      showToast(t('toast.dashRequired'), 'warn');
+      return;
+    }
     if (!sixArmed) { setSixArmed(true); return; }
     setSixArmed(false);
+    setPending(['six']);
+  }
+
+  function recordSixOfKindWin() {
     setPending([]);
     onUpdate(prev => {
       const n = prev.players.length;
@@ -1926,6 +1936,11 @@ function TournamentScreen({
 
   function commitPoints() {
     if (pending.length === 0) return;
+
+    if (pending[0] === 'six') {
+      recordSixOfKindWin();
+      return;
+    }
 
     if (pending[0] === 'dash') {
       if (isConfirmationTurn) {
@@ -2431,7 +2446,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
               <div className="flex flex-wrap gap-2 mb-3">
                 {pending.map((p, i) => (
                   <button key={i} onClick={() => removePending(i)} className={`ks-press group flex items-center gap-1.5 px-3 py-1.5 rounded-sm border ${p === 'dash' ? 'ks-pending-dash border-stone-600/60 bg-stone-800/40 ks-muted' : p < 0 ? 'ks-pending-negative border-red-800/60 bg-red-950/40 ks-text-accent' : 'ks-pending-positive ks-border-accent bg-stone-900/70 ks-cream'}`}>
-                    <span className="ks-display font-semibold">{p === 'dash' ? t('game.dashChip') : (p > 0 ? `+${p}` : p)}</span>
+                    <span className="ks-display font-semibold">{p === 'dash' ? t('game.dashChip') : p === 'six' ? t('game.six.chip') : (p > 0 ? `+${p}` : p)}</span>
                     <X size={14} className="opacity-60 group-hover:opacity-100" />
                   </button>
                 ))}
@@ -2572,7 +2587,7 @@ const currentPlayerColor = PLAYER_COLORS[currentPlayer % PLAYER_COLORS.length];
                           p < 0 ? 'ks-pending-negative border-red-800/60 bg-red-950/40 ks-text-accent' :
                           'ks-pending-positive ks-border-accent bg-stone-900/70 ks-cream'}`}>
                       <span className="ks-display font-semibold">
-                        {p === 'dash' ? t('game.dashChip') : (p > 0 ? `+${p}` : p)}
+                        {p === 'dash' ? t('game.dashChip') : p === 'six' ? t('game.six.chip') : (p > 0 ? `+${p}` : p)}
                       </span>
                       <X size={14} className="opacity-60 group-hover:opacity-100" />
                     </button>
